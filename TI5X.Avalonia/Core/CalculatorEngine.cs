@@ -258,7 +258,8 @@ public class CalculatorEngine
             {
                 int beforeDecimal = Arith.FiguresBeforeDecimal(val, 0);
                 int decPlaces = Math.Max(0, Math.Min(decimals, 10 - beforeDecimal));
-                return val.ToString($"F{decPlaces}", CultureInfo.InvariantCulture);
+                double rounded = Math.Round(val, decPlaces, MidpointRounding.AwayFromZero);
+                return rounded.ToString($"F{decPlaces}", CultureInfo.InvariantCulture);
             }
             else
             {
@@ -446,6 +447,13 @@ public class CalculatorEngine
             effKey = MapSecond(keyCode);
             SecondState = false;
             NotifyStateChanged();
+        }
+
+        // If collecting operands for function (STO, RCL, GTO, FIX, etc.)
+        if (CollectingForFunction != 0)
+        {
+            CollectOperand(effKey);
+            return;
         }
 
         bool inv = InvState;
@@ -1275,23 +1283,10 @@ public class CalculatorEngine
 
     public void ExecuteIfFlg(int flag, bool inv)
     {
-        // Waiting for destination address
         if (flag >= 0 && flag < MaxFlags)
         {
             bool cond = Flags[flag] ^ inv;
-            if (cond)
-            {
-                // Condition met: will jump on next GTO operand
-                DigitsNeeded = 3;
-                AccumDigits = 0;
-                CollectingForFunction = KeyCodes.KEY_GTO;
-                AcceptSymbolic = true;
-                AcceptInd = true;
-            }
-            else
-            {
-                // Skip destination in program mode or ignore in manual
-            }
+            ExecuteConditionalJump(cond);
         }
         else
         {
@@ -1305,18 +1300,48 @@ public class CalculatorEngine
         {
             Memories[reg] -= 1.0;
             bool jump = inv ? (Memories[reg] == 0.0) : (Memories[reg] != 0.0);
-            if (jump)
-            {
-                DigitsNeeded = 3;
-                AccumDigits = 0;
-                CollectingForFunction = KeyCodes.KEY_GTO;
-                AcceptSymbolic = true;
-                AcceptInd = true;
-            }
+            ExecuteConditionalJump(jump);
         }
         else
         {
             SetErrorState();
+        }
+    }
+
+    private void ExecuteConditionalJump(bool cond)
+    {
+        if (cond)
+        {
+            DigitsNeeded = 3;
+            AccumDigits = 0;
+            CollectingForFunction = KeyCodes.KEY_GTO;
+            AcceptSymbolic = true;
+            AcceptInd = true;
+        }
+        else
+        {
+            if (IsRunning || PC > 0)
+            {
+                SkipProgramBranchTarget();
+            }
+        }
+    }
+
+    private void SkipProgramBranchTarget()
+    {
+        byte[] prog = GetCurProg();
+        int max = GetMaxProg();
+        if (PC >= max) return;
+
+        byte nextOp = prog[PC];
+        if (nextOp == KeyCodes.KEY_IND)
+        {
+            PC++;
+            if (PC < max) PC++;
+        }
+        else
+        {
+            PC++;
         }
     }
 
@@ -1713,7 +1738,10 @@ public class CalculatorEngine
             {
                 IsRunning = false;
                 NotifyStateChanged();
-                SetX(X);
+                if (State != EngineState.Error)
+                {
+                    SetX(X);
+                }
             }
         });
     }
@@ -1729,7 +1757,6 @@ public class CalculatorEngine
     public void StepProgram()
     {
         ExecuteSingleProgramStep();
-        SetX(X);
     }
 
     private bool ExecuteSingleProgramStep()
@@ -1742,6 +1769,7 @@ public class CalculatorEngine
             return false;
         }
 
+        int stepPc = PC;
         byte op = prog[PC++];
         if (op == KeyCodes.KEY_R_S)
         {
@@ -1751,6 +1779,12 @@ public class CalculatorEngine
         if (op == KeyCodes.KEY_PAUSE)
         {
             PauseRequested = true;
+            return true;
+        }
+
+        if (op == KeyCodes.KEY_LBL)
+        {
+            if (PC < max) PC++; // Skip label identifier
             return true;
         }
 
@@ -1807,6 +1841,7 @@ public class CalculatorEngine
 
     private static int KeyToDigit(int key) => key switch
     {
+        >= 0 and <= 9 => key,
         KeyCodes.KEY_0 => 0,
         KeyCodes.KEY_1 => 1,
         KeyCodes.KEY_2 => 2,

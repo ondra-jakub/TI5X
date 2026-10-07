@@ -20,6 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="TI5X.Avalonia.Tests\**" />
+    <EmbeddedResource Remove="TI5X.Avalonia.Tests\**" />
+    <None Remove="TI5X.Avalonia.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
     <AvaloniaResource Include="Assets\**\*" />
   </ItemGroup>

@@ -167,11 +167,11 @@ Row 9: [R/S] 91  [0] 00    [.] 93    [+/-] 94  [=] 95
 | Key | Label | Function | Display Output |
 |:---:|:---:|:---|:---|
 | `A` | `Lbl A` | Initialize simulation state ($f=600, v=-500, x=2500$) | Initial HUD `-500.2500` (halted on `R/S`) |
-| `B` / `R/S` | `Lbl B` | Execute turn with display register $X$ as burn input $B$ | Updated HUD $-V.AAAA$ (halted on `R/S`) |
+| `B` / `R/S` | `Lbl B` | Execute turn with display register $X$ as burn input $B$ (`R/S` only while halted at the HUD; after a `C`/`D`/`E` query press `B`) | Updated HUD $-V.AAAA$ (halted on `R/S`) |
 | `C` | `Lbl C` | Query remaining propellant ($R00$) | Fuel mass (e.g. `600.0000`), halts on `R/S` |
 | `D` | `Lbl D` | Query current exact altitude ($R02$) | Altitude in ft (e.g. `2047.5000`), halts on `R/S` |
 | `E` | `Lbl E` | Query current velocity ($R01$) | Velocity in ft/s (e.g. `-405.0000`), halts on `R/S` |
-| `D'` | `Lbl D'` | Safe landing handler ($v \ge -5.0$, includes $v>0$) | Soft touchdown speed in `Fix 2` (e.g. `-3.25`) |
+| `D'` | `Lbl D'` | Safe landing handler ($v \ge -5.0$, includes $v>0$) | Soft touchdown speed in `Fix 2` (integer for integer burns, e.g. `-4.00`, `0.00`) |
 | `E'` | `Lbl E'` | Crash handler ($v < -5.0$) | Flashing error state (`0 ÷ 0`) |
 
 ---
@@ -179,6 +179,242 @@ Row 9: [R/S] 91  [0] 00    [.] 93    [+/-] 94  [=] 95
 ## 8. Emulator Considerations (`TI5X.Avalonia`)
 
 When executing this program on desktop/mobile emulators such as `TI5X.Avalonia`:
-1. **Conditional Branch Opcodes:** Ensure the execution engine dispatches `KEY_X_GE_T` (`77`) and `KEY_X_EQ_T` (`67`) conditionals against the $T$ register.
-2. **Sequential Label Declarations:** Ensure sequential execution skips over `Lbl` declaration operands (`76 nn`) as non-executable markers rather than invoking subroutines.
-3. **Partition Bounds:** Memory registers $R00$–$R04$ reside comfortably within bank 0.
+1. **Conditional Branch Opcodes:** The execution engine dispatches `KEY_X_GE_T` (`77`) and `KEY_X_EQ_T` (`67`) conditionals against the $T$ register and skips branch targets when false.
+2. **Sequential Label Declarations:** Sequential execution skips over `Lbl` declaration operands (`76 nn`) as non-executable markers rather than invoking subroutines.
+3. **Partition Bounds:** Memory registers $R00$–$R04$ reside comfortably within default partition bank 0.
+
+---
+
+## 9. Complete Keystroke Program Listing (142 Steps / Bytes)
+
+Every program step occupies exactly one byte in program memory (steps `000` through `141`).
+
+```text
+Step | Key Entry       | Code | Comment / Operation
+-----+-----------------+------+------------------------------------------------------
+000  | 2nd Lbl A       | 76   | [Lbl A] Initialize Game
+001  |                 | 11   | Label identifier A
+002  | 6               | 06   | Enter 600
+003  | 0               | 00   |
+004  | 0               | 00   |
+005  | STO             | 42   | R00 = 600 (Initial Fuel)
+006  | 00              | 00   | (register 00)
+007  | 5               | 05   | Enter -500
+008  | 0               | 00   |
+009  | 0               | 00   |
+010  | +/-             | 94   | Negate
+011  | STO             | 42   | R01 = -500 (Initial Velocity)
+012  | 01              | 01   | (register 01)
+013  | 2               | 02   | Enter 2500
+014  | 5               | 05   |
+015  | 0               | 00   |
+016  | 0               | 00   |
+017  | STO             | 42   | R02 = 2500 (Initial Altitude)
+018  | 02              | 02   | (register 02)
+019  | GTO             | 61   | Jump to HUD display
+020  | 2nd C'          | 18   | (Lbl C')
+-----+-----------------+------+------------------------------------------------------
+021  | 2nd Lbl B       | 76   | [Lbl B] Turn entry (Burn B in display register X)
+022  |                 | 12   | Label identifier B
+023  | STO             | 42   | R03 = requested burn B
+024  | 03              | 03   | (register 03)
+025  | x↔t             | 32   | T = requested burn B
+026  | RCL             | 43   | X = available fuel R00
+027  | 00              | 00   | (register 00)
+028  | 2nd x≥t         | 77   | If Fuel >= Burn (Fuel OK)
+029  | 2nd A'          | 16   | goto Lbl A'
+030  | RCL             | 43   | Otherwise Burn = remaining fuel
+031  | 00              | 00   | (register 00)
+032  | STO             | 42   | R03 = R00
+033  | 03              | 03   | (register 03)
+-----+-----------------+------+------------------------------------------------------
+034  | 2nd Lbl 2nd A'  | 76   | [Lbl A'] Physics update
+035  |                 | 16   | Label identifier A'
+036  | RCL             | 43   | Recall Burn (R03)
+037  | 03              | 03   | (register 03)
+038  | INV             | 22   | R00 = R00 - Burn (deduct propellant)
+039  | SUM             | 44   |
+040  | 00              | 00   | (register 00)
+041  | RCL             | 43   | Recall Burn
+042  | 03              | 03   | (register 03)
+043  | -               | 75   | Subtract gravity (g = 5)
+044  | 5               | 05   |
+045  | =               | 95   | a = Burn - 5
+046  | STO             | 42   | R04 = net acceleration a
+047  | 04              | 04   | (register 04)
+048  | (               | 53   | Calculate altitude change: x_new = x + v + a/2
+049  | RCL             | 43   | Recall velocity v (R01)
+050  | 01              | 01   | (register 01)
+051  | +               | 85   |
+052  | (               | 53   |
+053  | RCL             | 43   | Recall acceleration a (R04)
+054  | 04              | 04   | (register 04)
+055  | ÷               | 55   | Divide by 2
+056  | 2               | 02   |
+057  | )               | 54   |
+058  | )               | 54   |
+059  | SUM             | 44   | R02 = R02 + (v + a/2)
+060  | 02              | 02   | (register 02)
+061  | RCL             | 43   | Recall acceleration a (R04)
+062  | 04              | 04   | (register 04)
+063  | SUM             | 44   | R01 = R01 + a (update velocity v_new = v + a)
+064  | 01              | 01   | (register 01)
+065  | 0               | 00   | Set T = 0 for ground comparison
+066  | x↔t             | 32   | (T = 0)
+067  | RCL             | 43   | X = Altitude (R02)
+068  | 02              | 02   | (register 02)
+069  | INV             | 22   | If Altitude < 0 (touchdown / subsurface contact)
+070  | 2nd x≥t         | 77   |
+071  | 2nd B'          | 17   | goto Lbl B'
+072  | 2nd x=t         | 67   | If Altitude == 0 (exact surface touchdown)
+073  | 2nd B'          | 17   | goto Lbl B'
+-----+-----------------+------+------------------------------------------------------
+074  | 2nd Lbl 2nd C'  | 76   | [Lbl C'] HUD Formatter & Wait
+075  |                 | 18   | Label identifier C'
+076  | (               | 53   | Display = v - (x / 10000)
+077  | RCL             | 43   | Recall velocity v (R01)
+078  | 01              | 01   | (register 01)
+079  | -               | 75   |
+080  | (               | 53   |
+081  | RCL             | 43   | Recall altitude x (R02)
+082  | 02              | 02   | (register 02)
+083  | ÷               | 55   |
+084  | 1               | 01   | Divide by 10000
+085  | 0               | 00   |
+086  | 0               | 00   |
+087  | 0               | 00   |
+088  | 0               | 00   |
+089  | )               | 54   |
+090  | )               | 54   |
+091  | =               | 95   | Compute HUD value
+092  | 2nd Fix         | 58   | Set display format to 4 decimals (-V.AAAA)
+093  | 4               | 04   |
+094  | R/S             | 91   | Stop execution & wait for pilot's next burn entry
+095  | GTO             | 61   | Loop to next turn
+096  | B               | 12   | (Lbl B)
+-----+-----------------+------+------------------------------------------------------
+097  | 2nd Lbl 2nd B'  | 76   | [Lbl B'] Ground Touchdown Evaluation
+098  |                 | 17   | Label identifier B'
+099  | 0               | 00   | Reset altitude R02 = 0
+100  | STO             | 42   |
+101  | 02              | 02   | (register 02)
+102  | 5               | 05   | Set T = -5.0 (Safe landing velocity threshold)
+103  | +/-             | 94   |
+104  | x↔t             | 32   | (T = -5.0)
+105  | RCL             | 43   | X = Touchdown velocity (R01)
+106  | 01              | 01   | (register 01)
+107  | 2nd x≥t         | 77   | If v >= -5.0 (Safe landing)
+108  | 2nd D'          | 19   | goto Lbl D'
+-----+-----------------+------+------------------------------------------------------
+109  | 2nd Lbl 2nd E'  | 76   | [Lbl E'] CRASH State (Fatal Impact)
+110  |                 | 10   | Label identifier E' (Opcode 10)
+111  | RCL             | 43   | Recall fatal impact velocity (R01)
+112  | 01              | 01   | (register 01)
+113  | 2nd Fix         | 58   | Format to 2 decimals
+114  | 2               | 02   |
+115  | 0               | 00   | Force blinking Error display via division by zero (0 ÷ 0)
+116  | ÷               | 55   |
+117  | 0               | 00   |
+118  | =               | 95   | Triggers flashing error state
+119  | R/S             | 91   | Halt in crash state
+-----+-----------------+------+------------------------------------------------------
+120  | 2nd Lbl 2nd D'  | 76   | [Lbl D'] SAFE LANDING (Victory!)
+121  |                 | 19   | Label identifier D'
+122  | RCL             | 43   | Recall touchdown velocity (R01)
+123  | 01              | 01   | (register 01)
+124  | 2nd Fix         | 58   | Format to 2 decimals
+125  | 2               | 02   |
+126  | R/S             | 91   | Halt: Victory!
+-----+-----------------+------+------------------------------------------------------
+127  | 2nd Lbl C       | 76   | [Lbl C] Telemetry Query: Remaining Fuel
+128  |                 | 13   | Label identifier C
+129  | RCL             | 43   | Show R00
+130  | 00              | 00   | (register 00)
+131  | R/S             | 91   | Halt display
+-----+-----------------+------+------------------------------------------------------
+132  | 2nd Lbl D       | 76   | [Lbl D] Telemetry Query: Current Altitude
+133  |                 | 14   | Label identifier D
+134  | RCL             | 43   | Show R02
+135  | 02              | 02   | (register 02)
+136  | R/S             | 91   | Halt display
+-----+-----------------+------+------------------------------------------------------
+137  | 2nd Lbl E       | 76   | [Lbl E] Telemetry Query: Current Velocity
+138  |                 | 15   | Label identifier E
+139  | RCL             | 43   | Show R01
+140  | 01              | 01   | (register 01)
+141  | R/S             | 91   | Halt display
+```
+
+---
+
+## 10. Magnetic Card Definition (`card00`)
+
+```xml
+<carddef style="system">
+  <label slot="titleleft">LUNAR LANDER</label>
+  <label slot="titleright">TI-58 / TI-59</label>
+  <label slot="a">INIT</label>
+  <label slot="b">BURN</label>
+  <label slot="c">FUEL</label>
+  <label slot="d">ALT</label>
+  <label slot="e">VEL</label>
+  <label slot="aprime">PHYS</label>
+  <label slot="bprime">TOUCH</label>
+  <label slot="cprime">HUD</label>
+  <label slot="dprime">WIN</label>
+  <label slot="eprime">CRASH</label>
+</carddef>
+```
+
+---
+
+## 11. User Guide — How to Play
+
+### 11.1 Loading the program
+- **TI-58 / TI-59 (keyboard entry):** `2nd CP`, `LRN`, key in steps `000`–`141` from §9 (each code = one keystroke sequence, e.g. `STO 0 0` is entered as `STO 0 0` and stored as `42 00`), `LRN`, `RST`. Check with `SST`/`BST` against the address column.
+- **TI-59 (magnetic card):** after keying in, store bank 1 with `1 2nd Write` and insert side 1 of a card. Later reload with `CLR` + insert card. Write the labels from §10 on the card strip.
+- **TI5X.Avalonia:** File → Open Program → `Assets/lunar_lander.ti5p`. The card strip shows `INIT / BURN / FUEL / ALT / VEL`.
+
+### 11.2 Playing
+1. Press `A`. Display: `-500.2500` (descending at 500 ft/s, altitude 2500 ft).
+2. Enter the burn for the next second (non-negative integer) and press `R/S` (or `B`).
+3. Read the HUD `-VVV.AAAA`: integer part = sink rate, four decimals = altitude in feet (rounded half-up, e.g. `2029.5` ft shows as `.2030`).
+4. Any time while halted: `C` = fuel, `D` = altitude, `E` = velocity. **After such a query, enter the burn and press `B`** — pressing `R/S` would continue into the next query routine instead of a flight turn.
+5. Repeat until touchdown.
+
+### 11.3 End of game
+- **Safe landing** ($v \ge -5$ ft/s at the end of the step in which $x \le 0$): display shows the touchdown speed in `Fix 2`, e.g. `0.00` or `-4.00`. No flashing.
+- **Crash** ($v < -5$): the display flashes (error caused by `0 ÷ 0`). On real hardware the flashing value is the error value, not the impact speed; press `CLR`, then `E` to see the impact velocity.
+- **Fuel exhausted:** burns larger than the remaining fuel are clamped; with `0` fuel the module falls freely until touchdown is evaluated.
+- New game: press `A` (on hardware press `CLR` first if the display is flashing).
+
+### 11.4 Worked example — a complete winning game (verified in TI5X test suite)
+
+| Turn | Burn entered | Fuel $R00$ | Altitude $R02$ | Velocity $R01$ | Display |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| start | `A` | 600 | 2500 | −500 | `-500.2500` |
+| 1 | 64 | 536 | 2029.5 | −441 | `-441.2030` |
+| 2 | 0 | 536 | 1586 | −446 | `-446.1586` |
+| 3 | 0 | 536 | 1137.5 | −451 | `-451.1138` |
+| 4 | 0 | 536 | 684 | −456 | `-456.0684` |
+| 5 | 0 | 536 | 225.5 | −461 | `-461.0226` |
+| 6 | 466 | 70 | 0 (end of step −5 → clamped) | 0 | `0.00` — **landed** |
+
+Strategy hint: fuel is the total velocity change you can buy (1 unit = 1 ft/s), and every second costs 5 ft/s to gravity. Short descents with one late, large braking burn are the most fuel-efficient.
+
+---
+
+## 12. Compatibility & Emulator Notes
+
+- **TI-58 / TI-58C:** 142 steps and registers R00–R04 fit the default partition (240 steps / 30 registers); no `Op 17` needed. No card reader — key the program in (TI-58C keeps it in Constant Memory).
+- **TI-59:** default 480 steps / 60 registers; one card side (bank 1, steps 000–239) holds the whole program.
+- **TI5X.Avalonia:** verified by the automated suite (`dotnet run --project TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj`: init, free fall, hover, walkthrough, clamping, safe/rebound/crash boundaries, telemetry, resume-after-query, full winning game, `.ti5p` round-trip). Arithmetic uses binary `double`, not 13-digit BCD; with integer burns all values are exact halves, so the displayed results are identical.
+- **Other emulators (Hrastprogrammer TI-59E, ti58c.phweb.me, go59c, TI59R):** the program uses only standard opcodes (`STO/RCL/SUM/INV SUM`, `x↔t`, `x≥t`, `x=t`, `Lbl`, `GTO`, `Fix`, `R/S`) and should run unchanged, but it has **not** been tested on them or on physical hardware.
+
+---
+
+## 13. Heritage & Sources
+
+This program is an adaptation of the classic 1970s "Lunar Lander" calculator game: SR-56 *Applications Library* (600 fuel, −500 ft/s, 2500 ft, combined `−V.AAAA` display), HP-25 *Moon Landing Simulator* (500 ft, −50 ft/s, 120 fuel), HP-55 (PPC Journal V4N4) and HP-15C *Moonlanding*; a TI-58/59 version was also published in the Czechoslovak magazine VTM. Unlike the SR-56 original (absolute step addresses, impact velocity by $\sqrt{v^2+2gx}$), this version uses symbolic labels and evaluates touchdown at the end of each 1 s step (§3).
+
+Sources: rskey.org/gene/calcgene/56lander.htm; hpmuseum.org (HP-25/HP-55 Moon Landing); hp-15c-simulator.de; ti58c.phweb.me and hsl.wz.cz (TI-58/59 instruction set and key codes); oldcomp.cz (VTM "Přistání na Měsíci"); en.wikipedia.org/wiki/TI-59_/_TI-58; calcu59.ch.
