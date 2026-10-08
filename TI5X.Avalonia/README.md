@@ -1,6 +1,6 @@
 # TI5X pro .NET 10 a Avalonia 12
 
-Desktopový port kalkulačky TI-59 z tohoto Android projektu. Používá .NET 10 a Avalonia 12.0.4; původní Android zdroje zůstávají zachované.
+Desktopový emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10 a Avalonia 12.0.4, portovaný z Android projektu TI5X v tomto repozitáři. Původní Android zdroje zůstávají zachované.
 
 ## Spuštění
 
@@ -13,24 +13,42 @@ dotnet run --project TI5X.Avalonia/TI5X.Avalonia.csproj
 
 ## Ovládání
 
-- Klávesnice kalkulačky: číselný vstup, aritmetika, vědecké funkce, paměti, režimy DEG/RAD/GRAD a programování.
-- Fyzická klávesnice: číslice, numerické operátory, Enter pro výsledek, Escape pro CLR, Backspace pro CE, F1–F5 pro A–E.
-- Menu File: otevření a uložení programů `.ti5p`, načtení knihoven `.ti5l`.
-- Menu View: virtuální tiskárna PC-100A a debugger s programovými kroky a registry.
-- Menu Help: stručná nápověda a informace o aplikaci.
+- Klávesnice kalkulačky na obrazovce: číselný vstup, aritmetika, vědecké funkce, paměti, režimy DEG/RAD/GRAD a programování.
+- Fyzická klávesnice: číslice (včetně numerické), `.` `+` `-` `*` `/`, `Enter` = `=`, `Backspace` = `CE`, `Escape` = `CLR`, `F1`–`F5` = `A`–`E`.
+- Menu **File**: `New Program`, `Open Program (.ti5p)...`, `Save Program (.ti5p)...`, `Load Library Module (.ti5l)...`, `Exit`.
+- Menu **View**: `Virtual Printer (PC-100A)` a `Program Debugger / Steps`.
+- Menu **Help**: `TI-59 / Master Library Guide` a `About TI5X Avalonia`.
 
-## Ověření
+## Dokumentace
 
-Samostatný konzolový testovací projekt nevyžaduje grafické prostředí ani další testovací balíčky:
+Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/):
+
+| Dokument | Obsah |
+|---|---|
+| [Příručka kalkulačky TI-59](docs/PRIRUCKA_TI59.md) | Plná příručka: klávesnice, počítání, AOS, paměti, statistika, programování, tabulka všech 100 kódů instrukcí, ukázkové programy. |
+| [Uživatelská příručka emulátoru](docs/EMULATOR_UZIVATEL.md) | Spuštění aplikace, okno, menu, klávesové zkratky, soubory `.ti5p`/`.ti5l`, virtuální tiskárna, debugger, Lunar Lander. |
+| [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, třídy `Core`, formáty souborů, testy, postup rozšiřování. |
+| [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md) | Jediný úplný seznam rozdílů oproti originálu TI-59 a chybějících funkcí. |
+| [Specifikace Lunar Lander](docs/LUNAR_LANDER_SPEC.md) | Ukázkový program: pravidla hry, fyzikální model, kompletní výpis 142 kroků. |
+
+> **Důležité:** program zapsaný z klávesnice v režimu `LRN` se v emulátoru uloží chybně a nefunguje. Funkční program vytvořte jako soubor `.ti5p` (postup v [příručce, kapitola 15](docs/PRIRUCKA_TI59.md#152-pravidla-kódování-programu)) a načtěte ho přes `File > Open Program (.ti5p)...`.
+
+## Testy
+
+Samostatný konzolový testovací projekt nevyžaduje grafické prostředí ani testovací balíčky (xUnit/NUnit nepoužívá, `dotnet test` nic nespustí):
 
 ```sh
-dotnet run --project TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj
+dotnet run --project TI5X.Avalonia/TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj
 ```
 
-Ověřuje LED desetinné tečky, plnou šířku displeje, prioritu operací, dělení nulou a převody úhlů. Při selhání vrací nenulový návratový kód.
+Testů je 17: základní aritmetika a priorita operací, úhlové režimy a převody, a dále 12 testů hry Lunar Lander (inicializace, volný pád, vznášení, průlet, omezení paliva, bezpečné přistání i havárie, telemetrie, vítězná hra), test ukládání a načtení `.ti5p`, generování souboru `Assets/lunar_lander.ti5p` a dva testy přes cestu GUI (`ProcessKey`). Program vypisuje `[PASS]`/`[FAIL]` u každého testu a vrací návratový kód 0 (úspěch) nebo 1 (selhání).
+
+Přehled jednotlivých testů, jejich závislosti a postup přidání nového testu popisuje [vývojářská dokumentace, kapitola 7](docs/EMULATOR_VYVOJ.md#7-testy).
+
+> ⚠️ Test `Generate Assets/lunar_lander.ti5p` přepíše soubor `Assets/lunar_lander.ti5p` v adresáři projektu. Po spuštění testů proto zkontrolujte `git status`.
 
 ## Omezení
 
-Jde o počáteční desktopový port, nikoli o ověřenou emulaci všech detailů TI-59 nebo plnou funkční shodu s Android verzí. Dodaná knihovna obsahuje pouze dostupnou banku z `assets/ml.ti5l-new`, nikoli kompletní Master Library. Úplná kompatibilita programových instrukcí, souborů a periferií vyžaduje další porovnávací testy. Grafické rozhraní zatím není automatizovaně otestované.
+Emulátor není ověřenou emulací všech detailů TI-59. Úplný seznam rozdílů oproti originálu (např. chování režimu `LRN`, sloučené kódy instrukcí, příznaky, statistika, tiskárna) a známých omezení (neúplná Master Library, `.ti5p` neukládá registry, omezená fyzická klávesnice, GUI bez automatizovaných testů) vede [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md).
 
 Licenční podmínky původního projektu jsou v souboru `COPYING` v kořeni repozitáře.

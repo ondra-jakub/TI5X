@@ -158,7 +158,7 @@ Události **nevyvolá**:
 - `PersistentState.LoadProgram` ani `LibraryModule.LoadFromFile` / `LoadFromStream`. View model po načtení volá `UpdateUiState()` sám, ale otevřený debugger se neaktualizuje, dokud nepřijde další `StateChanged` nebo uživatel nestiskne `Refresh`.
 - Přímé nastavení vlastností `PC`, `CurBank`, `X` a dalších. Například `ProgramDebuggerViewModel.Reset()` nastaví `PC = 0` a obnoví jen vlastní seznam. Stavový řádek hlavního okna ukazuje starou hodnotu až do další změny stavu.
 
-Protože běžící program volá události z vlákna na pozadí, všechny view modely v obsluze volají `Dispatcher.UIThread.Post(...)`. Aktualizace UI se tedy vždy provede na vlákně UI, ale **asynchronně**. Jádro nemá žádné zámky: během běhu programu vlákno na pozadí mění stav a vlákno UI ho souběžně čte. Je to bezpečné jen proto, že `ProcessKey` za běhu programu kromě `R/S` nic nepřijímá.
+Protože běžící program volá události z vlákna na pozadí, všechny view modely v obsluze volají `Dispatcher.UIThread.Post(...)`. Aktualizace UI se tedy vždy provede na vlákně UI, ale **asynchronně**. Jádro nemá žádné zámky: během běhu programu vlákno na pozadí mění stav a vlákno UI ho souběžně čte. Tento návrh je bezpečný jen na cestě přes `ProcessKey`, která za běhu programu kromě `R/S` nic nepřijímá. ⚠️ Tlačítka debuggeru už tuto pojistku **obcházejí**: `Step (SST)` volá přímo `CalculatorEngine.StepProgram()` a `Reset (PC=0)` nastavuje `engine.PC = 0`, aniž kterákoli z nich kontrolovala `IsRunning`. Stisk `Step (SST)` za běhu programu proto spustí `ExecuteSingleProgramStep` na vlákně UI souběžně se smyčkou v `Task.Run` a `Reset (PC=0)` mění PC uprostřed běhu – jde o existující souběžný přístup (race condition), ne jen o hypotetickou vstupní cestu (viz [kapitola 9](#9-technická-úskalí)).
 
 ## 3. Jádro – adresář Core
 
@@ -185,7 +185,7 @@ Hlavní třída emulace (`Core/CalculatorEngine.cs`). Obsahuje stav kalkulačky,
 | Vlastnost | Význam |
 |---|---|
 | `X`, `T` | Displejový registr a registr T. |
-| `DisplayString`, `State`, `ExponentEntered` | Text displeje a stav `Entry` / `Result` / `Error` (výčet `EngineState`). |
+| `DisplayString`, `State`, `ExponentEntered` | Text displeje a stav (výčet `EngineState`): `Entry` (celá část čísla), `DecimalEntry` (za desetinnou tečkou), `ExponentEntry` (mantičsa exponentu po `EE`), `Result` (hotový výsledek), `Error` (chybový stav). |
 | `PC`, `CurBank` | Čítač kroků a aktuální banka. |
 | `RegOffset` | Rozdělení paměti. Výchozí hodnota 480; `GetMaxProg()` vrací pro banku 0 hodnotu `RegOffset * 2`, tedy 960. `Op 17` nastaví `RegOffset = (100 − n) * 10`. |
 | `CurAngleMode`, `CurFormat`, `CurDecimals` | Úhlový režim (`Arith.ANG_*`), formát (`Arith.FORMAT_*`), počet desetinných míst (−1 = proměnný). |
@@ -315,7 +315,7 @@ Jádro tiskne přes `Printer?.…`: `Prt` a trasovací tisk (`PrintDisplay`, dis
 Poznámky k chování:
 
 - `UpdateUiState` skládá `StatusInfo` jako `User Bank 00` / `Library Bank NN`, `PC` a `Regs: 100 − RegOffset / 10`. Hodnota `Regs` neodpovídá skutečnému počtu použitelných registrů (všech 100 je vždy dostupných), viz [Odchylky, kapitola 3.10](ODCHYLKY_A_OMEZENI.md#310-rozdělení-paměti).
-- Hlášení `Loaded program…`, `Saved program…`, `Loaded library…` a `Error: …` zůstane ve `StatusInfo` jen do další změny stavu – pak ho `UpdateUiState` přepíše.
+- Hlášení `Loaded program…`, `Saved program…` a `Error: …` zůstane ve `StatusInfo` jen do další změny stavu – pak ho `UpdateUiState` přepíše. ⚠️ Hlášení `Loaded library …` se na stavovém řádku nikdy neukáže: v `LoadCustomLibrary` se po něm hned volá `UpdateUiState()`, které ho okamžitě přepíše (`MainViewModel.cs`, `StatusInfo = "Loaded library …"` → `UpdateUiState()`).
 - Výjimky při načítání a ukládání view model zachytí a zobrazí ve stavovém řádku. Výjimky z jádra při stisku klávesy zachycené nejsou.
 - Debugger zobrazuje `100 − RegOffset / 10` registrů (výchozí stav R00–R51). `IsCurrent` se sice nastavuje, ale XAML ho nikde nepoužívá, takže aktuální krok se nezvýrazňuje. Při běhu programu přijde `StateChanged` po většině kroků a `Refresh` pokaždé projde celý seznam kroků.
 - `PrinterViewModel` ani `ProgramDebuggerViewModel` se po zavření okna z událostí neodhlásí. Každé otevření okna vytvoří nový view model.
@@ -601,7 +601,7 @@ Přehled technických problémů v kódu, na které při úpravách narazíte. �
 | Problém | Kde | Důsledek |
 |---|---|---|
 | Logická délka programu neodpovídá délce pole | `GetMaxProg()` vrací 1000 pro knihovní banky (pole má délku podle souboru, `ml.ti5l` banka 01 jen 127) a `RegOffset * 2` pro banku 0 (po `0 Op 17` až 2000, pole má 960). | `FindLabel` (hledání chybějícího návěští), `ExecuteList` (`List`), `ExecuteListLabels` (`Op 8`), `SST` i běh programu za koncem pole přistoupí mimo pole a vyhodí `IndexOutOfRangeException`. Na vlákně UI to aplikaci shodí. V běžícím programu výjimka ukončí smyčku v `Task.Run` bez hlášení. Viz [Odchylky, bod 7](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení). |
-| Žádná synchronizace vláken | `StartProgram` (`Task.Run`) vs. čtení stavu v `UpdateUiState` a `Refresh` | Zatím funguje díky tomu, že `ProcessKey` za běhu blokuje vstup. Nové vstupní cesty (např. tlačítka debuggeru, která volají jádro přímo) musí s během počítat. |
+| Souběžný přístup bez zámků | `StartProgram` (`Task.Run`) vs. čtení stavu v `UpdateUiState` a `Refresh`; navíc debugger (`Step`, `Reset`) volá jádro přímo z vlákna UI bez kontroly `IsRunning` | Cesta přes `ProcessKey` je chráněná tím, že za běhu programu přijímá jen `R/S`. Ale tlačítka debuggeru `Step (SST)` a `Reset (PC=0)` tuto pojistku obcházejí: za běhu programu spouštějí `ExecuteSingleProgramStep` na vlákně UI souběžně se smyčkou na pozadí, resp. mění PC uprostřed běhu. Jde o existující závadu, dokud se nepřidá kontrola `IsRunning` nebo zámek. |
 | Události téměř při každém kroku | `ExecuteKeyInteractive` → `NotifyStateChanged` → `Dispatcher.UIThread.Post` | Při běhu programu se do fronty UI posílá aktualizace po většině kroků. Otevřený debugger pokaždé projde všech 960 kroků. |
 | Načítání souborů bez události | `PersistentState.LoadProgram`, `LibraryModule` | Debugger se po načtení sám neobnoví. |
 | Neodhlášené události | `PrinterViewModel`, `ProgramDebuggerViewModel` | Po zavření okna zůstává view model přihlášený k událostem jádra. |
