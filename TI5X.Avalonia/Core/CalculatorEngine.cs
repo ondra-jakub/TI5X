@@ -85,6 +85,7 @@ public class CalculatorEngine
 
     // Execution control
     public bool IsRunning { get; private set; }
+    private bool _executingProgramStep;
     public bool PauseRequested { get; private set; }
     private CancellationTokenSource? _runCts;
 
@@ -343,7 +344,7 @@ public class CalculatorEngine
         }
 
         // In program execution, operand bytes for registers, fix decimals, etc. are passed directly as byte values (0..99)
-        if (IsRunning || PC > 0)
+        if (_executingProgramStep)
         {
             ExecuteCollectedFunction(effectiveKey, isSymbolic: false);
             return;
@@ -1789,7 +1790,15 @@ public class CalculatorEngine
         }
 
         // Execute opcode
-        ExecuteKeyInteractive(op);
+        _executingProgramStep = true;
+        try
+        {
+            ExecuteKeyInteractive(op);
+        }
+        finally
+        {
+            _executingProgramStep = false;
+        }
         return State != EngineState.Error;
     }
 

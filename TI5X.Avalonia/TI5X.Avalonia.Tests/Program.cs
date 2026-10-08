@@ -129,6 +129,8 @@ public static class Program
         failures += RunTest("Lunar Lander Resume With B After Query", TestLunarLanderResumeAfterQuery);
         failures += RunTest("Lunar Lander .ti5p Save, Load and Run Roundtrip", TestLunarLanderTi5pRoundtrip);
         failures += RunTest("Generate Assets/lunar_lander.ti5p", GenerateLanderAsset);
+        failures += RunTest("Lunar Lander Asset Played With Physical Keys (GUI path)", TestLunarLanderPhysicalKeys);
+        failures += RunTest("Lunar Lander Crash Then Manual RCL (GUI path)", TestLunarLanderCrashManualRecall);
 
         if (failures == 0)
         {
@@ -522,6 +524,85 @@ public static class Program
         engine.ExecuteSymbolicJump(KeyCodes.KEY_E);
         RunUntilHalt(engine);
         AssertEqual(-500.0, engine.X, 1e-4, "Key E returns velocity");
+    }
+
+    private static string LanderAssetPath()
+    {
+        string projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        return Path.Combine(projectRoot, "Assets", "lunar_lander.ti5p");
+    }
+
+    private static void PressKeys(CalculatorEngine engine, params int[] keys)
+    {
+        foreach (int key in keys)
+        {
+            engine.ProcessKey(key);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (engine.IsRunning)
+            {
+                if (sw.ElapsedMilliseconds > 5000) throw new Exception("Program did not halt");
+                Thread.Sleep(1);
+            }
+        }
+    }
+
+    private static int[] NumberKeys(int value)
+    {
+        int[] map = { KeyCodes.KEY_0, KeyCodes.KEY_1, KeyCodes.KEY_2, KeyCodes.KEY_3, KeyCodes.KEY_4,
+                      KeyCodes.KEY_5, KeyCodes.KEY_6, KeyCodes.KEY_7, KeyCodes.KEY_8, KeyCodes.KEY_9 };
+        return Array.ConvertAll(value.ToString().ToCharArray(), c => map[c - '0']);
+    }
+
+    private static void TestLunarLanderPhysicalKeys()
+    {
+        var engine = new CalculatorEngine();
+        PersistentState.LoadProgram(engine, LanderAssetPath());
+        var card = engine.Banks[engine.CurBank].Card;
+        AssertStringEqual("INIT", card?.A ?? "", "Card A");
+        AssertStringEqual("BURN", card?.B ?? "", "Card B");
+        AssertStringEqual("CRASH", card?.EPrime ?? "", "Card E'");
+
+        PressKeys(engine, KeyCodes.KEY_A);
+        AssertStringEqual("-500.2500", engine.DisplayString, "HUD after A");
+
+        int[] burns = { 64, 0, 0, 0, 0 };
+        string[] huds = { "-441.2030", "-446.1586", "-451.1138", "-456.0684", "-461.0226" };
+        for (int i = 0; i < burns.Length; ++i)
+        {
+            PressKeys(engine, NumberKeys(burns[i]));
+            PressKeys(engine, KeyCodes.KEY_R_S);
+            AssertStringEqual(huds[i], engine.DisplayString, $"HUD after turn {i + 1}");
+        }
+
+        PressKeys(engine, KeyCodes.KEY_C);
+        AssertEqual(536.0, engine.X, 1e-6, "Fuel query with key C");
+
+        PressKeys(engine, NumberKeys(466));
+        PressKeys(engine, KeyCodes.KEY_B);
+        AssertStringEqual("0.00", engine.DisplayString, "Victory display");
+        AssertTrue(engine.State != CalculatorEngine.EngineState.Error, "No error on safe landing");
+
+        PressKeys(engine, KeyCodes.KEY_RCL, KeyCodes.KEY_0, KeyCodes.KEY_0);
+        AssertEqual(70.0, engine.X, 1e-6, "Manual RCL 0 0 shows remaining fuel");
+    }
+
+    private static void TestLunarLanderCrashManualRecall()
+    {
+        var engine = new CalculatorEngine();
+        PersistentState.LoadProgram(engine, LanderAssetPath());
+        PressKeys(engine, KeyCodes.KEY_A);
+        for (int i = 0; i < 20 && engine.State != CalculatorEngine.EngineState.Error; ++i)
+        {
+            PressKeys(engine, KeyCodes.KEY_0, KeyCodes.KEY_R_S);
+        }
+        AssertTrue(engine.State == CalculatorEngine.EngineState.Error, "Free fall ends in crash error");
+        double impact = engine.Memories[1];
+
+        PressKeys(engine, KeyCodes.KEY_CLR, KeyCodes.KEY_E);
+        AssertEqual(impact, engine.X, 1e-6, "CLR, E shows impact velocity");
+
+        PressKeys(engine, KeyCodes.KEY_CLR, KeyCodes.KEY_RCL, KeyCodes.KEY_0, KeyCodes.KEY_1);
+        AssertEqual(impact, engine.X, 1e-6, "Manual RCL 0 1 shows impact velocity");
     }
 
     private static void TestLunarLanderTi5pRoundtrip()
