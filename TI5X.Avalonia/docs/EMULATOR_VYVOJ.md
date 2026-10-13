@@ -2,7 +2,7 @@
 
 Tento dokument je určený vývojářům, kteří chtějí emulátor TI5X upravovat nebo rozšiřovat. Popisuje architekturu aplikace, jednotlivé třídy, formáty souborů `.ti5p` a `.ti5l`, testovací projekt a postup přidání nové instrukce nebo Op kódu.
 
-Popis odpovídá stavu kódu v adresářích `Core/`, `ViewModels/`, `Views/`, `Controls/` a v souborech `MainWindow.axaml(.cs)`, `App.axaml.cs` a `TI5X.Avalonia.Tests/Program.cs`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
+Popis odpovídá stavu kódu v adresářích `TI5X.Core/`, `ViewModels/`, `Views/`, `Controls/`, `TI5X.Verified/` a `TI5X.Core.Tests/` a v souborech `MainWindow.axaml(.cs)` a `App.axaml.cs`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
 
 Související dokumenty:
 
@@ -56,11 +56,15 @@ Související dokumenty:
 
 | Položka | Hodnota |
 |---|---|
+| Řešení | `TI5X.slnx` – aplikace, jádro, testy a verifikované komponenty (centrální správa verzí balíčků v `Directory.Packages.props`, SDK i MTP připnuto v `global.json`). |
 | Hlavní projekt | `TI5X.Avalonia.csproj` – `WinExe`, `net10.0`, `Nullable` a `ImplicitUsings` zapnuté. |
+| Jádro | `TI5X.Core/TI5X.Core.csproj` – knihovna bez závislosti na Avalonii (`namespace TI5X.Avalonia.Core`). |
+| Verifikace | `TI5X.Verified/TI5X.Verified.csproj` – C# kód generovaný z Dafny modelů (`generated/`, zdroje `*.dfy`); regeneruje se přes `dafny translate cs`, CI hlídá shodu. |
 | UI framework | Avalonia 12.0.4 (`Avalonia`, `Avalonia.Desktop`, `Avalonia.Themes.Fluent`, `Avalonia.Fonts.Inter`), v konfiguraci Debug navíc `AvaloniaUI.DiagnosticsSupport`. |
 | Bindingy | `AvaloniaUseCompiledBindingsByDefault = true` – každé XAML okno musí mít `x:DataType`. |
-| Prostředky | Vše v `Assets/` je zároveň `EmbeddedResource` i `AvaloniaResource`. Za běhu se používá jen vložený `ml.ti5l`. |
-| Testy | `TI5X.Avalonia.Tests/` – samostatná konzolová aplikace s odkazem na hlavní projekt. Hlavní projekt její zdrojové soubory vylučuje (`Compile Remove="TI5X.Avalonia.Tests\**"`). |
+| Prostředky | `Assets/` je `EmbeddedResource` hlavního projektu. Za běhu se používá jen vložený `ml.ti5l`. |
+| Testy | `TI5X.Core.Tests/TI5X.Core.Tests.csproj` – TUnit na Microsoft.Testing.Platform; běžící přes `dotnet test` (viz kap. 7). |
+| CI | `.github/workflows/ti5x-dotnet.yml` – build, formát, testy s pokrytím, SBOM a Dafny důkazy. |
 
 Struktura adresářů:
 
@@ -68,24 +72,26 @@ Struktura adresářů:
 TI5X.Avalonia/
   Program.cs, App.axaml(.cs)     start aplikace, vytvoření MainWindow
   MainWindow.axaml(.cs)          hlavní okno, menu, fyzická klávesnice
-  Core/                          emulace bez závislosti na Avalonii
   ViewModels/                    MVVM vrstva (INotifyPropertyChanged)
   Views/                         vedlejší okna (tiskárna, debugger, nápověda, o aplikaci)
   Controls/                      vlastní ovládací prvky (klávesa, LED displej, karta)
   Assets/                        ml.ti5l, lunar_lander.ti5p
-  TI5X.Avalonia.Tests/           konzolový testovací program
+  TI5X.Core/                     emulace bez závislosti na Avalonii
+  TI5X.Verified/                 Dafny modely a generovaný C# (bounds, aritmetika)
+  TI5X.Core.Tests/               testy (TUnit)
   docs/                          dokumentace
 ```
 
-Základní příkazy (spouštějte z adresáře projektu `TI5X.Avalonia/`):
+Základní příkazy (spouštějte z adresáře `TI5X.Avalonia/`):
 
 ```sh
-dotnet build TI5X.Avalonia.csproj
+dotnet build TI5X.slnx -warnaserror
 dotnet run --project TI5X.Avalonia.csproj
-dotnet run --project TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj
+dotnet test --solution TI5X.slnx
+dotnet format TI5X.slnx --verify-no-changes --exclude TI5X.Verified/generated
 ```
 
-Adresář `Core/` nepoužívá žádné typy z Avalonie, takže jádro lze testovat i používat bez grafického rozhraní. Testovací projekt toho využívá.
+Jádro nepoužívá žádné typy z Avalonie, takže je testovatelné bez grafického rozhraní; testy i Dafny důkazy na něm stojí.
 
 ## 2. Architektura
 
@@ -126,30 +132,31 @@ Vazby mezi objekty:
 3. `ProcessKey` rozdělí zpracování:
    - když běží program, reaguje jen na `R/S` (`StopProgram`), ostatní klávesy ignoruje,
    - když se sbírá operand (`DigitsNeeded > 0`), předá klávesu do `CollectOperand`,
-   - v režimu `LRN` volá `ProcessLrnKey` (uloží kód do `UserProgram[PC]`),
+   - v režimu `LRN` volá `ProcessLrnKey` (ukládá kódy instrukcí standardu TI-59 včetně sloučených kódů),
    - jinak volá `ExecuteKeyInteractive`.
 4. `ExecuteKeyInteractive` zpracuje `2nd` (přepne `SecondState`, další klávesu převede přes `MapSecond`), číslice a zadávání čísla. U instrukcí s operandem (`STO`, `RCL`, `SUM`, `PRD`, `EXC`, `GTO`, `SBR`, `Pgm`, `Fix`, `Op`, `St flg`, `If flg`, `Dsz`) nastaví `CollectingForFunction`, `DigitsNeeded`, `AcceptInd` a `AcceptSymbolic`. Ostatní klávesy provede `ExecuteSingleKey`.
 5. Po získání operandu `ExecuteCollectedFunction` zavolá příslušnou metodu `Execute…` (např. `ExecuteStore`, `ExecuteGto`, `ExecuteOp`).
 
-**Běh programu.** `R/S` zavolá `StartProgram()`. Ten na pozadí přes `Task.Run` opakuje `ExecuteSingleProgramStep()`:
+**Běh programu.** `R/S` zavolá `StartProgram()`. Ten na pozadí přes `Task.Run` opakuje `ExecuteSingleProgramStep()`, která dekóduje instrukce strukturálně:
 
 - přečte bajt `prog[PC++]` z aktuální banky (`GetCurProg()`),
-- přímo zpracuje `R/S` (stop), `Pause` (prodleva 500 ms) a `Lbl` (přeskočí i následující bajt),
-- ostatní kódy předá do `ExecuteKeyInteractive` s nastaveným příznakem `_executingProgramStep`.
+- přímo zpracuje `R/S` (stop, předtím dokončí zadávání čísla), `Pause` (prodleva 500 ms), `Lbl` (přeskočí i následující bajt), volání návěští A–E' (bajty 10–19, jako `SBR` z programu), sloučené kódy (`ExecuteMergedCode`: 62–64, 72–74, 83, 84, `92` = RTN) a `HIR` (82, definovaný no-op),
+- skoky `GTO`/`SBR` a podmínky `x=t`/`x≥t`/`If flg`/`Dsz` čtou cíl strukturálně přes `ReadBranchTarget` (návěští `1x`, dvoubajtová adresa `0n nn`, `40 nn` pro Ind, jednobajtová `20`–`99`),
+- instrukce s registrem (`STO`, `RCL`, `SUM`, `Exc`, `Prd`, `Pgm`, `Op`) a `Fix`/`St flg` čtou operand přes `ReadRegisterOperand` (jeden bajt, `40 nn` = Ind; bajt `21` = chyba),
+- ostatní kódy se provedou jako interaktivní klávesy přes `ExecuteKeyInteractive`.
 
-V programu se operand nesbírá po číslicích: **celý následující bajt programu** je operandem (např. `42 05` = `STO 05`, `69 17` = `Op 17`). Bajty 10–19 se u `GTO`/`SBR` berou jako symbolická návěští A–E'. Při příznaku 9 se mezi kroky čeká 50 ms. Smyčka skončí po `R/S`, po chybě nebo po `StopProgram()`.
+Smyčka skončí po `R/S`, po chybě nebo po `StopProgram()`. Při příznaku 9 se mezi kroky čeká 50 ms.
 
-Rozdíly tohoto modelu oproti originálu (sloučené kódy, jednobajtová adresa skoku, `LRN`) popisuje [Odchylky, kapitola 2](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení).
+Diference tohoto modelu oproti originálu (příznak 8, HIR, přepočet Op 16/17 a další) popisuje [Odchylky, kapitola 2](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení). Sloučené kódy, `RTN` (`92`) a dvoubajtové adresy skoků jsou nyní prováděny podle standardu TI-59.
 
 ### 2.3 Události a vlákno UI
 
-`CalculatorEngine` vystavuje tři události typu `Action`:
+`CalculatorEngine` vystavuje dvě události typu `Action`:
 
 | Událost | Kdy se vyvolá | Kdo ji poslouchá |
 |---|---|---|
 | `DisplayChanged` | `SetX`, `ResetEntry`, `SetErrorState`, `ClearErrorState`, `ShowLrnDisplay`, průběžně při zadávání čísla | `MainViewModel` |
 | `StateChanged` | Na konci téměř každé klávesy v `ExecuteKeyInteractive` a `ExecuteCollectedFunction`, při přepnutí `2nd`, v `ResetOperands`, `Reset`, `StartProgram`, `StopProgram` a po skončení běhu | `MainViewModel`, `ProgramDebuggerViewModel` |
-| `PrintOutputRequested` | Deklarovaná, ale nikde se nevyvolává | nikdo |
 
 `PrinterEngine` má vlastní událost `TapeChanged`, kterou poslouchá `PrinterViewModel`.
 
@@ -158,13 +165,13 @@ Události **nevyvolá**:
 - `PersistentState.LoadProgram` ani `LibraryModule.LoadFromFile` / `LoadFromStream`. View model po načtení volá `UpdateUiState()` sám, ale otevřený debugger se neaktualizuje, dokud nepřijde další `StateChanged` nebo uživatel nestiskne `Refresh`.
 - Přímé nastavení vlastností `PC`, `CurBank`, `X` a dalších. Například `ProgramDebuggerViewModel.Reset()` nastaví `PC = 0` a obnoví jen vlastní seznam. Stavový řádek hlavního okna ukazuje starou hodnotu až do další změny stavu.
 
-Protože běžící program volá události z vlákna na pozadí, všechny view modely v obsluze volají `Dispatcher.UIThread.Post(...)`. Aktualizace UI se tedy vždy provede na vlákně UI, ale **asynchronně**. Jádro nemá žádné zámky: během běhu programu vlákno na pozadí mění stav a vlákno UI ho souběžně čte. Tento návrh je bezpečný jen na cestě přes `ProcessKey`, která za běhu programu kromě `R/S` nic nepřijímá. ⚠️ Tlačítka debuggeru už tuto pojistku **obcházejí**: `Step (SST)` volá přímo `CalculatorEngine.StepProgram()` a `Reset (PC=0)` nastavuje `engine.PC = 0`, aniž kterákoli z nich kontrolovala `IsRunning`. Stisk `Step (SST)` za běhu programu proto spustí `ExecuteSingleProgramStep` na vlákně UI souběžně se smyčkou v `Task.Run` a `Reset (PC=0)` mění PC uprostřed běhu – jde o existující souběžný přístup (race condition), ne jen o hypotetickou vstupní cestu (viz [kapitola 9](#9-technická-úskalí)).
+Protože běžící program volá události z vlákna na pozadí, všechny view modely v obsluze volají `Dispatcher.UIThread.Post(...)`. Aktualizace UI se tedy vždy provede na vlákně UI, ale **asynchronně**. Jádro nemá žádné zámky: během běhu programu vlákno na pozadí mění stav a vlákno UI ho souběžně čte. Cesta přes `ProcessKey` je chráněná tím, že za běhu programu kromě `R/S` nic nepřijímá; tlačítka debuggeru `Step (SST)` i `Reset (PC=0)` mají navíc stráž `IsRunning` a za běhu se ignorují (viz [kapitola 9](#9-technická-úskalí)).
 
 ## 3. Jádro – adresář Core
 
 ### 3.1 CalculatorEngine
 
-Hlavní třída emulace (`Core/CalculatorEngine.cs`). Obsahuje stav kalkulačky, zpracování kláves, interpret programu i všechny matematické funkce.
+Hlavní třída emulace (`TI5X.Core/CalculatorEngine.cs`). Obsahuje stav kalkulačky, zpracování kláves, interpret programu i všechny matematické funkce.
 
 **Konstanty**
 
@@ -172,8 +179,7 @@ Hlavní třída emulace (`Core/CalculatorEngine.cs`). Obsahuje stav kalkulačky,
 |---|---|---|
 | `MaxMemories` | 100 | Počet datových registrů `Memories[0..99]`. |
 | `MaxProgram` | 960 | Velikost pole `UserProgram` (banka 0). |
-| `MaxLibProgram` | 1000 | Hodnota `GetMaxProg()` pro knihovní banky. |
-| `MaxBanks` | 100 | Velikost pole `Banks` (banka 0 = uživatelský program, 1–99 = knihovna). |
+| `MaxBanks` | 100 | Velikost pole `Banks` (banka 0 = uživatelský program, 1–99 = knihovna). Logický limit kroků knihovních bank (`Partition.MaxLibProgram` = 1000) žije ve třídě `Partition`. |
 | `MaxOpStack` | 10 | Hloubka zásobníku operací AOS (`OpStack`). |
 | `MaxReturnStack` | 8 | Hloubka zásobníku návratů `SBR` (`ReturnStack`). |
 | `MaxFlags` | 10 | Počet příznaků `Flags[0..9]`. |
@@ -222,7 +228,7 @@ Interní metody jsou pojmenované podle funkce: `ProcessDigit`, `ProcessDot`, `P
 
 ### 3.2 Arith
 
-Statická pomocná třída (`Core/Arith.cs`):
+Statická pomocná třída (`TI5X.Core/Arith.cs`):
 
 - konstanty úhlových režimů `ANG_DEG = 0`, `ANG_RAD = 1`, `ANG_GRAD = 2` a formátů `FORMAT_FIXED = 0`, `FORMAT_FLOAT = 1`, `FORMAT_ENG = 2` (`CalculatorEngine` je jen přejímá),
 - `MaxExponent = 99`, `MinExponent = -99`,
@@ -233,7 +239,7 @@ Statická pomocná třída (`Core/Arith.cs`):
 
 ### 3.3 KeyCodes
 
-Kódy kláves a mnemoniky tiskárny (`Core/KeyCodes.cs`):
+Kódy kláves a mnemoniky tiskárny (`TI5X.Core/KeyCodes.cs`):
 
 - **Primární klávesy** mají kód `řádek × 10 + sloupec` (řádky 1–9, sloupce 1–5), např. `KEY_STO = 42`.
 - **Funkce 2nd** mají ve stejném řádku sloupec 6–9 a 0 (`KEY_CMS = 47`, `KEY_IND = 40`, `KEY_E_PRIME = 10`). Převod primární klávesy na funkci 2nd dělá `CalculatorEngine.MapSecond`.
@@ -245,7 +251,7 @@ Kódy kláves a mnemoniky tiskárny (`Core/KeyCodes.cs`):
 
 ### 3.4 DisplayCodes
 
-Sedmisegmentový displej (`Core/DisplayCodes.cs`):
+Sedmisegmentový displej (`TI5X.Core/DisplayCodes.cs`):
 
 - bitové masky segmentů `SegA` (0x001), `SegF` (0x002), `SegB` (0x004), `SegG` (0x008), `SegE` (0x010), `SegC` (0x020), `SegD` (0x040) a desetinné tečky `SegDp` (0x100),
 - `NrDigits = 12` – počet pozic displeje,
@@ -254,7 +260,7 @@ Sedmisegmentový displej (`Core/DisplayCodes.cs`):
 
 ### 3.5 ProgBank, CardDef a pomocné struktury
 
-Soubor `Core/ProgBank.cs`:
+Soubor `TI5X.Core/ProgBank.cs`:
 
 | Typ | Obsah |
 |---|---|
@@ -265,7 +271,7 @@ Soubor `Core/ProgBank.cs`:
 
 ### 3.6 LibraryModule
 
-Načítání knihoven `.ti5l` (`Core/LibraryModule.cs`). Třída umí jen číst, zápis knihovny v aplikaci neexistuje.
+Načítání knihoven `.ti5l` (`TI5X.Core/LibraryModule.cs`). Třída umí jen číst, zápis knihovny v aplikaci neexistuje.
 
 | Člen | Popis |
 |---|---|
@@ -280,7 +286,7 @@ Podrobnosti formátu jsou v [kapitole 6](#6-formáty-souborů).
 
 ### 3.7 PersistentState
 
-Čtení a zápis programů `.ti5p` (`Core/PersistentState.cs`):
+Čtení a zápis programů `.ti5p` (`TI5X.Core/PersistentState.cs`):
 
 | Metoda | Popis |
 |---|---|
@@ -289,7 +295,7 @@ Podrobnosti formátu jsou v [kapitole 6](#6-formáty-souborů).
 
 ### 3.8 PrinterEngine
 
-Model tiskárny PC-100A (`Core/PrinterEngine.cs`):
+Model tiskárny PC-100A (`TI5X.Core/PrinterEngine.cs`):
 
 | Člen | Popis |
 |---|---|
@@ -463,84 +469,60 @@ Serializace celého stavu kalkulačky v aplikaci neexistuje. `PersistentState` p
 ### 7.1 Spuštění
 
 ```sh
-dotnet run --project TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj
+dotnet test --solution TI5X.slnx
+dotnet test --solution TI5X.slnx --coverage   # report v TI5X.Core.Tests/bin/.../TestResults
 ```
 
-- Testovací projekt je obyčejná konzolová aplikace. Nepoužívá xUnit ani NUnit, takže `dotnet test` nic nespustí.
-- Program vypíše `[PASS]` nebo `[FAIL]` u každého testu a souhrn. Vrací návratový kód 0 (vše prošlo) nebo 1.
-- Testují se jen třídy z `Core/`. View modely a okna automatické testy nemají.
+- Testy používají **TUnit** na Microsoft.Testing.Platform (`dotnet test` spouští MTP runner díky `global.json`), běží paralelně a aserce se musí `await`ovat.
+- Testují se jen třídy z `TI5X.Core/`. View modely a okna automatické testy nemají.
+- Testy nikdy nezapisují do repozitáře: assety se kopírují do výstupního adresáře testů (`Content` s `CopyToOutputDirectory`), dočasné soubory se mažou v `finally`.
+- CI (`.github/workflows/ti5x-dotnet.yml`) spouští build, kontrolu formátování, testy s pokrytím, SBOM a Dafny důkazy včetně shody generovaného C# kódu.
 
-> ⚠️ **Test `Generate Assets/lunar_lander.ti5p` přepíše soubor `Assets/lunar_lander.ti5p` v repozitáři.** Cestu odvozuje z `AppContext.BaseDirectory` o čtyři úrovně výš (`TI5X.Avalonia.Tests/bin/<konfigurace>/net10.0/` → kořen projektu). Obsah je deterministický, ale ZIP obsahuje časová razítka, takže soubor bude v gitu vypadat změněný. Po spuštění testů zkontrolujte `git status`.
+### 7.2 Struktura testů
 
-### 7.2 Struktura testovacího programu
+Testy jsou v adresáři `TI5X.Core.Tests/`:
 
-Vše je v souboru `TI5X.Avalonia.Tests/Program.cs`:
-
-| Prvek | Popis |
+| Soubor | Popis |
 |---|---|
-| `LunarLanderProgram` | Pole 142 bajtů s programem Lunar Lander (viz [specifikace](LUNAR_LANDER_SPEC.md)). Komentáře uvádějí adresy kroků. |
-| `Main` | Postupně volá `RunTest(název, metoda)` a sčítá neúspěchy. |
-| `RunTest` | Spustí metodu; výjimka znamená neúspěch. |
-| `AssertEqual(očekávaná, skutečná, tolerance, zpráva)` | Porovnání čísel s tolerancí (výchozí 1e-4). |
-| `AssertStringEqual`, `AssertTrue` | Porovnání řetězců a podmínka. |
-| `SetupEngineWithProgram(program)` | Nové jádro s programem v bance 0, `PC = 0`. |
-| `RunUntilHalt(engine, timeoutMs)` | Protože program běží na pozadí, čeká (polling po 2 ms) na `IsRunning == false`; po 5 s vyhodí výjimku. |
-| `ExecuteTurn(engine, burn)` | `SetX(burn)`, `R/S` a čekání na zastavení. |
-| `PressKeys(engine, kódy…)` | Simulace cesty z GUI přes `ProcessKey`; po každé klávese čeká na zastavení programu. |
-| `NumberKeys(hodnota)` | Převede celé číslo na kódy číselných kláves. |
-| `LanderAssetPath()` | Cesta k `Assets/lunar_lander.ti5p`. |
+| `TestHelpers.cs` | `LunarLanderProgram` (142 bajtů, viz [specifikace](LUNAR_LANDER_SPEC.md)), `SetupEngineWithProgram`, `RunUntilHaltAsync` (čeká na `engine.RunCompletion`), `ExecuteTurnAsync`, `PressKeysAsync`, `NumberKeys`, karta a nápověda assetu. |
+| `BasicMathTests.cs` | Aritmetika a priority, režimy úhlů, převody `Arith`. |
+| `DisplayCodesTests.cs` | Segmenty LED displeje. |
+| `LunarLanderTests.cs` | Kompletní scénáře Lunar Lander (13 testů) z původní konzolové sady. |
+| `Ti5pRoundtripTests.cs` | Roundtrip `.ti5p` a konzistence commitnutého assetu (generuje do temp adresáře a porovná dekomprimované položky; nic nepřepisuje). |
+| `EngineSafetyTests.cs` | Zastavení/restart běhu, meze po `0 Op 17`, krátké knihovní banky, krokování. |
+| `MergedCodesTests.cs` | Sloučené kódy, `RTN`, dvoubajtové adresy skoků, číslo před `R/S`, `HIR`. |
+| `LrnEntryTests.cs` | Kódování LRN: číslice `00`–`09`, 2nd, `INV SBR` → `92`, sloučené IND kódy, adresy `0n nn`. |
+| `ExhaustiveOpcodeTests.cs` | Vyčerpávající sweep: všech 100 opcodů × 100 operandů, krátké banky, všechny klávesy i 2nd funkce, všechny Op kódy; nezávislá tabulka délek instrukcí podle příručky. |
+| `PartitionModelTests.cs` | Diferenciální test proti Dafny ověřenému modelu rozdělení paměti. |
 
-Testy přistupují k jádru dvěma způsoby. `ExecuteKeyInteractive` obchází kontrolu `LRN` a běžícího programu v `ProcessKey`. `PressKeys` přes `ProcessKey` napodobuje skutečné stisky z GUI. `Printer` zůstává `null`, takže tisk se v testech netestuje.
+Testy přistupují k jádru dvěma způsoby. `ExecuteKeyInteractive` obchází kontrolu `LRN` a běžícího programu v `ProcessKey`. `PressKeysAsync` přes `ProcessKey` napodobuje skutečné stisky z GUI. `Printer` zůstává `null`, takže tisk se v testech netestuje. Testy spouštějící program čekají na `engine.RunCompletion` (hotový běh včetně překreslení displeje), nikoli na polling `IsRunning`.
 
 ### 7.3 Přehled testů
 
-Testy se spouštějí v tomto pořadí (17 testů):
-
-| # | Název v Main | Metoda | Co ověřuje |
-|---|---|---|---|
-| 1 | Basic Calculator Arithmetic & Priorities | `TestBasicMath` | `2 + 3 × 4 = 14` (AOS) a chyba při dělení nulou. |
-| 2 | Angle Modes & Conversions | `TestAngleConversions` | `sin 30° = 0,5`. |
-| 3 | Lunar Lander Initialization (Lbl A) | `TestLunarLanderInit` | Počáteční hodnoty R00–R02 a displej `-500.2500`. |
-| 4 | Lunar Lander Free Fall Trajectory (B=0) | `TestLunarLanderFreeFall` | Dva kroky volného pádu. |
-| 5 | Lunar Lander Equilibrium Hover (B=5) | `TestLunarLanderHover` | Vznášení (zrychlení 0). |
-| 6 | Lunar Lander Walkthrough Descent (Turns 1..6) | `TestLunarLanderWalkthrough` | Šest kol se známými hodnotami. |
-| 7 | Lunar Lander Fuel Clamping (B > Fuel) | `TestLunarLanderFuelClamping` | Omezení spotřeby na zbývající palivo. |
-| 8 | Lunar Lander Safe Touchdown Boundary (v >= -5.0) | `TestLunarLanderSafeLanding` | Bezpečné přistání bez chyby. |
-| 9 | Lunar Lander Rebound Landing (v > 0) | `TestLunarLanderReboundLanding` | Dotyk s kladnou rychlostí. |
-| 10 | Lunar Lander Fatal Crash Boundary (v < -5.0) | `TestLunarLanderCrash` | Havárie končí chybovým stavem. |
-| 11 | Lunar Lander Telemetry Keys (Lbl C, D, E) | `TestLunarLanderTelemetry` | Dotazy na palivo, výšku a rychlost. |
-| 12 | Lunar Lander Complete Winning Game (64,0,0,0,0,466) | `TestLunarLanderWinningGame` | Celá vítězná hra. |
-| 13 | Lunar Lander Resume With B After Query | `TestLunarLanderResumeAfterQuery` | Pokračování klávesou `B` po dotazu. |
-| 14 | Lunar Lander .ti5p Save, Load and Run Roundtrip | `TestLunarLanderTi5pRoundtrip` | `SaveProgram` → `LoadProgram` do dočasného souboru, shoda bajtů, karta a běh. |
-| 15 | Generate Assets/lunar_lander.ti5p | `GenerateLanderAsset` | Vytvoří (přepíše) ukázkový soubor s kartou a nápovědou. |
-| 16 | Lunar Lander Asset Played With Physical Keys (GUI path) | `TestLunarLanderPhysicalKeys` | Načte asset a odehraje hru přes `ProcessKey`. |
-| 17 | Lunar Lander Crash Then Manual RCL (GUI path) | `TestLunarLanderCrashManualRecall` | Havárie, `CLR`, `E` a ruční `RCL`. |
-
-Testy 16 a 17 čtou soubor vytvořený testem 15, takže na pořadí záleží.
+Původních 17 scénářů konzolového runneru bylo 1:1 přeneseno (Init, FreeFall, Hover, Walkthrough, FuelClamping, SafeLanding, Rebound, Crash, Telemetry, WinningGame, ResumeAfterQuery, Roundtrip, PhysicalKeys, CrashManualRecall, BasicMath, AngleConversions a konzistence assetu) a doplněno o nové sady: bezpečnost (`EngineSafetyTests`), conformance instrukční sady (`MergedCodesTests`, `LrnEntryTests`), vyčerpávající sweep (`ExhaustiveOpcodeTests`) a shoda s Dafny modelem (`PartitionModelTests`). Celkem 56 testů; přesný stav ukáže `dotnet test --solution TI5X.slnx`.
 
 ### 7.4 Jak přidat test
 
-1. Do `Program.cs` přidejte statickou metodu `private static void TestNeco()`.
-2. Vytvořte jádro (`new CalculatorEngine()` nebo `SetupEngineWithProgram(...)`) a vstup zadejte přes `ExecuteKeyInteractive`, `PressKeys` nebo přímo `SetX`.
-3. Když test spouští program (`R/S`, `ExecuteSymbolicJump`, `SBR`), počkejte na zastavení přes `RunUntilHalt` nebo `PressKeys`.
-4. Ověřte stav přes `AssertEqual` / `AssertStringEqual` / `AssertTrue` (`engine.X`, `engine.DisplayString`, `engine.Memories[n]`, `engine.State`, `engine.Flags[n]`, `engine.PC`).
-5. Zaregistrujte test v `Main`: `failures += RunTest("Popis testu", TestNeco);`.
-6. Pokud test zapisuje soubor, použijte `Path.GetTempPath()` a soubor v bloku `finally` smažte (vzorem je `TestLunarLanderTi5pRoundtrip`).
+1. Do příslušné třídy (nebo nové třídy v `TI5X.Core.Tests/`) přidejte metodu `[Test] public async Task Neco()`.
+2. Vytvořte jádro (`new CalculatorEngine()` nebo `TestHelpers.SetupEngineWithProgram(...)`) a vstup zadejte přes `ExecuteKeyInteractive`, `TestHelpers.PressKeysAsync` nebo přímo `SetX`.
+3. Když test spouští program, čekejte přes `await TestHelpers.RunUntilHaltAsync(engine)`.
+4. Ověřte stav přes `await Assert.That(...)`: `engine.X` (čísla s tolerancí `.Within(1e-4)`), `engine.DisplayString`, `engine.Memories[n]`, `engine.State`, `engine.Flags[n]`, `engine.PC`. Aserce TUnit musí být vždy `await`ované, jinak se neprovedou.
+5. Pokud test zapisuje soubor, použijte `Path.GetTempPath()` a soubor v bloku `finally` smažte.
 
-Kódy kroků programu v testu zapisujte podle [pravidel kódování](PRIRUCKA_TI59.md#152-pravidla-kódování-programu): číslice jako `00`–`09`, operandy jako jeden bajt, místo sloučených kódů zápis s `IND`.
+Kódy kroků programu v testu zapisujte podle [pravidel kódování](PRIRUCKA_TI59.md#152-pravidla-kódování-programu): číslice jako `00`–`09`, operandy jako jeden bajt, skoky s adresou `0n nn`, sloučené kódy jsou podporovány.
 
 Příklad:
 
 ```csharp
-private static void TestOp17Partition()
+[Test]
+public async Task Op17Partition()
 {
     var engine = new CalculatorEngine();
     engine.SetX(30);
-    engine.ExecuteKeyInteractive(KeyCodes.KEY_2ND);
-    engine.ExecuteKeyInteractive(KeyCodes.KEY_9);   // 2nd 9 = Op
+    engine.ExecuteKeyInteractive(KeyCodes.KEY_OP);
     engine.ExecuteKeyInteractive(KeyCodes.KEY_1);
-    engine.ExecuteKeyInteractive(KeyCodes.KEY_7);   // Op 17
-    AssertEqual(700, engine.RegOffset, 0, "30 Op 17 -> RegOffset 700");
+    engine.ExecuteKeyInteractive(KeyCodes.KEY_7); // Op 17
+    await Assert.That(engine.RegOffset).IsEqualTo(700);
 }
 ```
 
@@ -587,7 +569,7 @@ Kódy instrukcí jsou dané klávesnicí TI-59 a všechny pozice už mají konst
 Po změně chování jádra:
 
 - [ ] `dotnet build TI5X.Avalonia.csproj` projde bez chyb.
-- [ ] `dotnet run --project TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj` vrátí 0 (a vraťte nebo potvrďte změnu `Assets/lunar_lander.ti5p`).
+- [ ] `dotnet test --solution TI5X.slnx` projde (56 testů) a testy nezmění žádný soubor v repozitáři.
 - [ ] [ODCHYLKY_A_OMEZENI.md](ODCHYLKY_A_OMEZENI.md) – upravit matici podpory, kapitolu Op kódů, případně odstranit opravenou odchylku.
 - [ ] [PRIRUCKA_TI59.md](PRIRUCKA_TI59.md) – popis funkce a tabulka kódů.
 - [ ] [EMULATOR_UZIVATEL.md](EMULATOR_UZIVATEL.md) – pokud se mění ovládání, menu nebo zkratky.
@@ -600,13 +582,29 @@ Přehled technických problémů v kódu, na které při úpravách narazíte. �
 
 | Problém | Kde | Důsledek |
 |---|---|---|
-| Logická délka programu neodpovídá délce pole | `GetMaxProg()` vrací 1000 pro knihovní banky (pole má délku podle souboru, `ml.ti5l` banka 01 jen 127) a `RegOffset * 2` pro banku 0 (po `0 Op 17` až 2000, pole má 960). | `FindLabel` (hledání chybějícího návěští), `ExecuteList` (`List`), `ExecuteListLabels` (`Op 8`), `SST` i běh programu za koncem pole přistoupí mimo pole a vyhodí `IndexOutOfRangeException`. Na vlákně UI to aplikaci shodí. V běžícím programu výjimka ukončí smyčku v `Task.Run` bez hlášení. Viz [Odchylky, bod 7](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení). |
-| Souběžný přístup bez zámků | `StartProgram` (`Task.Run`) vs. čtení stavu v `UpdateUiState` a `Refresh`; navíc debugger (`Step`, `Reset`) volá jádro přímo z vlákna UI bez kontroly `IsRunning` | Cesta přes `ProcessKey` je chráněná tím, že za běhu programu přijímá jen `R/S`. Ale tlačítka debuggeru `Step (SST)` a `Reset (PC=0)` tuto pojistku obcházejí: za běhu programu spouštějí `ExecuteSingleProgramStep` na vlákně UI souběžně se smyčkou na pozadí, resp. mění PC uprostřed běhu. Jde o existující závadu, dokud se nepřidá kontrola `IsRunning` nebo zámek. |
+| ~~Logická délka programu neodpovídá délce pole~~ **opraveno** | `Partition.EffectiveMaxProg` vrací minimum logického rozdělení a skutečné délky pole; vzorec je ověřen Dafny modelem (`TI5X.Verified/partition.dfy`) a diferenciálním testem. | `FindLabel`, `List`, `Op 8`, `SST` i běh za koncem banky končí definovanou chybou, ne výjimkou. Přepočet Op 16/17 stále neodpovídá originálu (viz [Odchylky 3.10](ODCHYLKY_A_OMEZENI.md#310-rozdělení-paměti)). |
+| ~~Souběh `StartProgram`/`StopProgram`~~ **opraveno** | Běh pracuje s lokálním tokenem a generací běhu; `finally` mění sdílený stav jen vlastnící běh. `StepProgram` i debugger `Step`/`Reset` jsou za běhu ignorovány. | Rychlé zastavení a nové spuštění nemůže ukončit nový běh ani číst zrušený token (testy `EngineSafetyTests`). Stav enginu zůstává sdílený s UI bez zámků – počítat s tím při editaci v debuggeru. |
 | Události téměř při každém kroku | `ExecuteKeyInteractive` → `NotifyStateChanged` → `Dispatcher.UIThread.Post` | Při běhu programu se do fronty UI posílá aktualizace po většině kroků. Otevřený debugger pokaždé projde všech 960 kroků. |
 | Načítání souborů bez události | `PersistentState.LoadProgram`, `LibraryModule` | Debugger se po načtení sám neobnoví. |
 | Neodhlášené události | `PrinterViewModel`, `ProgramDebuggerViewModel` | Po zavření okna zůstává view model přihlášený k událostem jádra. |
-| Nepoužité členy | `PrintOutputRequested`, `PrinterEngine.Chars`, `LibraryModule.ModuleHelp`, `ProgBank.HelpHtml` (jen se přenáší), `ProgramStepItem.IsCurrent` (bez bindingu), `KeyCodes.OP_*` | Připravené pro budoucí rozšíření; nespoléhejte na ně. |
+| Nepoužité členy | `PrinterEngine.Chars`, `LibraryModule.ModuleHelp`, `ProgBank.HelpHtml` (jen se přenáší), `ProgramStepItem.IsCurrent` (bez bindingu) | Připravené pro budoucí rozšíření; nespoléhejte na ně. |
 | Zápis karty bez escapování XML | `PersistentState.SaveProgram` | Popisky s `&` nebo `<` poškodí `card00`; při načtení se karta zahodí. |
 | Neúplný zápis karty | `PersistentState.SaveProgram` | Sloty `subtitle*`, `primecenter`, `base*` se při uložení ztratí. |
 | Tolerantní čtení kódů | `LibraryModule.ReadProgramEntry` | Neplatné tokeny se tiše změní na `0`, hodnoty nad 99 se nekontrolují. |
 | Neznámé Op kódy bez chyby | `ExecuteOp` (`default`) | `Op 9`, `10`, `14`, `15`, `18`, `19` a `40`+ nic neudělají, ani nehlásí chybu. |
+| Neověřená číselná pravidla | aritmetika jádra stále v `double` | Rozsah (1E-99…9.99E99), přesnost 13 číslic a režim zaokrouhlení/podtečení nejsou doloženy z primárního zdroje; migrace na Bcd13 je podmíněna uzavřením číselného kontraktu (viz plán `.kilo/plans/`). |
+
+### 9.1 Regenerace verifikovaných komponent
+
+Nové Dafny komponenty patří do `TI5X.Verified/`:
+
+1. Přidejte `*.dfy` zdroj a ověřte ho: `dafny verify TI5X.Verified/<model>.dfy`.
+2. Vygenerujte C# **kanonickým příkazem CI** (verifikace proběhne znovu automaticky; jiný příkaz by změnil hlavičku generovaného souboru a rozbil CI diff):
+   ```sh
+   cd TI5X.Avalonia
+   dafny translate cs --include-runtime TI5X.Verified/<model>.dfy --output regen/<model>
+   cp regen/<model>.cs TI5X.Verified/generated/<model>.cs
+   cp regen/<model>-cs.dtr TI5X.Verified/generated/<model>-cs.dtr
+   ```
+3. Zařaďte generovaný kód do `TI5X.Verified.csproj` a přidejte diferenciální test proti produkční implementaci.
+4. CI hlídá `dafny verify`, audit předpokladů i shodu regenerovaného kódu s commitnutým (porovnání ignoruje vložený řádek `Command-line arguments`); generovaný kód nikdy neupravujte ručně. |

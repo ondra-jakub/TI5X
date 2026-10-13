@@ -169,7 +169,7 @@ Je potřeba rozlišovat dva druhy kódů:
 
 Kódy 62–64, 72–74, 82–84 a 92 tedy znamenají něco jiného jako kód klávesy (číslice) a jako kód instrukce (sloučená instrukce).
 
-⚠️ **Emulátor:** v režimu `LRN` ukládá kódy kláves místo kódů instrukcí a při běhu nedekóduje sloučené kódy (provede je jako číslice). Podrobnosti viz [9.2](#92-režim-lrn) a [Sloučené kódy instrukcí](ODCHYLKY_A_OMEZENI.md#5-sloučené-kódy-instrukcí).
+✅ **Emulátor:** v režimu `LRN` se ukládají kódy instrukcí standardu TI-59 (včetně sloučených kódů) a při běhu se sloučené kódy provádějí správně. Podrobnosti viz [9.2](#92-režim-lrn) a [Sloučené kódy instrukcí](ODCHYLKY_A_OMEZENI.md#5-sloučené-kódy-instrukcí).
 
 ---
 
@@ -461,15 +461,17 @@ Počet kroků určuje [rozdělení paměti](#10-rozdělení-paměti): výchozí 
 
 **Originál TI-59:** `LRN` přepne do režimu zápisu programu. Displej ukazuje `PPP KK`, tedy číslo kroku a kód v něm. Každá stisknutá klávesa (nebo kombinace `2nd`/`Ind`) se uloží jako kód instrukce do aktuálního kroku a ukazatel se posune. Druhým stiskem `LRN` se režim ukončí. Při zápisu se obvykle začíná od kroku 000 (`RST` nebo `GTO 000` před `LRN`).
 
-❌ **Emulátor:** režim `LRN` se zapne a ukazuje `PPP KK`, ale **ukládá kódy kláves místo kódů instrukcí**. *(ověřeno)*
+✅ **Emulátor:** režim `LRN` ukazuje `PPP KK` a ukládá kódy instrukcí standardu TI-59.
 
-| Stisknuté klávesy | Originál uloží | Emulátor uloží |
-|---|---|---|
-| `2nd Lbl A x²` | `76 11 33` | `21 71 11 33` |
-| `5 STO 01` | `05 42 01` | `73 42 92 82` |
-| `STO 2nd Ind 05` | `72 05` | `42 21 45 92 73` |
+| Stisknuté klávesy | Uložené kódy |
+|---|---|
+| `2nd Lbl A x²` | `76 11 33` |
+| `5 STO 01` | `05 42 01` |
+| `STO 2nd Ind 05` | `72 05` |
+| `GTO 123` | `61 01 23` |
+| `INV SBR` | `92` |
 
-Takový program se nespustí správně (např. `STO 92` místo `STO 01`). V emulátoru tedy `LRN` použijte jen k **prohlížení** programu (`SST`/`BST` po krocích). Funkční program vytvořte jako soubor `.ti5p` podle [15.3](#153-vytvoření-souboru-ti5p) a načtěte ho přes `File > Open Program (.ti5p)...`. Program lze prohlížet i v okně `View > Program Debugger / Steps`.
+Poznámky: `INV` se ukládá jako samostatný krok `22` (jen `INV SBR` se sloučí do `92`), `INV 2nd Fix` nebere operand a programy zapsané **starší verzí emulátoru** (surové kódy kláves) je potřeba přepsat. Program lze prohlížet i v okně `View > Program Debugger / Steps`.
 
 ### 9.3 Úpravy programu
 
@@ -482,7 +484,7 @@ Takový program se nespustí správně (např. `STO 92` místo `STO 01`). V emul
 | `2nd CP` (mimo LRN) | smaže celý program a nastaví krok 000 |
 | `GTO nnn` (mimo LRN) | nastaví ukazatel na krok nnn |
 
-⚠️ **Emulátor:** `SST`, `BST` a `2nd CP` fungují. `2nd Ins` a `2nd Del` jsou v `LRN` nedostupné (uloží se krok `21`). Programy knihovních bank upravovat nelze, stejně jako v originále.
+✅ **Emulátor:** `SST`, `BST`, `2nd Ins`, `2nd Del` i `2nd CP` fungují v `LRN` (Ins vkládá krok `68` = Nop). Programy knihovních bank upravovat nelze, stejně jako v originále.
 
 ### 9.4 Spuštění, zastavení a krokování
 
@@ -499,7 +501,7 @@ Během běhu programu displej v emulátoru ztlumeně bliká a reaguje se jen na 
 
 ⚠️ **Emulátor:**
 - `RST` nenuluje příznaky ani zásobník podprogramů.
-- **Číslo zadané v programu těsně před `R/S` se nezobrazí** (program `7 R/S` skončí s `0.`). Číslo ukončete operací, například `STO nn` nebo `=`.
+- Číslo zadané v programu těsně před `R/S` se zachová (program `7 R/S` skončí s `7`).
 
 ### 9.5 Návěští
 
@@ -515,19 +517,17 @@ Během běhu programu displej v emulátoru ztlumeně bliká a reaguje se jen na 
 | `GTO nnn` | skok na absolutní krok nnn (v programu 3 kroky `61 0n nn`) |
 | `GTO 2nd Ind nn` | skok na adresu v registru nn (v programu `83 nn`) |
 
-⚠️ **Emulátor:**
-- V programu se absolutní adresa čte jako **jediný bajt 0–99** (`61 nn`). Dvoubajtová adresa originálu skočí jinam.
-- Bajty 10–19 na místě adresy znamenají návěští `A`–`E'`.
-- `GTO Ind` se v programu zapisuje `61 40 nn`.
+✅ **Emulátor:**
+- V programu se absolutní adresa čte ve tvaru `0n nn` (standard TI-59), návěští A–E' jako bajt `1x` a `GTO Ind` jako `61 40 nn` nebo sloučený kód `83 nn`. Jednobajtová adresa `20`–`99` se také akceptuje (doplňková forma emulátoru).
 - Z klávesnice `GTO 2nd Ind nn` čeká na 3 číslice.
 
 ### 9.7 Podprogramy
 
 `SBR X` (nebo `SBR nnn`) zavolá podprogram: uloží návratovou adresu a skočí. `INV SBR` (`RTN`, kód 92) se vrátí za místo volání. Stisk `A`–`E'` z klávesnice je totéž jako `SBR A`–`E'`: program se spustí a po `RTN` se zastaví.
 
-⚠️ **Emulátor:**
-- `SBR` uvnitř běžícího programu (včetně kroků `11`–`19` = volání `A`–`E'`) se po návratu **zastaví**.
-- Kód `92` (`RTN`) se provede jako číslice 0. Návrat zapisujte jako `INV SBR` (`22 71`).
+✅ **Emulátor:**
+- `SBR` uvnitř běžícího programu se po `RTN` vrací za místo volání a běh pokračuje; `SBR` z klávesnice (včetně `A`–`E'`) program po `RTN` zastaví.
+- Kód `92` (`RTN`) funguje stejně jako `INV SBR`.
 - `INV SBR` bez rozpracovaného podprogramu program zastaví.
 - Podprogram volaný klávesou `A`–`E'`, který skončí instrukcí `R/S` místo `INV SBR`, nechá v zásobníku nevyužitou návratovou adresu. Po 8 takových voláních nastane při 9. volání chyba (přetečení zásobníku), kterou `RST` nevyřeší. *(ověřeno)* Proto podprogramy ukončujte `INV SBR`.
 
@@ -546,7 +546,7 @@ Podmíněné instrukce testují podmínku. Je-li splněna, provede se skok na c�
 | `2nd Dsz n X` | po snížení Rn je Rn ≠ 0 |
 | `INV 2nd Dsz n X` | po snížení Rn je Rn = 0 |
 
-Cílem X může být návěští, absolutní adresa nebo `Ind nn`. V emulátoru je cíl v programu jeden bajt (návěští 10–19 nebo adresa 0–99) nebo `40 nn` pro `Ind`.
+Cílem X může být návěští, absolutní adresa nebo `Ind nn`. V emulátoru se cíl v programu čte stejně jako u `GTO`: návěští jako bajt `1x`, absolutní adresa `0n nn` (nebo jednobajtová `20`–`99`), `Ind nn` jako `40 nn`.
 
 ### 9.9 Příznaky
 
@@ -825,18 +825,18 @@ Sloupec **Emulátor při běhu** popisuje, co engine s kódem udělá, když ho 
 
 ### 15.2 Pravidla kódování programu
 
-Pro program, který v emulátoru běží správně, platí tato pravidla. Vzorem je program Lunar Lander v `TI5X.Avalonia.Tests/Program.cs` a v souboru `Assets/lunar_lander.ti5p`.
+Emulátor používá standardní kódování instrukcí TI-59. Vzorem je program Lunar Lander v `TI5X.Core.Tests/TestHelpers.cs` a v souboru `Assets/lunar_lander.ti5p`.
 
-1. **Číslice** zapisujte kódy `00`–`09` (číslo 32 = `03 02`), nikdy kódy kláves 62–64, 72–74, 82–84, 92.
-2. **Druhé funkce** zapisujte jedním kódem (`58` = Fix, `77` = x≥t, `67` = x=t). Kód `21` nepoužívejte.
-3. **INV** je samostatný krok `22` před instrukcí (`22 44 00` = `INV SUM 00`, `22 77 17` = `INV x≥t B'`).
-4. **Adresa registru** (STO, RCL, SUM, Prd, Exc), číslo `Fix`, `Op`, příznaku a registru `Dsz` je **jeden bajt** (`42 05` = `STO 05`, `58 04` = `Fix 4`, `69 20` = `Op 20`, `86 00` = `St flg 0`).
-5. **Cíl skoku** (`GTO`, `SBR`, `x=t`, `x≥t`, `If flg`, `Dsz`) je jeden bajt: návěští `10`–`19` (A–E') nebo absolutní adresa `00`–`99`.
-6. **Nepřímé adresování** zapisujte dvěma kroky `40 nn` za instrukcí (`42 40 05` = `STO Ind 05`, `61 40 07` = `GTO Ind 07`). Sloučené kódy (62–64, 72–74, 83, 84) nepoužívejte.
-7. **Návrat z podprogramu** zapisujte `22 71` (`INV SBR`), ne `92`.
-8. **Registry 21 a 40 nelze v programu adresovat přímo.** Bajt `21` se přečte jako `2nd` a bajt `40` jako `Ind`. *(ověřeno: `05 42 21` registr R21 nezmění; `05 42 40 05` provede `STO Ind 05`)* Pro tyto registry použijte nepřímé adresování.
-9. Podprogramy volejte z klávesnice (`A`–`E'`). Uvnitř programu místo `SBR` použijte `GTO`, protože `SBR` po návratu program zastaví.
-10. Číslo před `R/S` ukončete operací (`=`, `STO nn`, `RCL nn`).
+1. **Číslice** mají kódy `00`–`09` (číslo 32 = `03 02`). Na klávesnici jsou totéž hodnoty 62–64, 72–74, 82–84, 92 číslicemi, v programu mají sloučený význam (viz pravidlo 7).
+2. **Druhé funkce** zapisujte jedním kódem (`58` = Fix, `77` = x≥t, `67` = x=t). Kód `21` ve zdrojovém programu nemá význam.
+3. **INV** je samostatný krok `22` před instrukcí (`22 44 00` = `INV SUM 00`, `22 77 17` = `INV x≥t B'`); jen `INV SBR` se sloučí do jediného kroku `92` (RTN).
+4. **Adresa registru** (STO, RCL, SUM, Prd, Exc), číslo `Fix`, `Op`, příznaku a registru `Dsz` je **jeden bajt** (`42 05` = `STO 05`, `58 04` = `Fix 4`, `69 20` = `Op 20`, `86 00` = `St flg 0`). Bajt `21` na místě operandu vede k chybě.
+5. **Cíl skoku** (`GTO`, `SBR`, `x=t`, `x≥t`, `If flg`, `Dsz`): návěští `10`–`19` (A–E') jako jeden bajt, absolutní adresa jako dva bajty `0n nn` (adresa 123 = `01 23`); jednobajtová forma `20`–`99` zůstává akceptována kvůli starším souborům.
+6. **Nepřímé adresování** lze zapsat dvěma kroky `40 nn` za instrukcí (`42 40 05` = `STO Ind 05`, `61 40 07` = `GTO Ind 07`), ale standardně používejte sloučené kódy (pravidlo 7).
+7. **Sloučené kódy** zapisujte jedním kódem: `62 05` = `Pgm Ind 05`, `63 05` = `Exc Ind 05`, `64 05` = `Prd Ind 05`, `72 05` = `STO Ind 05`, `73 05` = `RCL Ind 05`, `74 05` = `SUM Ind 05`, `83 05` = `GTO Ind 05`, `84 05` = `Op Ind 05`, `92` = `RTN`.
+8. **Registry 21 a 40 nelze v programu adresovat přímo.** Bajt `40` na místě operandu znamená `Ind`, bajt `21` vede k chybě. Pro tyto registry použijte nepřímé adresování.
+9. **SBR v programu** se po `RTN`/`INV SBR` vrací za volání a běh pokračuje; `SBR` z klávesnice (i přes `A`–`E'`) program po návratu zastaví.
+10. **Číslo před `R/S`** se zachová (zadávání se ukončí).
 
 ### 15.3 Vytvoření souboru ti5p
 
@@ -848,7 +848,7 @@ Soubor `.ti5p` je ZIP archiv se dvěma položkami:
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <state><calc><prog>
-76 11 33 65 89 95 22 71
+76 11 33 65 89 95 92
 </prog></calc></state>
 ```
 
@@ -883,10 +883,9 @@ Originál (LRN): `2nd Lbl A x² × 2nd π = INV SBR`
 | 003 | 65 | `×` |
 | 004 | 89 | `2nd π` |
 | 005 | 95 | `=` |
-| 006 | 22 | `INV` |
-| 007 | 71 | `SBR` (návrat) |
+| 006 | 92 | `INV SBR` (návrat) |
 
-Obsah `prog00`: `76 11 33 65 89 95 22 71`
+Obsah `prog00`: `76 11 33 65 89 95 92`
 
 Použití: `2 A` → `12.56637061`, `3 A` → `28.27433388`.
 
@@ -894,7 +893,7 @@ Použití: `2 A` → `12.56637061`, `3 A` → `28.27433388`.
 
 Vypočítá n! pro celé n ≥ 1. Zadejte n a stiskněte `A`. Registr R01 je čítač smyčky, R02 průběžný součin.
 
-Originál (LRN): `2nd Lbl A STO 01 1 STO 02 RCL 01 2nd Prd 02 2nd Dsz 1 007 RCL 02 INV SBR`. Originál uloží adresu `007` do dvou kroků a `INV SBR` jako jeden krok `92`, takže od kroku 014 se čísla kroků liší od tabulky níže.
+Originál (LRN): `2nd Lbl A STO 01 1 STO 02 RCL 01 2nd Prd 02 2nd Dsz 1 007 RCL 02 INV SBR`. Adresa `007` se ukládá do dvou kroků (`00 07`) a `INV SBR` jako jediný krok `92`, takže čísla kroků odpovídají originálu.
 
 | Krok | Kód | Instrukce | Poznámka |
 |---|---|---|---|
@@ -904,11 +903,11 @@ Originál (LRN): `2nd Lbl A STO 01 1 STO 02 RCL 01 2nd Prd 02 2nd Dsz 1 007 RCL 
 | 005 | 42 02 | `STO 02` | součin = 1 |
 | 007 | 43 01 | `RCL 01` | začátek smyčky |
 | 009 | 49 02 | `2nd Prd 02` | součin × čítač |
-| 011 | 97 01 07 | `2nd Dsz 1 007` | R01 − 1, pokud ≠ 0, skok na 007 |
-| 014 | 43 02 | `RCL 02` | výsledek |
-| 016 | 22 71 | `INV SBR` | konec |
+| 011 | 97 01 00 07 | `2nd Dsz 1 007` | R01 − 1, pokud ≠ 0, skok na 007 |
+| 015 | 43 02 | `RCL 02` | výsledek |
+| 017 | 92 | `INV SBR` | konec |
 
-Obsah `prog00`: `76 11 42 01 01 42 02 43 01 49 02 97 01 07 43 02 22 71`
+Obsah `prog00`: `76 11 42 01 01 42 02 43 01 49 02 97 01 00 07 43 02 92`
 
 Použití: `5 A` → `120.`, `6 A` → `720.`. Pro n = 0 by smyčka neskončila (čítač by klesal do záporných hodnot).
 
@@ -921,24 +920,24 @@ Klávesa `A` převádí teplotu podle příznaku 0: když není nastaven, °C �
 | 000 | 76 11 | `2nd Lbl A` | |
 | 002 | 87 00 17 | `2nd If flg 0 B'` | příznak 0 → skok na B' |
 | 005 | 65 09 55 05 85 03 02 95 | `× 9 ÷ 5 + 32 =` | °C → °F |
-| 013 | 22 71 | `INV SBR` | |
-| 015 | 76 17 | `2nd Lbl B'` | |
-| 017 | 75 03 02 95 65 05 55 09 95 | `− 32 = × 5 ÷ 9 =` | °F → °C |
-| 026 | 22 71 | `INV SBR` | |
-| 028 | 76 12 | `2nd Lbl B` | |
-| 030 | 86 00 | `2nd St flg 0` | režim °F → °C |
-| 032 | 22 71 | `INV SBR` | |
-| 034 | 76 13 | `2nd Lbl C` | |
-| 036 | 22 86 00 | `INV 2nd St flg 0` | režim °C → °F |
-| 039 | 22 71 | `INV SBR` | |
+| 013 | 92 | `INV SBR` | |
+| 014 | 76 17 | `2nd Lbl B'` | |
+| 016 | 75 03 02 95 65 05 55 09 95 | `− 32 = × 5 ÷ 9 =` | °F → °C |
+| 024 | 92 | `INV SBR` | |
+| 025 | 76 12 | `2nd Lbl B` | |
+| 027 | 86 00 | `2nd St flg 0` | režim °F → °C |
+| 029 | 92 | `INV SBR` | |
+| 030 | 76 13 | `2nd Lbl C` | |
+| 032 | 22 86 00 | `INV 2nd St flg 0` | režim °C → °F |
+| 035 | 92 | `INV SBR` | |
 
 Obsah `prog00`:
 
 ```
-76 11 87 00 17 65 09 55 05 85 03 02 95 22 71
-76 17 75 03 02 95 65 05 55 09 95 22 71
-76 12 86 00 22 71
-76 13 22 86 00 22 71
+76 11 87 00 17 65 09 55 05 85 03 02 95 92
+76 17 75 03 02 95 65 05 55 09 95 92
+76 12 86 00 92
+76 13 22 86 00 92
 ```
 
 Použití: `100 A` → `212.`; `B`, pak `212 A` → `100.`; `C`, pak `37 A` → `98.6`.
@@ -964,9 +963,9 @@ Sečte 1 + 2 + … + n. Zadejte n a stiskněte `A`. Ukazuje `Op 20`, `SUM`, poro
 | 022 | 61 16 | `GTO A'` | další průchod |
 | 024 | 76 19 | `2nd Lbl D'` | |
 | 026 | 43 02 | `RCL 02` | výsledek |
-| 028 | 22 71 | `INV SBR` | |
+| 028 | 92 | `INV SBR` | |
 
-Obsah `prog00`: `76 11 42 01 00 42 00 42 02 76 16 69 20 44 02 43 01 32 43 00 77 19 61 16 76 19 43 02 22 71`
+Obsah `prog00`: `76 11 42 01 00 42 00 42 02 76 16 69 20 44 02 43 01 32 43 00 77 19 61 16 76 19 43 02 92`
 
 Použití: `10 A` → `55.`
 
@@ -983,12 +982,12 @@ Program se zastaví instrukcí `R/S`, uživatel zadá další číslo a pokraču
 | 004 | 91 | `R/S` (čeká na druhé číslo) |
 | 005 | 44 01 | `SUM 01` |
 | 007 | 43 01 | `RCL 01` |
-| 009 | 22 71 | `INV SBR` |
+| 009 | 92 | `INV SBR` |
 
-Obsah `prog00`: `76 11 42 01 91 44 01 43 01 22 71`
+Obsah `prog00`: `76 11 42 01 91 44 01 43 01 92`
 
 Použití: `5 A` → `5.`, `3 R/S` → `8.`
 
 ### 16.6 Lunar Lander
 
-Rozsáhlejší ukázkou je hra Lunar Lander (přistání na Měsíci). Program je připravený v souboru `Assets/lunar_lander.ti5p` a jeho kódy s komentáři jsou v `TI5X.Avalonia.Tests/Program.cs` (`LunarLanderProgram`). Pravidla hry, fyzikální model a ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
+Rozsáhlejší ukázkou je hra Lunar Lander (přistání na Měsíci). Program je připravený v souboru `Assets/lunar_lander.ti5p` a jeho kódy s komentáři jsou v `TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`). Pravidla hry, fyzikální model a ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).

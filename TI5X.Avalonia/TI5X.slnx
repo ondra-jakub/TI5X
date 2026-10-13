@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TI5X.Avalonia.csproj" />
+  <Project Path="TI5X.Core\TI5X.Core.csproj" />
+  <Project Path="TI5X.Core.Tests\TI5X.Core.Tests.csproj" />
+  <Project Path="TI5X.Verified\TI5X.Verified.csproj" />
+</Solution>

@@ -27,28 +27,24 @@ Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/):
 |---|---|
 | [Příručka kalkulačky TI-59](docs/PRIRUCKA_TI59.md) | Plná příručka: klávesnice, počítání, AOS, paměti, statistika, programování, tabulka všech 100 kódů instrukcí, ukázkové programy. |
 | [Uživatelská příručka emulátoru](docs/EMULATOR_UZIVATEL.md) | Spuštění aplikace, okno, menu, klávesové zkratky, soubory `.ti5p`/`.ti5l`, virtuální tiskárna, debugger, Lunar Lander. |
-| [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, třídy `Core`, formáty souborů, testy, postup rozšiřování. |
+| [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, projekt `TI5X.Core`, formáty souborů, testy, Dafny verifikace, postup rozšiřování. |
 | [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md) | Jediný úplný seznam rozdílů oproti originálu TI-59 a chybějících funkcí. |
 | [Specifikace Lunar Lander](docs/LUNAR_LANDER_SPEC.md) | Ukázkový program: pravidla hry, fyzikální model, kompletní výpis 142 kroků. |
 
-> **Důležité:** program zapsaný z klávesnice v režimu `LRN` se v emulátoru uloží chybně a nefunguje. Funkční program vytvořte jako soubor `.ti5p` (postup v [příručce, kapitola 15](docs/PRIRUCKA_TI59.md#152-pravidla-kódování-programu)) a načtěte ho přes `File > Open Program (.ti5p)...`.
+> **Důležité:** programy zapsané v režimu `LRN` se ukládají ve standardním kódování TI-59 a lze je spouštět; programy ze **starší verze emulátoru** (surové kódy kláves) je potřeba přepsat. Postup psaní programů popisuje [příručka, kapitola 15](docs/PRIRUCKA_TI59.md#152-pravidla-kódování-programu).
 
 ## Testy
 
-Samostatný konzolový testovací projekt nevyžaduje grafické prostředí ani testovací balíčky (xUnit/NUnit nepoužívá, `dotnet test` nic nespustí):
+Testy (TUnit na Microsoft.Testing.Platform) pokrývají celé jádro bez grafického prostředí – 56 testů: migrovaná sada Lunar Lander, základní aritmetika, displej, bezpečnost mezí a souběhu, conformance instrukční sady (sloučené kódy, LRN kódování), vyčerpávající sweep všech opcodů × operandů a diferenciální test proti Dafny ověřenému modelu:
 
 ```sh
-dotnet run --project TI5X.Avalonia/TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj
+dotnet test --solution TI5X.Avalonia/TI5X.slnx
 ```
 
-Testů je 17: základní aritmetika a priorita operací, úhlové režimy a převody, a dále 12 testů hry Lunar Lander (inicializace, volný pád, vznášení, průlet, omezení paliva, bezpečné přistání i havárie, telemetrie, vítězná hra), test ukládání a načtení `.ti5p`, generování souboru `Assets/lunar_lander.ti5p` a dva testy přes cestu GUI (`ProcessKey`). Program vypisuje `[PASS]`/`[FAIL]` u každého testu a vrací návratový kód 0 (úspěch) nebo 1 (selhání).
-
-Přehled jednotlivých testů, jejich závislosti a postup přidání nového testu popisuje [vývojářská dokumentace, kapitola 7](docs/EMULATOR_VYVOJ.md#7-testy).
-
-> ⚠️ Test `Generate Assets/lunar_lander.ti5p` přepíše soubor `Assets/lunar_lander.ti5p` v adresáři projektu. Po spuštění testů proto zkontrolujte `git status`.
+Testy nic nezapisují do repozitáře. Přehled testů a postup přidání nového popisuje [vývojářská dokumentace, kapitola 7](docs/EMULATOR_VYVOJ.md#7-testy). CI navíc spouští kontrolu formátování, pokrytí, SBOM a Dafny důkazy.
 
 ## Omezení
 
-Emulátor není ověřenou emulací všech detailů TI-59. Úplný seznam rozdílů oproti originálu (např. chování režimu `LRN`, sloučené kódy instrukcí, příznaky, statistika, tiskárna) a známých omezení (neúplná Master Library, `.ti5p` neukládá registry, omezená fyzická klávesnice, GUI bez automatizovaných testů) vede [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md).
+Emulátor není ověřenou emulací všech detailů TI-59. Úplný seznam rozdílů oproti originálu (např. chování příznaku 8, `HIR`, přepočet Op 16/17, statistika, tiskárna) a známých omezení (neúplná Master Library, `.ti5p` neukládá registry, omezená fyzická klávesnice, GUI bez automatizovaných testů) vede [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md).
 
 Licenční podmínky původního projektu jsou v souboru `COPYING` v kořeni repozitáře.

@@ -119,6 +119,15 @@ public static class KeyCodes
     public const int OP_SUM_IND = 74;
     public const int OP_GTO_IND = 83;
     public const int OP_OP_IND = 84;
+    public const int OP_HIR = 82; // hidden-register operations (semantics undocumented)
+
+    /// <summary>
+    /// Single source of truth for merged program opcodes (IND combinations and
+    /// RTN). In a program these bytes have their own meaning; on the keyboard
+    /// the same values are digit keys.
+    /// </summary>
+    public static bool IsMergedCode(int op) => op is OP_PGM_IND or OP_EXC_IND or OP_PRD_IND
+        or OP_STO_IND or OP_RCL_IND or OP_SUM_IND or OP_GTO_IND or OP_OP_IND or OP_INV_SBR;
 
     public static readonly string[] PrintMnemonics =
     {

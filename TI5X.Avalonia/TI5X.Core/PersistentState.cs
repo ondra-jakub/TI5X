@@ -40,27 +40,14 @@ public static class PersistentState
             writer.Write(sb.ToString());
         }
 
-        // 3. card00 if present
+        // 3. card00 if present. Built with XElement so all values are escaped
+        // automatically - a card loaded from an untrusted file cannot inject
+        // arbitrary XML into a saved file (the old string builder did).
         if (card != null)
         {
             var cardEntry = zip.CreateEntry("card00", CompressionLevel.Optimal);
             using var writer = new StreamWriter(cardEntry.Open(), Encoding.UTF8);
-            var sb = new StringBuilder();
-            sb.AppendLine($"<carddef style=\"{card.Style}\">");
-            if (!string.IsNullOrEmpty(card.TitleLeft)) sb.AppendLine($"<label slot=\"titleleft\">{card.TitleLeft}</label>");
-            if (!string.IsNullOrEmpty(card.TitleRight)) sb.AppendLine($"<label slot=\"titleright\">{card.TitleRight}</label>");
-            if (!string.IsNullOrEmpty(card.A)) sb.AppendLine($"<label slot=\"a\">{card.A}</label>");
-            if (!string.IsNullOrEmpty(card.B)) sb.AppendLine($"<label slot=\"b\">{card.B}</label>");
-            if (!string.IsNullOrEmpty(card.C)) sb.AppendLine($"<label slot=\"c\">{card.C}</label>");
-            if (!string.IsNullOrEmpty(card.D)) sb.AppendLine($"<label slot=\"d\">{card.D}</label>");
-            if (!string.IsNullOrEmpty(card.E)) sb.AppendLine($"<label slot=\"e\">{card.E}</label>");
-            if (!string.IsNullOrEmpty(card.APrime)) sb.AppendLine($"<label slot=\"aprime\">{card.APrime}</label>");
-            if (!string.IsNullOrEmpty(card.BPrime)) sb.AppendLine($"<label slot=\"bprime\">{card.BPrime}</label>");
-            if (!string.IsNullOrEmpty(card.CPrime)) sb.AppendLine($"<label slot=\"cprime\">{card.CPrime}</label>");
-            if (!string.IsNullOrEmpty(card.DPrime)) sb.AppendLine($"<label slot=\"dprime\">{card.DPrime}</label>");
-            if (!string.IsNullOrEmpty(card.EPrime)) sb.AppendLine($"<label slot=\"eprime\">{card.EPrime}</label>");
-            sb.AppendLine("</carddef>");
-            writer.Write(sb.ToString());
+            writer.Write(BuildCardXml(card));
         }
 
         // 4. help00 if present
@@ -95,13 +82,43 @@ public static class PersistentState
             var helpEntry = zip.GetEntry("help00");
             if (helpEntry != null)
             {
-                using var reader = new StreamReader(helpEntry.Open(), Encoding.UTF8);
-                help = reader.ReadToEnd();
+                help = LibraryModule.ReadTextEntry(helpEntry);
             }
 
             engine.Banks[0] = new ProgBank(engine.UserProgram, card, help);
             engine.CurBank = 0;
             engine.PC = 0;
+        }
+    }
+
+    private static string BuildCardXml(CardDef card)
+    {
+        var root = new XElement("carddef", new XAttribute("style", card.Style ?? ""));
+        AddCardLabel(root, "titleleft", card.TitleLeft);
+        AddCardLabel(root, "titleright", card.TitleRight);
+        AddCardLabel(root, "subtitleleft", card.SubtitleLeft);
+        AddCardLabel(root, "subtitleright", card.SubtitleRight);
+        AddCardLabel(root, "a", card.A);
+        AddCardLabel(root, "b", card.B);
+        AddCardLabel(root, "c", card.C);
+        AddCardLabel(root, "d", card.D);
+        AddCardLabel(root, "e", card.E);
+        AddCardLabel(root, "aprime", card.APrime);
+        AddCardLabel(root, "bprime", card.BPrime);
+        AddCardLabel(root, "cprime", card.CPrime);
+        AddCardLabel(root, "dprime", card.DPrime);
+        AddCardLabel(root, "eprime", card.EPrime);
+        AddCardLabel(root, "primecenter", card.PrimeCenter);
+        AddCardLabel(root, "baseleft", card.BaseLeft);
+        AddCardLabel(root, "baseright", card.BaseRight);
+        return root.ToString();
+    }
+
+    private static void AddCardLabel(XElement root, string slot, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
+            root.Add(new XElement("label", new XAttribute("slot", slot), value));
         }
     }
 }

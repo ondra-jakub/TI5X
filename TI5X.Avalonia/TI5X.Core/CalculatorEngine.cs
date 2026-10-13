@@ -7,8 +7,7 @@ public class CalculatorEngine
     // Constants
     public const int MaxMemories = 100;
     public const int MaxProgram = 960; // TI-59 standard max steps
-    public const int MaxLibProgram = 1000;
-    public const int MaxBanks = 100;
+    public const int MaxBanks = 100;   // library bank numbers live in Partition.MaxLibProgram
     public const int MaxOpStack = 10;
     public const int MaxReturnStack = 8;
     public const int MaxFlags = 10;
@@ -85,14 +84,20 @@ public class CalculatorEngine
 
     // Execution control
     public bool IsRunning { get; private set; }
-    private bool _executingProgramStep;
     public bool PauseRequested { get; private set; }
     private CancellationTokenSource? _runCts;
+    private Task _runTask = Task.CompletedTask;
+    private int _runGeneration;
+
+    /// <summary>
+    /// Completes when the current (or last) background program run has fully finished,
+    /// including the final display refresh and state notification.
+    /// </summary>
+    public Task RunCompletion => _runTask;
 
     // Events
     public event Action? DisplayChanged;
     public event Action? StateChanged;
-    public event Action<string>? PrintOutputRequested;
 
     // Key Entry multi-step sequence
     public int DigitsNeeded { get; private set; }
@@ -126,10 +131,8 @@ public class CalculatorEngine
         SecondState = false;
         InvState = false;
         LrnMode = false;
-        DigitsNeeded = 0;
-        AccumDigits = 0;
-        CollectingForFunction = 0;
-        GotInd = false;
+        ResetLrnEntry();
+        ResetOperands();
 
         Array.Clear(Flags, 0, Flags.Length);
         Array.Clear(Memories, 0, Memories.Length);
@@ -343,13 +346,6 @@ public class CalculatorEngine
             return;
         }
 
-        // In program execution, operand bytes for registers, fix decimals, etc. are passed directly as byte values (0..99)
-        if (_executingProgramStep)
-        {
-            ExecuteCollectedFunction(effectiveKey, isSymbolic: false);
-            return;
-        }
-
         // Digit input 0..9
         int digit = KeyToDigit(effectiveKey);
         if (digit >= 0)
@@ -397,6 +393,8 @@ public class CalculatorEngine
                 ExecuteGto(operand, isSymbolic, ind);
                 break;
             case KeyCodes.KEY_SBR:
+                // Only reachable from the keyboard: program SBR is decoded
+                // structurally in ExecuteSingleProgramStep.
                 ExecuteSbr(operand, isSymbolic, ind, fromInteractive: true);
                 break;
             case KeyCodes.KEY_PGM:
@@ -1321,7 +1319,11 @@ public class CalculatorEngine
         }
         else
         {
-            if (IsRunning || PC > 0)
+            // Keyboard-only path (program conditionals are decoded inline in
+            // ExecuteSingleProgramStep): a false conditional pressed on the
+            // keyboard skips the stored target bytes when the pointer is
+            // inside a program, mirroring single-step debugging.
+            if (PC > 0)
             {
                 SkipProgramBranchTarget();
             }
@@ -1334,11 +1336,10 @@ public class CalculatorEngine
         int max = GetMaxProg();
         if (PC >= max) return;
 
-        byte nextOp = prog[PC];
-        if (nextOp == KeyCodes.KEY_IND)
+        byte t1 = prog[PC];
+        if (t1 == KeyCodes.KEY_IND || t1 <= 9) // "40 nn" or two-byte "0n nn" target
         {
-            PC++;
-            if (PC < max) PC++;
+            PC += Math.Min(2, max - PC);
         }
         else
         {
@@ -1380,7 +1381,11 @@ public class CalculatorEngine
 
     public int GetMaxProg()
     {
-        return CurBank == 0 ? RegOffset * 2 : MaxLibProgram;
+        // The usable range is bounded by the actual bank array: Op 17 can claim more
+        // logical steps than the 960-byte bank 0 holds, and library banks are loaded
+        // with arrays as short as their file content. Reads must never exceed it.
+        // The bound itself is verified in TI5X.Verified/partition.dfy.
+        return Partition.EffectiveMaxProg(RegOffset, GetCurProg().Length, CurBank);
     }
 
     // Statistics functions (Σ+, mean, etc.)
@@ -1622,12 +1627,33 @@ public class CalculatorEngine
         }
     }
 
-    // LRN Mode
+    // LRN Mode — pending-entry state (see ProcessLrnKey)
+    private int _lrnOpcode;       // 0 = no operand pending
+    private int _lrnOpcodePos;    // position of the already stored opcode byte
+    private int _lrnDigitsNeeded;
+    private int _lrnAccum;
+    private bool _lrnGotInd;
+    private bool _lrnAcceptsInd;
+    private int _lrnPhase;        // 0 = first operand, 1 = branch target
+    private bool _lrnInvPending;
+
+    private void ResetLrnEntry()
+    {
+        _lrnOpcode = 0;
+        _lrnDigitsNeeded = 0;
+        _lrnAccum = 0;
+        _lrnGotInd = false;
+        _lrnAcceptsInd = false;
+        _lrnPhase = 0;
+        _lrnInvPending = false;
+    }
+
     private void ProcessLrnKey(int keyCode)
     {
         if (keyCode == KeyCodes.KEY_LRN)
         {
             LrnMode = false;
+            ResetLrnEntry();
             SetX(X);
             NotifyStateChanged();
             return;
@@ -1635,6 +1661,7 @@ public class CalculatorEngine
 
         if (keyCode == KeyCodes.KEY_SST)
         {
+            ResetLrnEntry();
             if (PC < GetMaxProg() - 1) PC++;
             ShowLrnDisplay();
             return;
@@ -1642,6 +1669,7 @@ public class CalculatorEngine
 
         if (keyCode == KeyCodes.KEY_BST)
         {
+            ResetLrnEntry();
             if (PC > 0) PC--;
             ShowLrnDisplay();
             return;
@@ -1649,6 +1677,7 @@ public class CalculatorEngine
 
         if (keyCode == KeyCodes.KEY_INS)
         {
+            ResetLrnEntry();
             InsertInstruction();
             ShowLrnDisplay();
             return;
@@ -1656,7 +1685,23 @@ public class CalculatorEngine
 
         if (keyCode == KeyCodes.KEY_DEL)
         {
+            ResetLrnEntry();
             DeleteInstruction();
+            ShowLrnDisplay();
+            return;
+        }
+
+        if (keyCode == KeyCodes.KEY_INV)
+        {
+            if (_lrnOpcode != 0) { SetErrorState(); return; } // INV inside an operand is invalid
+            _lrnInvPending = !_lrnInvPending; // INV INV cancels
+            ShowLrnDisplay();
+            return;
+        }
+
+        if (keyCode == KeyCodes.KEY_2ND)
+        {
+            SecondState = !SecondState;
             ShowLrnDisplay();
             return;
         }
@@ -1668,14 +1713,242 @@ public class CalculatorEngine
             SecondState = false;
         }
 
-        // Store opcode into current step
-        if (CurBank == 0 && PC < MaxProgram)
+        bool inv = _lrnInvPending;
+        _lrnInvPending = false;
+
+        // A pending INV merges with the next key where a merged code exists;
+        // otherwise INV is stored as its own step 22.
+        if (inv)
         {
-            UserProgram[PC] = (byte)effKey;
-            if (PC < GetMaxProg() - 1) PC++;
+            if (effKey == KeyCodes.KEY_SBR)
+            {
+                StoreLrnByte(KeyCodes.OP_INV_SBR); // single step 92 = RTN
+                ShowLrnDisplay();
+                return;
+            }
+            StoreLrnByte(KeyCodes.KEY_INV);
+            if (effKey == KeyCodes.KEY_FIX)
+            {
+                StoreLrnByte(effKey); // INV Fix has no operand
+                ShowLrnDisplay();
+                return;
+            }
+        }
+
+        if (_lrnOpcode != 0)
+        {
+            ProcessLrnOperandKey(effKey);
+            return;
+        }
+
+        int digit = KeyToDigit(effKey);
+        if (digit >= 0)
+        {
+            StoreLrnByte(digit); // digits are stored as 00-09
             ShowLrnDisplay();
+            return;
+        }
+
+        switch (effKey)
+        {
+            case KeyCodes.KEY_STO or KeyCodes.KEY_RCL or KeyCodes.KEY_SUM or KeyCodes.KEY_EXC
+                or KeyCodes.KEY_PRD or KeyCodes.KEY_PGM or KeyCodes.KEY_OP:
+                BeginLrnOperand(effKey, 2, acceptsInd: true);
+                break;
+            case KeyCodes.KEY_FIX:
+            case KeyCodes.KEY_ST_FLG:
+                BeginLrnOperand(effKey, 1, acceptsInd: false);
+                break;
+            case KeyCodes.KEY_IF_FLG:
+            case KeyCodes.KEY_DSZ:
+                // flag/register digit first, then a branch target
+                BeginLrnOperand(effKey, 1, acceptsInd: false);
+                _lrnPhase = 0; // target phase entered after the digit completes
+                break;
+            case KeyCodes.KEY_GTO or KeyCodes.KEY_SBR or KeyCodes.KEY_X_EQ_T or KeyCodes.KEY_X_GE_T:
+                BeginLrnTarget(effKey);
+                break;
+            default:
+                StoreLrnByte(effKey);
+                break;
+        }
+        ShowLrnDisplay();
+    }
+
+    private void BeginLrnOperand(int op, int digits, bool acceptsInd)
+    {
+        int pos = PC;
+        if (!StoreLrnByte(op))
+        {
+            return; // no room (or read-only bank): no pending operand state
+        }
+        _lrnOpcode = op;
+        _lrnOpcodePos = pos;
+        _lrnDigitsNeeded = digits;
+        _lrnAccum = 0;
+        _lrnGotInd = false;
+        _lrnAcceptsInd = acceptsInd;
+        _lrnPhase = 0;
+    }
+
+    private void BeginLrnTarget(int op)
+    {
+        int pos = PC;
+        if (!StoreLrnByte(op))
+        {
+            return; // no room (or read-only bank): no pending target state
+        }
+        _lrnOpcode = op;
+        _lrnOpcodePos = pos;
+        _lrnDigitsNeeded = 3;    // three-digit absolute address
+        _lrnAccum = 0;
+        _lrnGotInd = false;
+        _lrnAcceptsInd = true;
+        _lrnPhase = 1;
+    }
+
+    private void ProcessLrnOperandKey(int effKey)
+    {
+        // Symbolic label completes a branch target.
+        if (_lrnPhase == 1 && effKey is >= KeyCodes.KEY_A and <= KeyCodes.KEY_E
+                                     or >= KeyCodes.KEY_E_PRIME and <= KeyCodes.KEY_D_PRIME)
+        {
+            StoreLrnByte(effKey);
+            ResetLrnEntry();
+            ShowLrnDisplay();
+            return;
+        }
+
+        if (effKey == KeyCodes.KEY_IND && _lrnAcceptsInd && !_lrnGotInd)
+        {
+            _lrnGotInd = true;
+            _lrnAccum = 0;
+            _lrnDigitsNeeded = 2; // indirect register takes two digits
+            ShowLrnDisplay();
+            return;
+        }
+
+        int digit = KeyToDigit(effKey);
+        if (digit < 0)
+        {
+            SetErrorState();
+            ResetLrnEntry();
+            return;
+        }
+
+        _lrnAccum = _lrnAccum * 10 + digit;
+        _lrnDigitsNeeded--;
+        if (_lrnDigitsNeeded > 0)
+        {
+            ShowLrnDisplay();
+            return;
+        }
+        CompleteLrnOperand();
+    }
+
+    private void CompleteLrnOperand()
+    {
+        int op = _lrnOpcode;
+        int val = _lrnAccum;
+
+        if (_lrnPhase == 0)
+        {
+            if (op == KeyCodes.KEY_IF_FLG || op == KeyCodes.KEY_DSZ)
+            {
+                // first operand written; the branch target follows
+                if (!StoreLrnByte(val))
+                {
+                    ResetLrnEntry(); // boundary error already signaled
+                    ShowLrnDisplay();
+                    return;
+                }
+                _lrnPhase = 1;
+                _lrnDigitsNeeded = 3;
+                _lrnAccum = 0;
+                _lrnGotInd = false;
+                _lrnAcceptsInd = true;
+                ShowLrnDisplay();
+                return;
+            }
+            if (_lrnGotInd)
+            {
+                // replace the stored opcode with the merged IND code
+                StoreLrnByteAt(_lrnOpcodePos, MergedCodeFor(op));
+                StoreLrnByte(val);
+            }
+            else
+            {
+                StoreLrnByte(val);
+            }
+        }
+        else
+        {
+            if (op == KeyCodes.KEY_GTO && _lrnGotInd)
+            {
+                StoreLrnByteAt(_lrnOpcodePos, KeyCodes.OP_GTO_IND); // merged "83 nn"
+                StoreLrnByte(val);
+            }
+            else if (_lrnGotInd)
+            {
+                // SBR / x=t / x>=t / If flg / Dsz targets use the expanded "40 nn"
+                if (StoreLrnByte(KeyCodes.KEY_IND))
+                {
+                    StoreLrnByte(val);
+                }
+            }
+            else
+            {
+                // three-digit absolute address as "0n nn"
+                if (StoreLrnByte(val / 100))
+                {
+                    StoreLrnByte(val % 100);
+                }
+            }
+        }
+        ResetLrnEntry();
+        ShowLrnDisplay();
+    }
+
+    /// <summary>
+    /// Stores one instruction byte in LRN mode. Requires room to advance the
+    /// step pointer: a byte that would be written without advancing would be
+    /// clobbered by the next byte of the same instruction, so the boundary
+    /// signals a defined error instead of silently corrupting the program.
+    /// </summary>
+    private bool StoreLrnByte(int code)
+    {
+        if (CurBank != 0) return false; // library banks are read-only (documented)
+        if (PC >= GetMaxProg() - 1)
+        {
+            SetErrorState();
+            return false;
+        }
+        UserProgram[PC] = (byte)code;
+        PC++;
+        NotifyStateChanged();
+        return true;
+    }
+
+    private void StoreLrnByteAt(int pos, int code)
+    {
+        // Retroactive merged-code rewrite: only for the editable bank 0.
+        if (CurBank == 0 && pos >= 0 && pos < GetMaxProg())
+        {
+            UserProgram[pos] = (byte)code;
         }
     }
+
+    private static int MergedCodeFor(int op) => op switch
+    {
+        KeyCodes.KEY_STO => KeyCodes.OP_STO_IND,
+        KeyCodes.KEY_RCL => KeyCodes.OP_RCL_IND,
+        KeyCodes.KEY_SUM => KeyCodes.OP_SUM_IND,
+        KeyCodes.KEY_EXC => KeyCodes.OP_EXC_IND,
+        KeyCodes.KEY_PRD => KeyCodes.OP_PRD_IND,
+        KeyCodes.KEY_PGM => KeyCodes.OP_PGM_IND,
+        KeyCodes.KEY_OP => KeyCodes.OP_OP_IND,
+        _ => op
+    };
 
     private void InsertInstruction()
     {
@@ -1709,39 +1982,50 @@ public class CalculatorEngine
     public void StartProgram()
     {
         if (IsRunning) return;
+        var cts = new CancellationTokenSource();
+        int generation = ++_runGeneration;
+        _runCts = cts;
         IsRunning = true;
-        _runCts = new CancellationTokenSource();
         NotifyStateChanged();
 
-        Task.Run(async () =>
+        _runTask = Task.Run(async () =>
         {
             try
             {
-                while (IsRunning && !_runCts.Token.IsCancellationRequested)
+                while (true)
                 {
+                    // Ownership check: a newer run or an explicit stop must end this loop.
+                    if (!IsRunning || generation != _runGeneration || cts.IsCancellationRequested)
+                        break;
+
                     bool stepOk = ExecuteSingleProgramStep();
-                    if (!stepOk || !IsRunning)
+                    if (!stepOk)
                         break;
 
                     if (PauseRequested)
                     {
                         PauseRequested = false;
-                        await Task.Delay(500, _runCts.Token);
+                        await Task.Delay(500, cts.Token);
                     }
                     else if (Flags[FLAG_SLOW_EXECUTION])
                     {
-                        await Task.Delay(50, _runCts.Token);
+                        await Task.Delay(50, cts.Token);
                     }
                 }
             }
             catch (OperationCanceledException) { }
             finally
             {
-                IsRunning = false;
-                NotifyStateChanged();
-                if (State != EngineState.Error)
+                // Only the owning run may touch the shared state, otherwise a stale
+                // task could cancel a run that was started right after a stop.
+                if (generation == _runGeneration)
                 {
-                    SetX(X);
+                    IsRunning = false;
+                    NotifyStateChanged();
+                    if (State != EngineState.Error)
+                    {
+                        SetX(X);
+                    }
                 }
             }
         });
@@ -1751,13 +2035,94 @@ public class CalculatorEngine
     {
         IsRunning = false;
         _runCts?.Cancel();
-        _runCts = null;
         NotifyStateChanged();
     }
 
     public void StepProgram()
     {
+        if (IsRunning) return; // SST from the debugger must not race the background loop
         ExecuteSingleProgramStep();
+    }
+
+    private readonly record struct BranchTarget(int Value, bool Symbolic, bool Indirect);
+
+    /// <summary>
+    /// Reads a branch target (GTO/SBR/conditionals) from the program bytes.
+    /// Forms: "1x" symbolic label, "0n nn" three-digit address, "40 nn" indirect,
+    /// or a single-byte absolute address (emulator convenience form 20-99).
+    /// </summary>
+    private BranchTarget? ReadBranchTarget(byte[] prog, int max)
+    {
+        if (PC >= max) return null;
+        int t1 = prog[PC++];
+        if (t1 == KeyCodes.KEY_IND)
+        {
+            if (PC >= max) return null;
+            return new BranchTarget(prog[PC++], Symbolic: false, Indirect: true);
+        }
+        if (t1 is >= 10 and <= 19)
+        {
+            return new BranchTarget(t1, Symbolic: true, Indirect: false);
+        }
+        if (t1 <= 9)
+        {
+            if (PC >= max) return null;
+            return new BranchTarget(t1 * 100 + prog[PC++], Symbolic: false, Indirect: false);
+        }
+        return new BranchTarget(t1, Symbolic: false, Indirect: false);
+    }
+
+    /// <summary>
+    /// Reads a register operand byte; the expanded "40 nn" form marks indirect
+    /// addressing. Byte 21 (the 2nd key code) is not a valid operand.
+    /// </summary>
+    private (int Value, bool Indirect)? ReadRegisterOperand(byte[] prog, int max)
+    {
+        if (PC >= max) return null;
+        int b = prog[PC++];
+        if (b == KeyCodes.KEY_IND)
+        {
+            if (PC >= max) return null;
+            return (prog[PC++], true);
+        }
+        if (b == KeyCodes.KEY_2ND)
+        {
+            return null;
+        }
+        return (b, false);
+    }
+
+    /// <summary>
+    /// Executes a merged program opcode (62-64, 72-74, 83, 84 = operation with IND,
+    /// 92 = RTN). On the keyboard these codes are digit keys; in a program they have
+    /// their own meaning, which is why they are intercepted before key dispatch.
+    /// </summary>
+    private bool ExecuteMergedCode(byte op, byte[] prog, int max)
+    {
+        if (op == KeyCodes.OP_INV_SBR) // 92 = RTN
+        {
+            ExecuteReturn();
+            return State != EngineState.Error;
+        }
+
+        if (PC >= max)
+        {
+            SetErrorState();
+            return false;
+        }
+        int nn = prog[PC++];
+        switch (op)
+        {
+            case KeyCodes.OP_PGM_IND: ExecutePgm(nn, ind: true); break;
+            case KeyCodes.OP_EXC_IND: ExecuteExchange(nn, ind: true); break;
+            case KeyCodes.OP_PRD_IND: ExecutePrd(nn, ind: true, inv: false); break;
+            case KeyCodes.OP_STO_IND: ExecuteStore(nn, ind: true); break;
+            case KeyCodes.OP_RCL_IND: ExecuteRecall(nn, ind: true); break;
+            case KeyCodes.OP_SUM_IND: ExecuteSum(nn, ind: true, inv: false); break;
+            case KeyCodes.OP_GTO_IND: ExecuteGto(nn, isSymbolic: false, ind: true); break;
+            case KeyCodes.OP_OP_IND: ExecuteOp(nn, ind: true); break;
+        }
+        return State != EngineState.Error;
     }
 
     private bool ExecuteSingleProgramStep()
@@ -1770,11 +2135,13 @@ public class CalculatorEngine
             return false;
         }
 
-        int stepPc = PC;
         byte op = prog[PC++];
+
+        // R/S stops the program; a number entered just before it is kept.
         if (op == KeyCodes.KEY_R_S)
         {
-            return false; // Stop
+            FinishNumberEntry();
+            return false;
         }
 
         if (op == KeyCodes.KEY_PAUSE)
@@ -1785,20 +2152,143 @@ public class CalculatorEngine
 
         if (op == KeyCodes.KEY_LBL)
         {
-            if (PC < max) PC++; // Skip label identifier
+            if (PC < max) PC++; // skip label identifier
             return true;
         }
 
-        // Execute opcode
-        _executingProgramStep = true;
-        try
+        if (KeyCodes.IsMergedCode(op))
         {
-            ExecuteKeyInteractive(op);
+            return ExecuteMergedCode(op, prog, max);
         }
-        finally
+
+        // HIR (hidden registers): the original semantics are not documented;
+        // a defined no-op instead of a misinterpreted digit.
+        if (op == KeyCodes.OP_HIR)
         {
-            _executingProgramStep = false;
+            return true;
         }
+
+        switch (op)
+        {
+            case >= 10 and <= 19: // label byte A-E' in a program is a subroutine call
+                {
+                    // Program-context call: the return must continue the run
+                    // instead of stopping it (keyboard A-E' starts and stops).
+                    ExecuteSbr(op, isSymbolic: true, ind: false, fromInteractive: false);
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_GTO:
+                {
+                    var target = ReadBranchTarget(prog, max);
+                    if (target == null) { SetErrorState(); return false; }
+                    ExecuteGto(target.Value.Value, target.Value.Symbolic, target.Value.Indirect);
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_SBR:
+                {
+                    var target = ReadBranchTarget(prog, max);
+                    if (target == null) { SetErrorState(); return false; }
+                    ExecuteSbr(target.Value.Value, target.Value.Symbolic, target.Value.Indirect, fromInteractive: false);
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_X_GE_T:
+            case KeyCodes.KEY_X_EQ_T:
+                {
+                    var target = ReadBranchTarget(prog, max);
+                    if (target == null) { SetErrorState(); return false; }
+                    FinishNumberEntry();
+                    bool inv = InvState;
+                    InvState = false;
+                    bool cond = op == KeyCodes.KEY_X_GE_T ? (X >= T) : (X == T);
+                    if (cond ^ inv)
+                    {
+                        ExecuteGto(target.Value.Value, target.Value.Symbolic, target.Value.Indirect);
+                    }
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_ST_FLG:
+                {
+                    if (PC >= max) { SetErrorState(); return false; }
+                    int flag = prog[PC++];
+                    bool inv = InvState;
+                    InvState = false;
+                    ExecuteStFlg(flag, inv);
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_IF_FLG:
+                {
+                    if (PC >= max) { SetErrorState(); return false; }
+                    int flag = prog[PC++];
+                    var target = ReadBranchTarget(prog, max);
+                    if (target == null || flag > 9) { SetErrorState(); return false; }
+                    bool inv = InvState;
+                    InvState = false;
+                    if (Flags[flag] ^ inv)
+                    {
+                        ExecuteGto(target.Value.Value, target.Value.Symbolic, target.Value.Indirect);
+                    }
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_DSZ:
+                {
+                    if (PC >= max) { SetErrorState(); return false; }
+                    int reg = prog[PC++];
+                    var target = ReadBranchTarget(prog, max);
+                    if (target == null || reg > 9) { SetErrorState(); return false; }
+                    bool inv = InvState;
+                    InvState = false;
+                    Memories[reg] -= 1.0;
+                    bool jump = inv ? (Memories[reg] == 0.0) : (Memories[reg] != 0.0);
+                    if (jump)
+                    {
+                        ExecuteGto(target.Value.Value, target.Value.Symbolic, target.Value.Indirect);
+                    }
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_STO or KeyCodes.KEY_RCL or KeyCodes.KEY_SUM or KeyCodes.KEY_EXC
+                or KeyCodes.KEY_PRD or KeyCodes.KEY_PGM or KeyCodes.KEY_OP:
+                {
+                    var operand = ReadRegisterOperand(prog, max);
+                    if (operand == null) { SetErrorState(); return false; }
+                    bool inv = InvState;
+                    InvState = false;
+                    int val = operand.Value.Value;
+                    bool ind = operand.Value.Indirect;
+                    FinishNumberEntry();
+                    switch (op)
+                    {
+                        case KeyCodes.KEY_STO: ExecuteStore(val, ind); break;
+                        case KeyCodes.KEY_RCL: ExecuteRecall(val, ind); break;
+                        case KeyCodes.KEY_SUM: ExecuteSum(val, ind, inv); break;
+                        case KeyCodes.KEY_EXC: ExecuteExchange(val, ind); break;
+                        case KeyCodes.KEY_PRD: ExecutePrd(val, ind, inv); break;
+                        case KeyCodes.KEY_PGM: ExecutePgm(val, ind); break;
+                        case KeyCodes.KEY_OP: ExecuteOp(val, ind); break;
+                    }
+                    return State != EngineState.Error;
+                }
+            case KeyCodes.KEY_FIX:
+                {
+                    bool invFix = InvState;
+                    InvState = false;
+                    if (invFix)
+                    {
+                        // INV Fix clears the decimal setting and takes no operand
+                        // byte; the LRN writer stores it as "22 58" (see 15.2).
+                        CurDecimals = -1;
+                        SetX(X);
+                        return State != EngineState.Error;
+                    }
+                    if (PC >= max) { SetErrorState(); return false; }
+                    int decimals = prog[PC++];
+                    ExecuteFix(decimals);
+                    return State != EngineState.Error;
+                }
+        }
+
+        // Remaining opcodes behave like interactive keys (operators, functions,
+        // digits, ...).
+        ExecuteKeyInteractive(op);
         return State != EngineState.Error;
     }
 

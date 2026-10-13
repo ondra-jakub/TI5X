@@ -2,3 +2,11 @@
 /gen/
 /local.properties
 /keystore.properties
+
+# .NET (TI5X.Avalonia subtree)
+TI5X.Avalonia/**/bin/
+TI5X.Avalonia/**/obj/
+TI5X.Avalonia/**/*.user
+TI5X.Avalonia/regen/
+TI5X.Avalonia/sbom/
+*.TestResults/

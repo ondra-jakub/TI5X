@@ -7,26 +7,35 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.0.4" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.4" />
-    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1">
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-
   <ItemGroup>
-    <Compile Remove="TI5X.Avalonia.Tests\**" />
-    <EmbeddedResource Remove="TI5X.Avalonia.Tests\**" />
-    <None Remove="TI5X.Avalonia.Tests\**" />
+    <ProjectReference Include="TI5X.Core\TI5X.Core.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <!-- Source of sibling sub-projects must not leak into the app compilation. -->
+    <Compile Remove="TI5X.Core\**" />
+    <Compile Remove="TI5X.Core.Tests\**" />
+    <Compile Remove="TI5X.Verified\**" />
+    <Compile Remove="regen\**" />
+    <EmbeddedResource Remove="TI5X.Core\**" />
+    <EmbeddedResource Remove="TI5X.Core.Tests\**" />
+    <EmbeddedResource Remove="TI5X.Verified\**" />
+    <EmbeddedResource Remove="regen\**" />
+    <None Remove="TI5X.Core\**" />
+    <None Remove="TI5X.Core.Tests\**" />
+    <None Remove="TI5X.Verified\**" />
+    <None Remove="regen\**" />
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
-    <AvaloniaResource Include="Assets\**\*" />
   </ItemGroup>
 </Project>

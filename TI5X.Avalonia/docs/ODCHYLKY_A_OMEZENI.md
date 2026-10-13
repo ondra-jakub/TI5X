@@ -39,8 +39,9 @@ Popis odpovídá stavu kódu v `Core/CalculatorEngine.cs`, `Core/KeyCodes.cs`, `
 
 Jak byl obsah ověřen:
 
-- ruční procházení větví `ProcessKey`, `CollectOperand`, `ExecuteKeyInteractive`, `ExecuteSingleKey`, `ExecuteSingleProgramStep`, `ProcessLrnKey` a `ExecuteOp` v `CalculatorEngine.cs`,
-- kontrolní konzolová aplikace (mimo repozitář), která volala `CalculatorEngine.ProcessKey` a spouštěla krátké programy. Body označené *(ověřeno)* jsou výsledkem tohoto běhu.
+- ruční procházení větví `ProcessKey`, `CollectOperand`, `ExecuteKeyInteractive`, `ExecuteSingleKey`, `ExecuteSingleProgramStep`, `ProcessLrnKey` a `ExecuteOp` v jádru,
+- **testovací sadou `TI5X.Core.Tests`** (TUnit): migrované scénáře Lunar Lander, conformance testy instrukční sady, vyčerpávající sweep všech opcodů × operandů (10 000 kombinací), paralelní a souběhové testy. Body *(ověřeno)* nyní odpovídají automatizovaným testům v `TI5X.Core.Tests`,
+- **Dafny modelem** `TI5X.Verified/partition.dfy`, jehož vygenerovaný kód test porovnává s produkční aritmetikou rozdělení paměti.
 
 Jako „originál“ se zde myslí kalkulačka TI-59 s tiskárnou PC-100A podle manuálu Texas Instruments.
 
@@ -50,19 +51,11 @@ Jako „originál“ se zde myslí kalkulačka TI-59 s tiskárnou PC-100A podle 
 
 Tyto odchylky mají na běžné používání největší dopad:
 
-1. **Programy zapsané v režimu LRN z klávesnice nefungují správně.** *(ověřeno)* `ProcessLrnKey` ukládá do paměti přímo kódy stisknutých kláves:
-   - `2nd` se uloží jako samostatný krok `21`, za ním primární kód klávesy (např. `2nd log` → `21 23` místo `28`),
-   - číslice se uloží jako kódy pozic na klávesnici (`7` → `62`, `0` → `92`, `5` → `73`) místo `07`, `00`, `05`,
-   - `IND` se uloží jako `21 45` a sloučené kódy (`72` = STO IND apod.) nevznikají.
-
-   Číslice v kódu klávesy se při běhu sice vyhodnotí správně, ale adresa operandu se přečte jako surový bajt. Například `5 STO 0 1` se uloží jako `73 42 92 82` a při běhu se provede `STO 92`. Funkční programy je proto nutné připravit jako soubor `.ti5p` se správnými kódy TI-59 (formát popisuje [vývojářská dokumentace](EMULATOR_VYVOJ.md#6-formáty-souborů)).
-2. **Sloučené kódy `62, 63, 64, 72, 73, 74, 82, 83, 84` a `RTN` (`92`) se v programu provedou jako číslice.** *(ověřeno)* `KeyToDigit` mapuje tyto hodnoty na číslice 7, 8, 9, 4, 5, 6, 1, 2, 3 a 0. Místo `RTN` je potřeba použít `INV SBR` (`22 71`) a místo sloučených kódů zápis s `IND` (např. `42 40 05` pro STO IND 05). Ani programy z Master Library, které tyto kódy používají, proto neběží správně.
-3. **`SBR` uvnitř běžícího programu zastaví program po návratu.** *(ověřeno)* Každé `SBR` ukládá návrat s příznakem „voláno z klávesnice“. Po `INV SBR` se program vrátí na místo za voláním a zastaví se.
-4. **Číslo zadané v programu těsně před `R/S` se ztratí.** *(ověřeno)* Program `7 R/S` skončí s displejem `0.`, protože se zadávání čísla neukončí a po zastavení se zobrazí stará hodnota X. Číslo je potřeba ukončit operací, například `=` nebo `STO nn`.
-5. **Absolutní adresa skoku v programu má jen jeden bajt (0–99).** *(ověřeno)* Originál zapisuje `GTO nnn` jako dva kroky (`61 0n nn`). Emulátor přečte jako adresu jen první bajt, takže dvoubajtový zápis originálu skočí jinam. Bajty `10`–`19` se v roli adresy berou jako návěští A–E'.
-6. **Každá chyba zastaví běžící program**, bez ohledu na příznak 8. *(ověřeno)*
-7. **Pád aplikace při chybném rozdělení paměti.** *(ověřeno)* Po `0 Op 17` vrací `GetMaxProg()` 2000 kroků, ale pole programu má jen 960 bajtů. Hledání neexistujícího návěští pak vyvolá `IndexOutOfRangeException`. Stejné riziko existuje v knihovních bankách, které jsou kratší než 1000 kroků (vestavěná banka 01 má 127 kroků): hrozí při hledání chybějícího návěští, při `2nd List` (`ExecuteList`), při `Op 8` (`ExecuteListLabels`), při `SST` za koncem banky nebo když program doběhne za konec banky. Po `0 Op 17` platí totéž pro `List` a `Op 8` v bance 0. Technické pozadí popisuje [vývojářská dokumentace, kapitola 9](EMULATOR_VYVOJ.md#9-technická-úskalí).
-8. **`File > New Program` smaže i načtené knihovny.** Volá `Reset()` s `clearLibs: true`, takže zmizí i vestavěná banka Master Library. Obnoví ji nové spuštění aplikace nebo `File > Load Library Module (.ti5l)...` s `Assets/ml.ti5l`.
+1. **Přeloženo na standard TI-59 (dřívější body 1–5 jsou opraveny).** Režim LRN ukládá kódy instrukcí standardu TI-59: číslice `00`–`09`, 2nd funkce jedním kódem, `INV SBR` jako jediný krok `92`, sloučené IND kódy (`72 05` = STO IND 05) a absolutní adresy skoků ve tvaru `61 0n nn`. Sloučené kódy i `RTN` (`92`) se v běhu programu provádějí správně, `SBR` z programu se po `RTN` vrací a pokračuje, číslo zapsané před `R/S` se zachová a `SST` provádí celou instrukci včetně operandů. Viz [3.7](#37-programování-a-režim-lrn) a [3.8](#38-skoky-podprogramy-a-podmínky).
+   - ⚠️ **Zlomová změna:** programy dříve zapsané emulátorem (surové kódy kláves, jednobajtové adresy `61 nn` s `nn` ≤ 9, dvoukrokové `2nd`/`INV`) je nutné přepsát; nový dekodér čte bajty `00`–`09` na místě adresy skoku jako první bajt dvoubajtové adresy a bajt `21` na místě operandu vede k chybě. Expanded IND (`kód 40 nn`) zůstává podporován i nadále.
+2. **`HIR` (kód 82) je definovaný no-op.** Původní sémantika skrytých registrů není v dostupných pramenech doložena, a proto se kód v programu provádí bez účinku (dříve se vykonal jako číslice 1).
+3. **Každá chyba zastaví běžící program**, bez ohledu na příznak 8. *(ověřeno)* Chování příznaku 8 odpovídající originálu zatím není doloženo z primárního zdroje.
+4. **`File > New Program` smaže i načtené knihovny.** Volá `Reset()` s `clearLibs: true`, takže zmizí i vestavěná banka Master Library. Obnoví ji nové spuštění aplikace nebo `File > Load Library Module (.ti5l)...` s `Assets/ml.ti5l`.
 
 ---
 
@@ -77,7 +70,7 @@ Tyto odchylky mají na běžné používání největší dopad:
 | `INV` | ✅ | Přepíná se a platí pro následující funkci. Funkce, které INV nepoužívají, ho zruší. |
 | `2nd R/S` (Write, kód 96) | ❌ | `MapSecond` pro `R/S` nemá mapování a tlačítko nemá druhou funkci. |
 | `2nd CLR` | ✅ | `CLR` nemá druhou funkci ani na originálu; kód `20` nemá v emulátoru samostatný účinek. |
-| `HIR` (kód 82) | ❌ | Kód 82 se provede jako číslice 1. |
+| `HIR` (kód 82) | ⚠️ | V programu definovaný no-op (původní sémantika skrytých registrů není doložena); na klávesnici nemá kód 82 jako takový význam mimo zadávání čísel. |
 | Klávesy během běhu programu | ⚠️ | Funguje jen `R/S` (zastaví program). Ostatní stisky se zahodí. |
 | Fyzická klávesnice PC | ⚠️ | Jen číslice (i numerická klávesnice), `.`, `+` (`OemPlus`/`Add`), `-` (`OemMinus`/`Subtract`), `×` a `÷` pouze z numerické klávesnice, `Enter` = `=`, `Backspace` = `CE`, `Escape` = `CLR`, `F1`–`F5` = `A`–`E`. Chybí 2nd, INV, STO, RCL, závorky a další. Pozor: `OemPlus` je na americkém rozložení klávesa `=`, která proto vloží `+`; na rozložení, kde `*` vyžaduje Shift+8, se událost `Key.D8` mapuje na číslici 8, protože handler modifikátor Shift nevyhodnocuje. |
 
@@ -133,7 +126,7 @@ Tyto odchylky mají na běžné používání největší dopad:
 | `IND` u STO/RCL/SUM/Prd/Exc/GTO/SBR/Pgm/Op | ✅ | Adresa se bere z celé části obsahu registru. Mimo rozsah 0–99 vede k chybě. |
 | `IND` u `Fix`, `St flg`, `If flg`, `Dsz` | ❌ | Tyto funkce IND nepřijímají. |
 | Dostupné registry | ⚠️ | *(ověřeno)* Vždy je dostupných všech 100 registrů (00–99) bez ohledu na rozdělení (Op 17). V originále jsou k dispozici jen registry v aktuálním rozdělení (výchozí 00–59). |
-| Registry 21 a 40 v programu | ⚠️ | *(ověřeno)* Operand se v programu čte jako surový bajt přes `CollectOperand`: bajt `21` přepne 2nd (např. `42 21` R21 nezmění) a bajt `40` se bere jako IND (`42 40 05` provede STO IND 05). Tyto registry lze v programu adresovat jen nepřímo. |
+| Registry 21 a 40 v programu | ⚠️ | Operand se v programu čte strukturálně: bajt `40` na místě operandu znamená IND (`42 40 05` provede STO IND 05, sloučený kód `72 05` je ekvivalentní) a bajt `21` vede k chybě. Tyto registry lze v programu adresovat jen nepřímo. |
 
 ### 3.6 Statistika
 
@@ -152,12 +145,12 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 |---|---|---|
 | Programová paměť 960 kroků | ✅ | Výchozí `RegOffset = 480`, takže `GetMaxProg()` = 960 kroků. |
 | `LRN`, zobrazení `PPP KK` (krok a kód) | ✅ | |
-| Zápis instrukcí v LRN | ❌ | Ukládají se surové kódy kláves, viz [bod 1 v kap. 2](#2-nejdůležitější-omezení). |
-| `SST`, `BST` v LRN | ✅ | |
-| `2nd Ins` v LRN | ❌ | Z virtuální klávesnice nedostupné. `ProcessLrnKey` reaguje jen na přímý kód 46, ale tlačítka posílají primární kódy a `2nd` se v LRN nepřepíná. `2nd SST` proto uloží krok `21` a `SST` pak posune ukazatel. Samotná funkce `InsertInstruction` by vložila `68` (Nop) místo `00`. |
-| `2nd Del` v LRN | ❌ | Stejné omezení jako `Ins`: `2nd BST` uloží krok `21` a `BST` se vrátí zpět. |
+| Zápis instrukcí v LRN | ✅ | Ukládá kódy standardu TI-59: číslice `00`–`09`, 2nd funkce jedním kódem, `INV SBR` jako `92`, sloučené IND kódy a adresy skoků `0n nn`. |
+| `SST`, `BST` v LRN | ✅ | Posun po jednotlivých bajtech (editační navigace). |
+| `2nd Ins` v LRN | ✅ | Vloží krok `68` (Nop) na aktuální pozici. |
+| `2nd Del` v LRN | ✅ | Smaže krok na aktuální pozici. |
 | Úpravy knihovních bank | ✅ | Nelze je upravovat, stejně jako v originále. Zápis v LRN funguje jen v bance 0. |
-| `SST` mimo LRN (krokování) | ✅ | Provede jeden krok programu. |
+| `SST` mimo LRN (krokování) | ✅ | Provede jednu celou instrukci včetně operandů (např. `STO 05` je jeden krok). |
 | `BST` mimo LRN | ⚠️ | Jen sníží PC o 1. |
 | `RST` | ⚠️ | *(ověřeno)* Nastaví PC = 000 a banku 0. **Nesmaže příznaky ani zásobník návratů**, což originál dělá. |
 | `R/S` | ✅ | Spustí nebo zastaví program. Běh probíhá ve vlákně na pozadí. |
@@ -172,12 +165,12 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 | Funkce | Stav | Poznámka |
 |---|---|---|
 | `GTO nnn` z klávesnice | ⚠️ | Vyžaduje 3 číslice nebo návěští A–E'. *(ověřeno)* `GTO IND nn` z klávesnice čeká na **3** číslice místo 2. |
-| `GTO` v programu | ⚠️ | Jednobajtová adresa 0–99, nebo návěští A–E', nebo `IND nn`. Viz [bod 5 v kap. 2](#2-nejdůležitější-omezení). |
+| `GTO` v programu | ✅ | Cíl se čte strukturálně: návěští A–E' (bajt `1x`), absolutní adresa ve tvaru `0n nn`, `40 nn` pro IND nebo jednobajtová absolutní adresa `20`–`99` (doplňková forma emulátoru). Sloučený kód `83 nn` = GTO IND. |
 | `SBR` z klávesnice, klávesy A–E' | ✅ | Uloží návrat, spustí program a po `INV SBR` zastaví. |
-| `SBR` v programu | ⚠️ | Po návratu se program zastaví, viz [bod 3](#2-nejdůležitější-omezení). |
+| `SBR` v programu | ✅ | Po `RTN`/`INV SBR` se vrací za volání a běh pokračuje. |
 | `SBR` s jiným návěštím než A–E' z klávesnice | ❌ | *(ověřeno)* Např. `SBR lnx` vede k chybě. |
 | `INV SBR` (návrat) | ✅ | |
-| `RTN` jako kód 92 | ❌ | Provede se jako číslice 0. |
+| `RTN` jako kód 92 | ✅ | Provede se jako návrat z podprogramu. |
 | Zásobník podprogramů 8 úrovní | ✅ | 9. úroveň vede k chybě. |
 | Podprogram ukončený `R/S` | ⚠️ | *(ověřeno)* Volání `A`–`E'` z klávesnice uloží návratovou adresu. Skončí-li podprogram `R/S` místo `INV SBR`, adresa v zásobníku zůstane. Po 8 takových voláních vede 9. volání k chybě a `RST` zásobník nevyprázdní. |
 | `2nd x=t`, `2nd x≥t` a jejich `INV` | ✅ | Při splnění se skočí na následující adresu nebo návěští, jinak se adresa přeskočí. V programu ✅. Z klávesnice podmínka při splnění čeká na adresu. Při nesplnění se posune PC, pokud je PC > 0. |
@@ -212,7 +205,7 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 | `Pgm IND nn` | ✅ | Neexistující banka vede k chybě. |
 | Op 9 (stažení knihovního programu) | ❌ | |
 | Magnetické karty (čtení, zápis, `2nd Write`) | ❌ | Kartu nahrazují soubory `.ti5p` a `.ti5l`. Karta se zobrazuje jen jako popisný proužek (štítky A–E'). |
-| Master Library | ⚠️ | Vestavěná `Assets/ml.ti5l` obsahuje **jen banku 01** (127 kroků, bez popisu karty). Program používá sloučené kódy (`62`, `92`), takže v emulátoru neběží správně. Ostatní programy Master Library chybí. |
+| Master Library | ⚠️ | Vestavěná `Assets/ml.ti5l` obsahuje **jen banku 01** (127 kroků, bez popisu karty). Její sloučené kódy (`62`, `92`) se nyní provádějí správně; zbývající banky Master Library chybí. |
 | Nápověda v knihovnách (`help`, `helpNN`) | ❌ | Načte se, ale aplikace ji nikde nezobrazuje. |
 | `.ti5p` – uložení | ⚠️ | Uloží jen program banky 0 (všech 960 kroků) a kartu/nápovědu **aktuální** banky. Neukládá registry, příznaky, režimy ani rozdělení. Ze štítků karty uloží jen `titleleft`, `titleright` a `a`–`eprime` (ztratí se `subtitle*`, `primecenter`, `base*`). Texty štítků se neescapují pro XML. |
 | `.ti5p` – načtení | ✅ | Nahradí program banky 0 a nastaví PC = 0 a banku 0. Registry nemění. |
@@ -277,47 +270,46 @@ Op 11–13 počítají s rolemi x a y popsanými v [3.6](#36-statistika), tedy x
 
 ## 5. Sloučené kódy instrukcí
 
-Tabulka `KeyCodes.PrintMnemonics` obsahuje mnemoniky pro všechny kódy 00–99 a slouží debuggeru a výpisu `List`. Engine ale sloučené kódy při běhu nedekóduje:
+Tabulka `KeyCodes.PrintMnemonics` obsahuje mnemoniky pro všechny kódy 00–99 a slouží debuggeru a výpisu `List`. Sloučené kódy se v běhu programu provádějí podle standardu TI-59 (na klávesnici jsou tytéž hodnoty číslicemi):
 
-| Kód | Mnemonika | Význam v originále | Chování v emulátoru |
+| Kód | Mnemonika | Význam | Chování v emulátoru |
 |---|---|---|---|
-| 62 | `PG*` | Pgm IND | Číslice 7 |
-| 63 | `EX*` | Exc IND | Číslice 8 |
-| 64 | `PD*` | Prd IND | Číslice 9 |
-| 72 | `ST*` | STO IND | Číslice 4 |
-| 73 | `RC*` | RCL IND | Číslice 5 |
-| 74 | `SM*` | SUM IND | Číslice 6 |
-| 82 | `HIR` | Operace se skrytými registry | Číslice 1 |
-| 83 | `GO*` | GTO IND | Číslice 2 |
-| 84 | `OP*` | Op IND | Číslice 3 |
-| 92 | `RTN` | Návrat z podprogramu | Číslice 0 |
+| 62 | `PG*` | Pgm IND | ✅ Pgm Ind nn (i jako `36 40 nn`) |
+| 63 | `EX*` | Exc IND | ✅ Exc Ind nn |
+| 64 | `PD*` | Prd IND | ✅ Prd Ind nn |
+| 72 | `ST*` | STO IND | ✅ STO Ind nn |
+| 73 | `RC*` | RCL IND | ✅ RCL Ind nn |
+| 74 | `SM*` | SUM IND | ✅ SUM Ind nn |
+| 82 | `HIR` | Operace se skrytými registry | ⚠️ Definovaný no-op (sémantika nedoložena) |
+| 83 | `GO*` | GTO IND | ✅ GTO Ind nn (i jako `61 40 nn`) |
+| 84 | `OP*` | Op IND | ✅ Op Ind nn |
+| 92 | `RTN` | Návrat z podprogramu | ✅ RTN |
 | 96 | `WRT` | Zápis karty | Bez účinku |
-| 20, 26, 27 | `CLR`, `2ND`, `INV` | kódy bez samostatné instrukce | `20` bez účinku, `26`/`27` bez účinku (kód `21` přepne 2nd, `22` INV) |
+| 20, 26, 27 | `CLR`, `2ND`, `INV` | kódy bez samostatné instrukce | `20` bez účinku, `26`/`27` bez účinku (kód `22` na místě instrukce přepne INV) |
 
-Kódy 00–09 se provedou jako číslice, kódy 10–19 jako volání návěští A–E'. Ostatní kódy odpovídají své klávese (primární kód nebo kód 2nd funkce).
+Kódy 00–09 se v programu provedou jako číslice, kódy 10–19 jako volání návěští A–E'. Ostatní kódy odpovídají své klávese (primární kód nebo kód 2nd funkce). V režimu LRN se sloučené kódy tvoří automaticky (`STO 2nd Ind 05` uloží `72 05`).
 
 ---
 
 ## 6. Obecná omezení aplikace
 
-- **Neúplná Master Library.** K dispozici je jen banka 01 z `Assets/ml.ti5l` a kvůli [sloučeným kódům](#5-sloučené-kódy-instrukcí) nefunguje správně. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...`. Načtená knihovna přepíše banky se stejným číslem.
+- **Neúplná Master Library.** K dispozici je jen banka 01 z `Assets/ml.ti5l`; její sloučené kódy se provádějí správně, ale ostatní programy chybí. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...`. Načtená knihovna přepíše banky se stejným číslem.
 - **`.ti5p` neukládá registry**, příznaky, režim úhlů, formát zobrazení ani rozdělení paměti. Obsah registrů se při načtení programu nemění.
 - **Omezená fyzická klávesnice.** Viz [3.1](#31-klávesnice-2nd-a-inv). Ostatní funkce se ovládají myší na virtuální klávesnici.
-- **Debugger** (`View > Program Debugger / Steps`) zobrazuje kroky aktuální banky, přičemž bajty operandů ukazuje také jako mnemoniky (např. adresa `42` se zobrazí jako `STO`). Registry ukazuje jen R00–R51 podle chybného přepočtu z `RegOffset`. `Reset` nastaví pouze PC = 0.
+- **Debugger** (`View > Program Debugger / Steps`) zobrazuje kroky aktuální banky, přičemž bajty operandů ukazuje také jako mnemoniky (např. adresa `42` se zobrazí jako `STO`). Registry ukazuje jen R00–R51 podle chybného přepočtu z `RegOffset`. `Reset` nastaví pouze PC = 0; `Step` i `Reset` jsou při běhu programu ignorovány.
 - **Stavový řádek** ukazuje `Regs: 100 − RegOffset/10`, ve výchozím stavu tedy `52`.
 - **Rychlost běhu** neodpovídá originálu. Program běží tak rychle, jak dovolí vlákno na pozadí (s příznakem 9 50 ms na krok).
-- **Grafické rozhraní nemá automatizované testy.** Testovací projekt `TI5X.Avalonia.Tests` testuje jen engine: `TestBasicMath`, `TestAngleConversions`, sadu `TestLunarLander*` a `TestLunarLanderTi5pRoundtrip` (uložení a načtení `.ti5p`). Odchylky popsané v tomto dokumentu testy nepokrývají.
-- **Vlákna.** Program běží v `Task.Run` a sdílí stav enginu s UI vláknem bez zamykání. Při rychlém zásahu (např. úprava v debuggeru během běhu) se může zobrazit nekonzistentní stav.
+- **GUI nemá automatizované testy.** Testovací projekt `TI5X.Core.Tests` (TUnit) pokrývá jádro: základní aritmetiku, DisplayCodes, celou sadu Lunar Lander včetně roundtripu `.ti5p`, conformance sloučených kódů, LRN zápis, bezpečnost mezí a souběhu (viz [EMULATOR_VYVOJ.md, kap. 7](EMULATOR_VYVOJ.md)).
+- **Vlákna.** Běh programu používá generaci běhu a lokální token zrušení; rychlé zastavení a nové spuštění již nemůže ukončit nový běh ani číst zrušený token. Stav enginu ale nadále sdílí UI vlákno bez zamykání, proto se při editaci v debuggeru v průběhu kroku může krátce zobrazit mezistav.
 
 ---
 
 ## 7. Doporučené postupy
 
-Dokud se omezení neodstraní, fungují spolehlivě tyto postupy:
+Vzhledem k zbývajícím omezením fungují spolehlivě tyto postupy:
 
-- Programy připravujte jako `.ti5p` s kódy TI-59: číslice `00`–`09`, funkce 2nd jedním kódem (např. `58` = Fix), adresy registrů a příznaků jako jeden bajt. Vzorem je `Assets/lunar_lander.ti5p` a [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
-- Místo `RTN` (`92`) používejte `INV SBR` (`22 71`), místo sloučených IND kódů zápis `kód 40 nn` (např. `42 40 05`).
-- Podprogramy volejte z klávesnice (A–E'). Uvnitř programu místo `SBR` používejte `GTO`.
-- Skoky na absolutní adresy používejte jen v rozsahu 000–099 (jednobajtová adresa), jinak raději návěští A–E'.
-- Číslo před `R/S` ukončete (např. `STO nn` nebo `=`), jinak se nezobrazí.
-- Nepoužívejte `Op 17` s malým počtem registrů (hrozí pád aplikace) a nespoléhejte na `Op 16`.
+- Programy zapisujte v režimu LRN (nyní ukládá standardní kódy TI-59) nebo je připravujte jako `.ti5p` s kódy TI-59: číslice `00`–`09`, funkce 2nd jedním kódem, sloučené IND kódy, adresy skoků `0n nn`. Vzorem je `Assets/lunar_lander.ti5p` a [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
+- Podprogramy ukončujte `INV SBR` (nebo `RTN`, `92`). Podprogram volaný z klávesnice (`A`–`E'`) a ukončený `R/S` nechá návratovou adresu v zásobníku.
+- Expanded IND (`kód 40 nn`) i sloučené kódy (`72 05`) jsou zaměnitelné; pro registry 21 a 40 používejte vždy nepřímé adresování.
+- Absolutní adresy skoků zapisujte třímístně (`GTO 123` → `61 01 23`); jednobajtovou formu `20`–`99` emulátor akceptuje, ale standard TI-59 ji nedefinuje.
+- `Op 17` je nyní bezpečný (mez jsou fyzicky omezeny na délku banky), ale přepočet kroků stále neodpovídá originálu (viz [3.10](#310-rozdělení-paměti)); nespoléhejte na `Op 16`.

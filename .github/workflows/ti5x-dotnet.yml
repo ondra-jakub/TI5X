@@ -1,0 +1,92 @@
+name: ti5x-dotnet
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
+jobs:
+  verify-proofs:
+    name: Dafny proofs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: TI5X.Avalonia
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Setup Dafny
+        uses: dafny-lang/setup-dafny-action@be023fc606339d46ed6b077dcb8614d0279ded31 # v1
+        with:
+          dafny-version: '4.11.0'
+
+      - name: Verify and audit proof sources
+        run: |
+          dafny verify TI5X.Verified/partition.dfy --warn-contradictory-assumptions
+          dafny audit TI5X.Verified/partition.dfy --report-format txt
+
+      - name: Regenerate C# and diff against committed code
+        run: |
+          dafny translate cs --include-runtime TI5X.Verified/partition.dfy --output regen/partition
+          grep -v '^// Command-line arguments:' regen/partition.cs > regen/partition.normalized.cs
+          grep -v '^// Command-line arguments:' TI5X.Verified/generated/partition.cs > regen/committed.normalized.cs
+          diff regen/partition.normalized.cs regen/committed.normalized.cs
+
+  build-test:
+    name: build-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: TI5X.Avalonia
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore (locked, NuGet audit gate)
+        run: dotnet restore TI5X.slnx --locked-mode
+
+      - name: Verify formatting
+        run: dotnet format TI5X.slnx --verify-no-changes --no-restore --exclude TI5X.Verified/generated
+
+      - name: Build (warnings as errors)
+        run: dotnet build TI5X.slnx -c Release --no-restore --no-incremental
+
+      - name: Test (MTP, coverage)
+        run: dotnet test --solution TI5X.slnx -c Release --no-build --coverage
+
+      - name: SBOM (CycloneDX)
+        run: |
+          dotnet tool restore
+          dotnet cyclonedx TI5X.slnx -o sbom -fn "ti5x-avalonia"
+        shell: bash
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            TI5X.Avalonia/TI5X.Core.Tests/bin/Release/net10.0/TestResults/
+            TI5X.Avalonia/sbom/
+          if-no-files-found: ignore
+          retention-days: 14

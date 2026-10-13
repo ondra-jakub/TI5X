@@ -408,7 +408,7 @@ Strategy hint: fuel is the total velocity change you can buy (1 unit = 1 ft/s), 
 
 - **TI-58 / TI-58C:** 142 steps and registers R00–R04 fit the default partition (240 steps / 30 registers); no `Op 17` needed. No card reader — key the program in (TI-58C keeps it in Constant Memory).
 - **TI-59:** default 480 steps / 60 registers; one card side (bank 1, steps 000–239) holds the whole program.
-- **TI5X.Avalonia:** verified by the automated suite (`dotnet run --project TI5X.Avalonia.Tests/TI5X.Avalonia.Tests.csproj`: init, free fall, hover, walkthrough, clamping, safe/rebound/crash boundaries, telemetry, resume-after-query, full winning game, `.ti5p` round-trip). Arithmetic uses binary `double`, not 13-digit BCD; with integer burns all values are exact halves, so the displayed results are identical.
+- **TI5X:** verified by the automated suite (`dotnet test --solution TI5X.slnx`: init, free fall, hover, walkthrough, clamping, safe/rebound/crash boundaries, telemetry, resume-after-query, full winning game, `.ti5p` round-trip and asset consistency). Arithmetic uses binary `double`, not 13-digit BCD; with integer burns all values are exact halves, so the displayed results are identical.
 - **Other emulators (Hrastprogrammer TI-59E, ti58c.phweb.me, go59c, TI59R):** the program uses only standard opcodes (`STO/RCL/SUM/INV SUM`, `x↔t`, `x≥t`, `x=t`, `Lbl`, `GTO`, `Fix`, `R/S`) and should run unchanged, but it has **not** been tested on them or on physical hardware.
 
 ---

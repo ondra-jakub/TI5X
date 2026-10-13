@@ -8,8 +8,32 @@ public class LibraryModule
 {
     public const string CalcMimeType = "application/vnd.nz.gen.geek_central.ti5x";
 
+    /// <summary>
+    /// Sanity cap for a single ZIP entry from an untrusted .ti5p/.ti5l file.
+    /// A tiny crafted archive can claim a huge decompressed entry, so the
+    /// declared length is checked before the content is read into memory.
+    /// </summary>
+    public const long MaxEntryBytes = 4 * 1024 * 1024;
+
     public string? ModuleHelp { get; set; }
     public Dictionary<int, ProgBank> Banks { get; } = new();
+
+    private static void AssertEntrySize(ZipArchiveEntry entry)
+    {
+        if (entry.Length > MaxEntryBytes)
+        {
+            throw new InvalidDataException(
+                $"ZIP entry '{entry.Name}' is too large ({entry.Length} bytes, limit {MaxEntryBytes}).");
+        }
+    }
+
+    /// <summary>Reads a UTF-8 text entry from an untrusted archive with a size cap.</summary>
+    public static string ReadTextEntry(ZipArchiveEntry entry)
+    {
+        AssertEntrySize(entry);
+        using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
 
     public static LibraryModule LoadFromStream(Stream stream)
     {
@@ -20,8 +44,7 @@ public class LibraryModule
         var helpEntry = archive.GetEntry("help");
         if (helpEntry != null)
         {
-            using var reader = new StreamReader(helpEntry.Open(), Encoding.UTF8);
-            mod.ModuleHelp = reader.ReadToEnd();
+            mod.ModuleHelp = ReadTextEntry(helpEntry);
         }
 
         // Scan entries
@@ -44,8 +67,7 @@ public class LibraryModule
                 var hEntry = archive.GetEntry($"help{bankNr:D2}");
                 if (hEntry != null)
                 {
-                    using var reader = new StreamReader(hEntry.Open(), Encoding.UTF8);
-                    help = reader.ReadToEnd();
+                    help = ReadTextEntry(hEntry);
                 }
 
                 mod.Banks[bankNr] = new ProgBank(progBytes, card, help);
@@ -63,6 +85,7 @@ public class LibraryModule
 
     public static byte[] ReadProgramEntry(ZipArchiveEntry entry)
     {
+        AssertEntrySize(entry);
         using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
         string xml = reader.ReadToEnd();
         var doc = XDocument.Parse(xml);
@@ -88,6 +111,7 @@ public class LibraryModule
     {
         try
         {
+            AssertEntrySize(entry);
             using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
             string xml = reader.ReadToEnd();
             var doc = XDocument.Parse(xml);

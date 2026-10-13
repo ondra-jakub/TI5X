@@ -129,6 +129,7 @@ public class ProgramDebuggerViewModel : ViewModelBase
 
     public void Step()
     {
+        if (_engine.IsRunning) return; // engine guard; do not race the background loop
         _engine.StepProgram();
     }
 
@@ -142,6 +143,7 @@ public class ProgramDebuggerViewModel : ViewModelBase
 
     public void Reset()
     {
+        if (_engine.IsRunning) return; // moving PC mid-run corrupts the background loop
         _engine.PC = 0;
         Refresh();
     }

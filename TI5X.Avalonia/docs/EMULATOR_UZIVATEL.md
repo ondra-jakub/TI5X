@@ -13,7 +13,7 @@ Související dokumenty:
 
 Názvy položek menu, tlačítek a oken jsou v aplikaci anglicky a v této příručce se uvádějí v původním znění.
 
-> **Nejdůležitější upozornění.** Program zapsaný z klávesnice v režimu `LRN` se v emulátoru uloží chybně a nefunguje (viz [Odchylky, bod 1](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení)). Funkční program připravte jako soubor `.ti5p` podle [Pravidel kódování programu](PRIRUCKA_TI59.md#152-pravidla-kódování-programu) a [Vytvoření souboru ti5p](PRIRUCKA_TI59.md#153-vytvoření-souboru-ti5p) a načtěte ho přes `File > Open Program (.ti5p)...`.
+> **Nejdůležitější upozornění.** Programy zapsané v režimu `LRN` se ukládají ve standardním kódování TI-59 a lze je spouštět. Programy zapsané **starší verzí emulátoru** (surové kódy kláves) je potřeba přepsat. Detaily viz [Odchylky, kapitola 2](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení) a [Pravidla kódování programu](PRIRUCKA_TI59.md#152-pravidla-kódování-programu).
 
 ## Obsah
 
@@ -228,15 +228,12 @@ Soubor **neobsahuje** registry, příznaky, úhlový režim, formát zobrazení 
 
 ### Vytváření programů
 
-Protože zápis v `LRN` nefunguje správně, doporučený postup je:
+Programy lze zapisovat dvěma způsoby:
 
-1. Sestavit program jako posloupnost kódů instrukcí podle [Tabulky kódů](PRIRUCKA_TI59.md#15-tabulka-kódů-instrukcí) a [Pravidel kódování](PRIRUCKA_TI59.md#152-pravidla-kódování-programu).
-2. Vytvořit soubor `.ti5p` podle [15.3](PRIRUCKA_TI59.md#153-vytvoření-souboru-ti5p).
-3. Načíst ho přes `File > Open Program (.ti5p)...` a zkontrolovat v debuggeru.
+1. **Z klávesnice v režimu `LRN`** (nyní ukládá standardní kódy instrukcí TI-59): `LRN` zapne režim, displej ukazuje `PPP KK`, každá klávesa uloží kód instrukce a posune ukazatel, `SST`/`BST` posouvají po krocích, `2nd Ins`/`2nd Del` vkládají a mažou kroky, druhý stisk `LRN` režim ukončí.
+2. **Jako soubor `.ti5p`** sestavený podle [Tabulky kódů](PRIRUCKA_TI59.md#15-tabulka-kódů-instrukcí) a [Pravidel kódování](PRIRUCKA_TI59.md#152-pravidla-kódování-programu), načtený přes `File > Open Program (.ti5p)...`.
 
 Hotové ověřené programy najdete v [Ukázkových programech](PRIRUCKA_TI59.md#16-ukázkové-programy).
-
-Režim `LRN` je v emulátoru vhodný jen k **prohlížení** programu: `LRN` zapne režim, `SST`/`BST` posouvají ukazatel o krok, displej ukazuje `PPP KK`, druhý stisk `LRN` režim ukončí. Jakýkoli jiný stisk v `LRN` přepíše aktuální krok kódem klávesy.
 
 ---
 
@@ -246,9 +243,7 @@ Soubor `.ti5l` je knihovní modul – archiv ZIP s více programy (`prog01`, `pr
 
 ### Vestavěná knihovna
 
-Při startu aplikace se automaticky načte `Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje **jen banku 01** (127 kroků, bez karty), nikoli celou Master Library originálu. Program v ní používá sloučené kódy instrukcí, které emulátor neprovádí správně, takže **neběží spolehlivě** ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory) a [5](ODCHYLKY_A_OMEZENI.md#5-sloučené-kódy-instrukcí)).
-
-⚠️ **Pozor, možný pád:** pole banky 01 je kratší než 1000 kroků, proto `2nd List` v této bance a hledání neexistujícího návěští (např. `GTO`/`SBR` na chybějící `Lbl`) mohou vyvolat `IndexOutOfRangeException` a aplikaci shodit. V bance 01 se těmto operacím vyhněte ([Odchylky, bod 7](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení)).
+Při startu aplikace se automaticky načte `Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje **jen banku 01** (127 kroků, bez karty), nikoli celou Master Library originálu. Její sloučené kódy instrukcí se provádějí správně, zbývající banky Master Library chybí ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
 
 ### Načtení vlastní knihovny
 
@@ -336,7 +331,7 @@ Postup:
 5. `C`, `D`, `E` (`F3`–`F5`) zobrazí zbývající palivo, výšku a rychlost. Po takovém dotazu pokračujte zadáním paliva a klávesou `B`, ne `R/S`.
 6. Bezpečné přistání zobrazí koncovou rychlost ve formátu `Fix 2`, havárie se ohlásí blikajícím displejem (chybový stav).
 
-Kódy programu s komentáři jsou v `TI5X.Avalonia.Tests/Program.cs` (`LunarLanderProgram`) a slouží také jako vzor pro psaní vlastních programů.
+Kódy programu s komentáři jsou v `TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`) a slouží také jako vzor pro psaní vlastních programů.
 
 ---
 
@@ -351,7 +346,7 @@ Kódy programu s komentáři jsou v `TI5X.Avalonia.Tests/Program.cs` (`LunarLand
 
 | Problém | Příčina a řešení |
 |---|---|
-| Program zapsaný v `LRN` počítá nesmysly nebo končí chybou. | Emulátor v `LRN` ukládá kódy kláves místo kódů instrukcí. Připravte program jako `.ti5p` ([kapitola 5](#vytváření-programů)). |
+| Program zapsaný v `LRN` počítá nesmysly nebo končí chybou. | Programy zapsané **starší verzí emulátoru** (surové kódy kláves) je potřeba přepsat – nový `LRN` ukládá standardní kódy TI-59. Zkontrolujte kódy kroků v debuggeru ([kapitola 5](#vytváření-programů)). |
 | Po `File > New Program` nefunguje `2nd Pgm 01`. | `New Program` odstraní i knihovny. Načtěte `Assets/ml.ti5l` přes `File > Load Library Module (.ti5l)...` nebo aplikaci spusťte znovu. |
 | Klávesy `A`–`E` spouštějí jiný program, než se čeká. | Je vybraná knihovní banka (stavový řádek ukazuje `Library Bank NN`). Stiskněte `RST`. |
 | Po načtení programu jsou v registrech staré hodnoty. | Načtení `.ti5p` registry nemaže. Použijte `2nd CMs`. |
