@@ -5,10 +5,10 @@ Desktopový emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 
 ## Spuštění
 
 Vyžaduje .NET 10 SDK a grafické prostředí macOS, Windows nebo Linux.
-Z kořenového adresáře repozitáře:
+Z adresáře `TI5X.Avalonia` (tj. adresáře s tímto souborem `README.md`; pozor — ne z kořene repozitáře, v něm leží původní Android projekt):
 
 ```sh
-dotnet run --project TI5X.Avalonia/src/TI5X.Avalonia/TI5X.Avalonia.csproj
+dotnet run --project src/TI5X.Avalonia/TI5X.Avalonia.csproj
 ```
 
 ## Ovládání
@@ -38,7 +38,7 @@ Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/):
 Testy (TUnit na Microsoft.Testing.Platform) pokrývají celé jádro bez grafického prostředí – 56 testů: migrovaná sada Lunar Lander, základní aritmetika, displej, bezpečnost mezí a souběhu, conformance instrukční sady (sloučené kódy, LRN kódování), vyčerpávající sweep všech opcodů × operandů a diferenciální test proti Dafny ověřenému modelu:
 
 ```sh
-dotnet test --solution TI5X.Avalonia/TI5X.slnx
+dotnet test --solution TI5X.slnx
 ```
 
 Testy nic nezapisují do repozitáře. Přehled testů a postup přidání nového popisuje [vývojářská dokumentace, kapitola 7](docs/EMULATOR_VYVOJ.md#7-testy). CI navíc spouští kontrolu formátování, pokrytí, SBOM a Dafny důkazy.
