@@ -1,6 +1,6 @@
-# Uživatelská příručka emulátoru TI5X (Avalonia)
+# Uživatelská příručka emulátoru TI5X (Avalonia a Android)
 
-Tato příručka popisuje ovládání desktopové aplikace TI5X, tedy emulátoru kalkulačky TI-59 pro .NET 10 a Avalonia 12. Vysvětluje okno aplikace, menu, klávesové zkratky, práci se soubory, virtuální tiskárnu a debugger.
+Tato příručka popisuje ovládání emulátoru kalkulačky TI-59 pro .NET 10: desktopové aplikace v Avalonia 12 a mobilní aplikace pro Android v .NET MAUI. Vysvětluje okno aplikace, menu, klávesové zkratky, práci se soubory, virtuální tiskárnu a debugger. Androidová verze se ovládá stejně; její odlišnosti shrnuje [kapitola 12](#12-android-aplikace-maui).
 
 Související dokumenty:
 
@@ -33,6 +33,7 @@ Názvy položek menu, tlačítek a oken jsou v aplikaci anglicky a v této pří
 9. [Ukázka: Lunar Lander](#9-ukázka-lunar-lander)
 10. [Nápověda a informace o aplikaci](#10-nápověda-a-informace-o-aplikaci)
 11. [Časté problémy](#11-časté-problémy)
+12. [Android aplikace (MAUI)](#12-android-aplikace-maui)
 
 ---
 
@@ -356,3 +357,40 @@ Kódy programu s komentáři jsou v `tests/TI5X.Core.Tests/TestHelpers.cs` (`Lun
 | Program se po volání podprogramu zastaví. | `SBR` uvnitř běžícího programu se v emulátoru po návratu zastaví ([Odchylky, bod 3](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení)). Použijte `GTO`. |
 
 Úplný seznam odchylek a omezení je v dokumentu [Odchylky emulace a známá omezení](ODCHYLKY_A_OMEZENI.md).
+
+---
+
+## 12. Android aplikace (MAUI)
+
+Androidová verze (`src/TI5X.Maui`) používá stejné emulační jádro, formáty souborů i view modely jako desktop. Liší se pouze prezentační vrstva a práce se soubory.
+
+### 12.1 Instalace a spuštění
+
+Aplikace cílí na Android 5.0 (API 21) a vyšší; sestavení používá target API 36 a je ověřené na Androidu 13 (API 33). Nainstalujte APK ze systémového souborového manažeru nebo příkazem:
+
+```sh
+adb install -r nz.gen.geek_central.ti5x.maui-Signed.apk
+```
+
+Aplikace je uzamčená na orientaci na výšku, stejně jako původní Android projekt.
+
+### 12.2 Ovládání
+
+- Kalkulačka se ovládá dotykem na stejné klávesnici 9 × 5; indikátory `2nd`, `INV`, `LRN` a `DEG/RAD/GRAD` jsou v horní liště.
+- Všechny položky menu jsou pod tlačítkem **Menu** v horní liště: `New Program`, `Open Program (.ti5p)`, `Save Program (.ti5p)`, `Load Library Module (.ti5l)`, `Virtual Printer`, `Program Debugger`, `Help`, `About` a `Exit`.
+- Virtuální tiskárna, debugger i nápověda se otevírají jako podstránky; vrátíte se tlačítkem zpět nebo šipkou v horní liště. Tlačítka tiskárny a debuggeru odpovídají desktopové verzi, včetně `Copy Tape` do schránky.
+- Hardwarová klávesnice (například u tabletu nebo v emulátoru) podporuje stejné klávesy jako desktop: číslice a numerickou klávesnici, `.` `+` `-` `*` `/`, `Enter`, `Backspace`/`Del` = CE, `Escape` = CLR a `F1`–`F5` = A–E.
+
+### 12.3 Soubory a oprávnění
+
+- Načtení i uložení používá systémový výběr souborů (Storage Access Framework). Aplikace nevyžaduje oprávnění `WRITE_EXTERNAL_STORAGE` ani přístup k celému úložišti.
+- `Open Program (.ti5p)`, `Load Library Module (.ti5l)` a `Save Program (.ti5p)` otevřou dokumentový výběr. Uložený soubor se jmenuje `program.ti5p` a lze zvolit cílovou složku.
+- Vestavěná knihovna `ml.ti5l` je součástí APK a načte se při prvním zobrazení hlavní stránky.
+- Ukázkový `lunar_lander.ti5p` je také součástí APK v adresáři `Resources/Raw`, ale v aplikaci se nenabízí automaticky; pro vyzkoušení ho zkopírujte do úložiště zařízení a otevřete přes picker.
+
+### 12.4 Omezení Android verze
+
+- Aplikace je pouze pro Android; ostatní cíle MAUI (iOS, Windows, Mac Catalyst) se nesestavují.
+- Běh na pozadí a obnovení po ukončení procesu nejsou ošetřené: pokud Android aplikaci z paměti ukončí, po návratu začne s prázdným stavem (program ani registry se neukládají automaticky).
+- Automatizované UI testy neexistují; Android verze je ověřená sestavením a ručním smoke testem na API 33.
+- Fyzická klávesnice nemusí být dostupná na všech zařízeních; plnohodnotné ovládání je dotykové.

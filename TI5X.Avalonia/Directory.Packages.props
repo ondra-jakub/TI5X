@@ -9,5 +9,7 @@
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.0.4" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
     <PackageVersion Include="TUnit" Version="1.74.0" />
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
+    <PackageVersion Include="Microsoft.Maui.Resizetizer" Version="10.0.110" />
   </ItemGroup>
 </Project>

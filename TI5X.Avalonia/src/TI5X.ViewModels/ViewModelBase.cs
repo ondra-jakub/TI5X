@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace TI5X.Avalonia.ViewModels;
+namespace TI5X.ViewModels;
 
 public abstract class ViewModelBase : INotifyPropertyChanged
 {

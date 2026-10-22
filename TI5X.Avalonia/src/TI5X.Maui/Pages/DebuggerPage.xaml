@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TI5X.ViewModels;assembly=TI5X.ViewModels"
+             x:Class="TI5X.Maui.Pages.DebuggerPage"
+             x:DataType="vm:ProgramDebuggerViewModel"
+             Title="Program Debugger"
+             BackgroundColor="#201E1C"
+             SafeAreaEdges="All">
+
+    <Grid RowDefinitions="Auto,*" Padding="12">
+        <HorizontalStackLayout Grid.Row="0" Spacing="8" Margin="0,0,0,10">
+            <Button Text="Step (SST)" Clicked="OnStepClick" BackgroundColor="#3D3530" TextColor="#E0D8D0" />
+            <Button Text="Run / Halt" Clicked="OnRunClick" BackgroundColor="#3D3530" TextColor="#E0D8D0" />
+            <Button Text="Reset" Clicked="OnResetClick" BackgroundColor="#3D3530" TextColor="#E0D8D0" />
+            <Button Text="Refresh" Clicked="OnRefreshClick" BackgroundColor="#3D3530" TextColor="#E0D8D0" />
+        </HorizontalStackLayout>
+
+        <Grid Grid.Row="1" ColumnDefinitions="2*,*">
+            <Border Grid.Column="0" BackgroundColor="#181614" Stroke="#3D3530" StrokeThickness="1" StrokeShape="RoundRectangle 4" Margin="0,0,6,0">
+                <Grid RowDefinitions="Auto,*">
+                    <Label Grid.Row="0" Text="Program Steps" FontAttributes="Bold" TextColor="#E6B432" Margin="8,6" />
+                    <CollectionView Grid.Row="1" ItemsSource="{Binding Steps}" BackgroundColor="Transparent">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProgramStepItem">
+                                <Grid ColumnDefinitions="50,40,*" Padding="4,1">
+                                    <Label Grid.Column="0" Text="{Binding Step, StringFormat='{0:D3}'}" TextColor="#999999" FontFamily="monospace" />
+                                    <Label Grid.Column="1" Text="{Binding OpCode, StringFormat='{0:D2}'}" TextColor="#E6B432" FontAttributes="Bold" FontFamily="monospace" />
+                                    <Label Grid.Column="2" Text="{Binding Mnemonic}" TextColor="#E0D8D0" FontFamily="monospace" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" BackgroundColor="#181614" Stroke="#3D3530" StrokeThickness="1" StrokeShape="RoundRectangle 4" Margin="6,0,0,0">
+                <Grid RowDefinitions="Auto,*">
+                    <Label Grid.Row="0" Text="Data Registers" FontAttributes="Bold" TextColor="#E6B432" Margin="8,6" />
+                    <CollectionView Grid.Row="1" ItemsSource="{Binding Registers}" BackgroundColor="Transparent">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MemoryRegisterItem">
+                                <Grid ColumnDefinitions="55,*" Padding="4,1">
+                                    <Label Grid.Column="0" Text="{Binding Index, StringFormat='R{0:D2}:'}" TextColor="#999999" FontFamily="monospace" />
+                                    <Label Grid.Column="1" Text="{Binding Value, StringFormat='{0:G8}'}" TextColor="#E0D8D0" FontFamily="monospace" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

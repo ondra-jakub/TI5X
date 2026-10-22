@@ -1,8 +1,8 @@
 # Odchylky emulace a známá omezení
 
-Tento dokument shrnuje, v čem se desktopový emulátor TI5X (Avalonia) liší od originální kalkulačky TI-59 a které funkce chybí. Je to jediné místo, kde je seznam odchylek vedený. Příručka kalkulačky, uživatelská příručka emulátoru i vývojářská dokumentace na něj odkazují.
+Tento dokument shrnuje, v čem se emulátor TI5X (Avalonia a Android/MAUI) liší od originální kalkulačky TI-59 a které funkce chybí. Je to jediné místo, kde je seznam odchylek vedený. Příručka kalkulačky, uživatelská příručka emulátoru i vývojářská dokumentace na něj odkazují.
 
-Popis odpovídá stavu kódu v `Core/CalculatorEngine.cs`, `Core/KeyCodes.cs`, `Core/PrinterEngine.cs`, `Core/PersistentState.cs`, `Core/LibraryModule.cs`, `MainWindow.axaml(.cs)` a `ViewModels/`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
+Popis odpovídá stavu kódu v `src/TI5X.Core/` (`CalculatorEngine`, `KeyCodes`, `PrinterEngine`, `PersistentState`, `LibraryModule`), `src/TI5X.ViewModels/`, `src/TI5X.Avalonia/MainWindow.axaml(.cs)` a `src/TI5X.Maui/`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
 
 ## Obsah
 
@@ -293,13 +293,16 @@ Kódy 00–09 se v programu provedou jako číslice, kódy 10–19 jako volání
 
 ## 6. Obecná omezení aplikace
 
-- **Neúplná Master Library.** K dispozici je jen banka 01 z `src/TI5X.Avalonia/Assets/ml.ti5l`; její sloučené kódy se provádějí správně, ale ostatní programy chybí. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...`. Načtená knihovna přepíše banky se stejným číslem.
+- **Neúplná Master Library.** K dispozici je jen banka 01 z `src/TI5X.Avalonia/Assets/ml.ti5l`; její sloučené kódy se provádějí správně, ale ostatní programy chybí. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...` (v Androidu `Menu > Load Library Module (.ti5l)`). Načtená knihovna přepíše banky se stejným číslem.
 - **`.ti5p` neukládá registry**, příznaky, režim úhlů, formát zobrazení ani rozdělení paměti. Obsah registrů se při načtení programu nemění.
 - **Omezená fyzická klávesnice.** Viz [3.1](#31-klávesnice-2nd-a-inv). Ostatní funkce se ovládají myší na virtuální klávesnici.
 - **Debugger** (`View > Program Debugger / Steps`) zobrazuje kroky aktuální banky, přičemž bajty operandů ukazuje také jako mnemoniky (např. adresa `42` se zobrazí jako `STO`). Registry ukazuje jen R00–R51 podle chybného přepočtu z `RegOffset`. `Reset` nastaví pouze PC = 0; `Step` i `Reset` jsou při běhu programu ignorovány.
 - **Stavový řádek** ukazuje `Regs: 100 − RegOffset/10`, ve výchozím stavu tedy `52`.
 - **Rychlost běhu** neodpovídá originálu. Program běží tak rychle, jak dovolí vlákno na pozadí (s příznakem 9 50 ms na krok).
-- **GUI nemá automatizované testy.** Testovací projekt `TI5X.Core.Tests` (TUnit) pokrývá jádro: základní aritmetiku, DisplayCodes, celou sadu Lunar Lander včetně roundtripu `.ti5p`, conformance sloučených kódů, LRN zápis, bezpečnost mezí a souběhu (viz [EMULATOR_VYVOJ.md, kap. 7](EMULATOR_VYVOJ.md)).
+- **GUI nemá automatizované testy.** Testovací projekt `TI5X.Core.Tests` (TUnit) pokrývá jádro: základní aritmetiku, DisplayCodes, celou sadu Lunar Lander včetně roundtripu `.ti5p`, conformance sloučených kódů, LRN zápis, bezpečnost mezí a souběhu (viz [EMULATOR_VYVOJ.md, kap. 7](EMULATOR_VYVOJ.md)). Androidová aplikace je navíc ověřená jen ručním smoke testem na API 33.
+- **Android verze je pouze pro Android.** MAUI projekt necílí na iOS, Windows ani Mac Catalyst. Navigace je mobilní (toolbar s položkou **Menu**, podstránky tiskárny/debuggeru/nápovědy), ale emulační chování je shodné s desktopem.
+- **Soubory v Androidu přes SAF.** Místo cest k souborům se používají content URI systémového výběru; obsah se vždy načítá/ukládá přes `MemoryStream`. Aplikace nevyžaduje žádné oprávnění k úložišti.
+- **Stav se neobnovuje po ukončení procesu.** Android může aplikaci kdykoli ukončit; program, registry ani příznaky se automaticky neukládají a po novém startu se načte jen vestavěná knihovna.
 - **Vlákna.** Běh programu používá generaci běhu a lokální token zrušení; rychlé zastavení a nové spuštění již nemůže ukončit nový běh ani číst zrušený token. Stav enginu ale nadále sdílí UI vlákno bez zamykání, proto se při editaci v debuggeru v průběhu kroku může krátce zobrazit mezistav.
 
 ---

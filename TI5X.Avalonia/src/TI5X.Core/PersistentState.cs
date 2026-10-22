@@ -11,7 +11,12 @@ public static class PersistentState
     public static void SaveProgram(CalculatorEngine engine, string filePath, CardDef? card = null, string? help = null)
     {
         using var fs = File.Create(filePath);
-        using var zip = new ZipArchive(fs, ZipArchiveMode.Create);
+        SaveProgram(engine, fs, card, help);
+    }
+
+    public static void SaveProgram(CalculatorEngine engine, Stream stream, CardDef? card = null, string? help = null)
+    {
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
 
         // 1. mimetype entry
         var mime = zip.CreateEntry("mimetype", CompressionLevel.NoCompression);
@@ -62,7 +67,12 @@ public static class PersistentState
     public static void LoadProgram(CalculatorEngine engine, string filePath)
     {
         using var fs = File.OpenRead(filePath);
-        using var zip = new ZipArchive(fs, ZipArchiveMode.Read);
+        LoadProgram(engine, fs);
+    }
+
+    public static void LoadProgram(CalculatorEngine engine, Stream stream)
+    {
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
 
         var progEntry = zip.GetEntry("prog00");
         if (progEntry != null)

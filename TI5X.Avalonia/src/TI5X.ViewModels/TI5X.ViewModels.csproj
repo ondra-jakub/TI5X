@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TI5X.ViewModels</RootNamespace>
+    <AssemblyName>TI5X.ViewModels</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TI5X.Core\TI5X.Core.csproj" />
+  </ItemGroup>
+</Project>

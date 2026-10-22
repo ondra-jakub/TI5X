@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TI5X.ViewModels;assembly=TI5X.ViewModels"
+             x:Class="TI5X.Maui.Pages.PrinterPage"
+             x:DataType="vm:PrinterViewModel"
+             Title="Virtual Printer"
+             BackgroundColor="#201E1C"
+             SafeAreaEdges="All">
+
+    <Grid RowDefinitions="*,Auto" Padding="12">
+        <Border Grid.Row="0"
+                BackgroundColor="#F4F1EA"
+                Stroke="#B8B2A4"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 4"
+                Padding="8">
+            <ScrollView>
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding TapeLines}" Spacing="2">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Label Text="{Binding .}"
+                                   FontFamily="monospace"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#2A2421"
+                                   CharacterSpacing="2" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Border>
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="End" Margin="0,10,0,0">
+            <Button Text="Advance" Clicked="OnAdvanceClick" BackgroundColor="#3D3530" TextColor="#E0D8D0" />
+            <Button Text="Copy Tape" Clicked="OnCopyClick" BackgroundColor="#3D3530" TextColor="#E0D8D0" />
+            <Button Text="Clear Tape" Clicked="OnClearClick" BackgroundColor="#5A3030" TextColor="#F0D0D0" />
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

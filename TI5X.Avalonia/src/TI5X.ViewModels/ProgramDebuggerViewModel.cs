@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
-using Avalonia.Threading;
 using TI5X.Avalonia.Core;
 
-namespace TI5X.Avalonia.ViewModels;
+namespace TI5X.ViewModels;
 
 public class ProgramStepItem : ViewModelBase
 {
@@ -54,22 +53,25 @@ public class MemoryRegisterItem : ViewModelBase
     }
 }
 
-public class ProgramDebuggerViewModel : ViewModelBase
+public class ProgramDebuggerViewModel : ViewModelBase, IDisposable
 {
     private readonly CalculatorEngine _engine;
+    private readonly IUiDispatcher _dispatcher;
+    private bool _disposed;
     public ObservableCollection<ProgramStepItem> Steps { get; } = new();
     public ObservableCollection<MemoryRegisterItem> Registers { get; } = new();
 
-    public ProgramDebuggerViewModel(CalculatorEngine engine)
+    public ProgramDebuggerViewModel(CalculatorEngine engine, IUiDispatcher dispatcher)
     {
         _engine = engine;
+        _dispatcher = dispatcher;
         _engine.StateChanged += OnEngineChanged;
         Refresh();
     }
 
     private void OnEngineChanged()
     {
-        Dispatcher.UIThread.Post(Refresh);
+        _dispatcher.Post(Refresh);
     }
 
     public void Refresh()
@@ -146,5 +148,13 @@ public class ProgramDebuggerViewModel : ViewModelBase
         if (_engine.IsRunning) return; // moving PC mid-run corrupts the background loop
         _engine.PC = 0;
         Refresh();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _engine.StateChanged -= OnEngineChanged;
+        GC.SuppressFinalize(this);
     }
 }

@@ -1,15 +1,12 @@
-using System.Reflection;
-using System.Windows.Input;
-using Avalonia.Threading;
 using TI5X.Avalonia.Core;
 
-namespace TI5X.Avalonia.ViewModels;
+namespace TI5X.ViewModels;
 
-public class MainViewModel : ViewModelBase
+public class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly CalculatorEngine _engine;
     private readonly PrinterEngine _printer;
-    private LibraryModule? _masterLibrary;
+    private readonly IUiDispatcher _dispatcher;
 
     private string _displayText = "0.";
     private bool _isError;
@@ -20,6 +17,7 @@ public class MainViewModel : ViewModelBase
     private bool _isLrnActive;
     private CardDef? _currentCard;
     private string _statusInfo = "Ready";
+    private bool _disposed;
 
     public CalculatorEngine Engine => _engine;
     public PrinterEngine Printer => _printer;
@@ -78,8 +76,9 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _statusInfo, value);
     }
 
-    public MainViewModel()
+    public MainViewModel(IUiDispatcher dispatcher)
     {
+        _dispatcher = dispatcher;
         _engine = new CalculatorEngine();
         _printer = new PrinterEngine();
         _engine.Printer = _printer;
@@ -87,31 +86,19 @@ public class MainViewModel : ViewModelBase
         _engine.DisplayChanged += OnEngineDisplayChanged;
         _engine.StateChanged += OnEngineStateChanged;
 
-        LoadEmbeddedMasterLibrary();
         UpdateUiState();
     }
 
-    private void LoadEmbeddedMasterLibrary()
+    public void LoadMasterLibrary(Stream stream)
     {
         try
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            // Look for resource containing ml.ti5l
-            var resName = assembly.GetManifestResourceNames()
-                .FirstOrDefault(r => r.EndsWith("ml.ti5l", StringComparison.OrdinalIgnoreCase));
-
-            if (resName != null)
+            var library = LibraryModule.LoadFromStream(stream);
+            foreach (var kv in library.Banks)
             {
-                using var stream = assembly.GetManifestResourceStream(resName);
-                if (stream != null)
-                {
-                    _masterLibrary = LibraryModule.LoadFromStream(stream);
-                    foreach (var kv in _masterLibrary.Banks)
-                    {
-                        _engine.Banks[kv.Key] = kv.Value;
-                    }
-                }
+                _engine.Banks[kv.Key] = kv.Value;
             }
+            UpdateUiState();
         }
         catch (Exception ex)
         {
@@ -127,12 +114,12 @@ public class MainViewModel : ViewModelBase
 
     private void OnEngineDisplayChanged()
     {
-        Dispatcher.UIThread.Post(UpdateUiState);
+        _dispatcher.Post(UpdateUiState);
     }
 
     private void OnEngineStateChanged()
     {
-        Dispatcher.UIThread.Post(UpdateUiState);
+        _dispatcher.Post(UpdateUiState);
     }
 
     public void UpdateUiState()
@@ -160,13 +147,44 @@ public class MainViewModel : ViewModelBase
         StatusInfo = $"{bankLabel} | PC: {_engine.PC:D3} | Regs: {100 - _engine.RegOffset / 10}";
     }
 
+    public void LoadProgram(Stream stream, string? displayName = null)
+    {
+        try
+        {
+            PersistentState.LoadProgram(_engine, stream);
+            UpdateUiState();
+            StatusInfo = displayName == null
+                ? "Loaded program"
+                : $"Loaded program from {displayName}";
+        }
+        catch (Exception ex)
+        {
+            StatusInfo = $"Error: {ex.Message}";
+        }
+    }
+
     public void LoadProgramFile(string filePath)
     {
         try
         {
-            PersistentState.LoadProgram(_engine, filePath);
-            UpdateUiState();
-            StatusInfo = $"Loaded program from {Path.GetFileName(filePath)}";
+            using var fs = File.OpenRead(filePath);
+            LoadProgram(fs, Path.GetFileName(filePath));
+        }
+        catch (Exception ex)
+        {
+            StatusInfo = $"Error: {ex.Message}";
+        }
+    }
+
+    public void SaveProgram(Stream stream, string? displayName = null)
+    {
+        try
+        {
+            var curBank = _engine.Banks[_engine.CurBank];
+            PersistentState.SaveProgram(_engine, stream, curBank?.Card, curBank?.HelpHtml);
+            StatusInfo = displayName == null
+                ? "Saved program"
+                : $"Saved program to {displayName}";
         }
         catch (Exception ex)
         {
@@ -178,9 +196,28 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
-            var curBank = _engine.Banks[_engine.CurBank];
-            PersistentState.SaveProgram(_engine, filePath, curBank?.Card, curBank?.HelpHtml);
-            StatusInfo = $"Saved program to {Path.GetFileName(filePath)}";
+            using var fs = File.Create(filePath);
+            SaveProgram(fs, Path.GetFileName(filePath));
+        }
+        catch (Exception ex)
+        {
+            StatusInfo = $"Error: {ex.Message}";
+        }
+    }
+
+    public void LoadCustomLibrary(Stream stream, string? displayName = null)
+    {
+        try
+        {
+            var library = LibraryModule.LoadFromStream(stream);
+            foreach (var kv in library.Banks)
+            {
+                _engine.Banks[kv.Key] = kv.Value;
+            }
+            UpdateUiState();
+            StatusInfo = displayName == null
+                ? $"Loaded library ({library.Banks.Count} programs)"
+                : $"Loaded library {displayName} ({library.Banks.Count} programs)";
         }
         catch (Exception ex)
         {
@@ -192,17 +229,21 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
-            var lib = LibraryModule.LoadFromFile(filePath);
-            foreach (var kv in lib.Banks)
-            {
-                _engine.Banks[kv.Key] = kv.Value;
-            }
-            StatusInfo = $"Loaded library {Path.GetFileName(filePath)} ({lib.Banks.Count} programs)";
-            UpdateUiState();
+            using var fs = File.OpenRead(filePath);
+            LoadCustomLibrary(fs, Path.GetFileName(filePath));
         }
         catch (Exception ex)
         {
             StatusInfo = $"Error: {ex.Message}";
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _engine.DisplayChanged -= OnEngineDisplayChanged;
+        _engine.StateChanged -= OnEngineStateChanged;
+        GC.SuppressFinalize(this);
     }
 }

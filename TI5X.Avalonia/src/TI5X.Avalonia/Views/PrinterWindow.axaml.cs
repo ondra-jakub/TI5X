@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
-using TI5X.Avalonia.ViewModels;
+using TI5X.ViewModels;
 
 namespace TI5X.Avalonia.Views;
 
@@ -13,6 +13,12 @@ public partial class PrinterWindow : Window
     }
 
     private PrinterViewModel? ViewModel => DataContext as PrinterViewModel;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        (DataContext as IDisposable)?.Dispose();
+    }
 
     private void OnAdvanceClick(object? sender, RoutedEventArgs e)
     {

@@ -2,7 +2,7 @@
 
 Tento dokument je určený vývojářům, kteří chtějí emulátor TI5X upravovat nebo rozšiřovat. Popisuje architekturu aplikace, jednotlivé třídy, formáty souborů `.ti5p` a `.ti5l`, testovací projekt a postup přidání nové instrukce nebo Op kódu.
 
-Popis odpovídá stavu kódu v adresářích `src/TI5X.Core/`, `src/TI5X.Avalonia/ViewModels/`, `src/TI5X.Avalonia/Views/`, `src/TI5X.Avalonia/Controls/`, `src/TI5X.Verified/` a `tests/TI5X.Core.Tests/` a v souborech `MainWindow.axaml(.cs)` a `App.axaml.cs`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
+Popis odpovídá stavu kódu v adresářích `src/TI5X.Core/`, `src/TI5X.ViewModels/`, `src/TI5X.Avalonia/Views/`, `src/TI5X.Avalonia/Controls/`, `src/TI5X.Maui/`, `src/TI5X.Verified/` a `tests/TI5X.Core.Tests/` a v souborech `MainWindow.axaml(.cs)`, `App.axaml.cs` a `MauiProgram.cs`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
 
 Související dokumenty:
 
@@ -56,15 +56,17 @@ Související dokumenty:
 
 | Položka | Hodnota |
 |---|---|
-| Řešení | `TI5X.slnx` – aplikace, jádro, testy a verifikované komponenty (centrální správa verzí balíčků v `Directory.Packages.props`, SDK i MTP připnuto v `global.json`). |
+| Řešení | `TI5X.slnx` – desktopová aplikace, Android aplikace, sdílené view modely, jádro, testy a verifikované komponenty (centrální správa verzí balíčků v `Directory.Packages.props`, SDK i MTP připnuto v `global.json`). |
 | Hlavní projekt | `src/TI5X.Avalonia/TI5X.Avalonia.csproj` – `WinExe`, `net10.0`, `Nullable` a `ImplicitUsings` zapnuté. |
-| Jádro | `src/TI5X.Core/TI5X.Core.csproj` – knihovna bez závislosti na Avalonii (`namespace TI5X.Avalonia.Core`). |
+| Android projekt | `src/TI5X.Maui/TI5X.Maui.csproj` – `Exe`, `net10.0-android`, `UseMaui`, `SingleProject`; `ApplicationId` `nz.gen.geek_central.ti5x.maui`, minSdk 21, targetSdk 36. |
+| Sdílené view modely | `src/TI5X.ViewModels/TI5X.ViewModels.csproj` – `net10.0` knihovna s `MainViewModel`, `PrinterViewModel`, `ProgramDebuggerViewModel` a rozhraním `IUiDispatcher`; neobsahuje typy Avalonie ani MAUI. |
+| Jádro | `src/TI5X.Core/TI5X.Core.csproj` – knihovna bez závislosti na UI (`namespace TI5X.Avalonia.Core`). |
 | Verifikace | `src/TI5X.Verified/TI5X.Verified.csproj` – C# kód generovaný z Dafny modelů (`generated/`, zdroje `*.dfy`); regeneruje se přes `dafny translate cs`, CI hlídá shodu. |
-| UI framework | Avalonia 12.0.4 (`Avalonia`, `Avalonia.Desktop`, `Avalonia.Themes.Fluent`, `Avalonia.Fonts.Inter`), v konfiguraci Debug navíc `AvaloniaUI.DiagnosticsSupport`. |
-| Bindingy | `AvaloniaUseCompiledBindingsByDefault = true` – každé XAML okno musí mít `x:DataType`. |
-| Prostředky | `src/TI5X.Avalonia/Assets/` je `EmbeddedResource` hlavního projektu. Za běhu se používá jen vložený `ml.ti5l`. |
+| UI framework | Avalonia 12.0.4 pro desktop a .NET MAUI 10.0.110 (Android) pro mobil. V Debug konfiguraci Avalonie navíc `AvaloniaUI.DiagnosticsSupport`. |
+| Bindingy | Avalonia: `AvaloniaUseCompiledBindingsByDefault = true` (každé XAML okno musí mít `x:DataType`). MAUI: `x:DataType` u stránek a šablon; `KeyButtonView` používá vlastní `BindingContext`. |
+| Prostředky | `src/TI5X.Avalonia/Assets/` je `EmbeddedResource` desktopové aplikace; `src/TI5X.Maui/Resources/Raw/` je `MauiAsset` Android aplikace (`ml.ti5l`, `lunar_lander.ti5p`), ikona a splash jsou v `Resources/AppIcon` a `Resources/Splash`. |
 | Testy | `tests/TI5X.Core.Tests/TI5X.Core.Tests.csproj` – TUnit na Microsoft.Testing.Platform; běžící přes `dotnet test` (viz kap. 7). |
-| CI | `.github/workflows/ti5x-dotnet.yml` – build, formát, testy s pokrytím, SBOM a Dafny důkazy. |
+| CI | `.github/workflows/ti5x-dotnet.yml` – build, formát, testy s pokrytím, SBOM, Dafny důkazy a Android APK. |
 
 Struktura adresářů:
 
@@ -77,11 +79,20 @@ TI5X.Avalonia/
     TI5X.Avalonia/               desktopová aplikace (Avalonia 12)
       Program.cs, App.axaml(.cs)     start aplikace, vytvoření MainWindow
       MainWindow.axaml(.cs)          hlavní okno, menu, fyzická klávesnice
-      ViewModels/                    MVVM vrstva (INotifyPropertyChanged)
+      Services/AvaloniaUiDispatcher.cs  IUiDispatcher přes Dispatcher.UIThread
       Views/                         vedlejší okna (tiskárna, debugger, nápověda, o aplikaci)
       Controls/                      vlastní ovládací prvky (klávesa, LED displej, karta)
       Assets/                        ml.ti5l, lunar_lander.ti5p
-    TI5X.Core/                   emulace bez závislosti na Avalonii
+    TI5X.ViewModels/             sdílená MVVM vrstva (INotifyPropertyChanged, IUiDispatcher)
+    TI5X.Maui/                   Android aplikace (MAUI 10)
+      MauiProgram.cs, App.xaml(.cs)  start aplikace, app-level singleton view modely
+      MainPage.xaml(.cs)             hlavní stránka, toolbar Menu, SAF, fyzická klávesnice
+      Pages/                         tiskárna, debugger, nápověda
+      Controls/                      KeyButtonView, LedDisplayView, CardStripView
+      Services/MauiUiDispatcher.cs   IUiDispatcher přes MainThread
+      Platforms/Android/             MainActivity, MainApplication, AndroidDocumentSaver, manifest
+      Resources/                     Raw assety, ikona, splash
+    TI5X.Core/                   emulace bez závislosti na UI
     TI5X.Verified/               Dafny modely a generovaný C# (bounds, aritmetika)
   tests/
     TI5X.Core.Tests/             testy (TUnit)
@@ -92,11 +103,15 @@ Základní příkazy (spouštějte z adresáře `TI5X.Avalonia/`):
 ```sh
 dotnet build TI5X.slnx -warnaserror
 dotnet run --project src/TI5X.Avalonia/TI5X.Avalonia.csproj
+dotnet build src/TI5X.Maui/TI5X.Maui.csproj -c Release -f net10.0-android
+dotnet publish src/TI5X.Maui/TI5X.Maui.csproj -c Release -f net10.0-android -p:AndroidPackageFormats=apk
 dotnet test --solution TI5X.slnx
 dotnet format TI5X.slnx --verify-no-changes --exclude src/TI5X.Verified/generated
 ```
 
-Jádro nepoužívá žádné typy z Avalonie, takže je testovatelné bez grafického rozhraní; testy i Dafny důkazy na něm stojí.
+Android build vyžaduje workload `maui-android` (`dotnet workload install maui-android`) a Android SDK platform 36; výsledné APK se podepisuje vývojovým klíčem a je v `src/TI5X.Maui/bin/Release/net10.0-android/`. CI navíc publikuje APK přes `dotnet publish -p:AndroidPackageFormats=apk`.
+
+Jádro ani sdílené view modely nepoužívají typy Avalonie nebo MAUI, takže jsou testovatelné bez grafického rozhraní; testy i Dafny důkazy na jádru stojí.
 
 ## 2. Architektura
 
@@ -111,11 +126,11 @@ Aplikace používá vzor MVVM bez dalšího frameworku. `ViewModelBase` implemen
 └───────┬───────────────────────────────▲──────────────────────────┘
         │ PressKey(kód), menu           │ bindingy (PropertyChanged)
 ┌───────▼───────────────────────────────┴──────────────────────────┐
-│ ViewModels: MainViewModel, PrinterViewModel,                     │
-│             ProgramDebuggerViewModel                             │
+│ TI5X.ViewModels: MainViewModel, PrinterViewModel,                │
+│                  ProgramDebuggerViewModel, IUiDispatcher         │
 └───────┬───────────────────────────────▲──────────────────────────┘
         │ ProcessKey, Load/Save         │ DisplayChanged, StateChanged,
-        │                               │ TapeChanged (+ Dispatcher.UIThread.Post)
+        │                               │ TapeChanged (+ IUiDispatcher.Post)
 ┌───────▼───────────────────────────────┴──────────────────────────┐
 │ Core: CalculatorEngine ── PrinterEngine                          │
 │       Arith, KeyCodes, DisplayCodes, ProgBank/CardDef            │
@@ -125,10 +140,11 @@ Aplikace používá vzor MVVM bez dalšího frameworku. `ViewModelBase` implemen
 
 Vazby mezi objekty:
 
-- `MainWindow` v konstruktoru nastaví `DataContext = new MainViewModel()`.
-- `MainViewModel` vytvoří `CalculatorEngine` a `PrinterEngine` a propojí je přes vlastnost `engine.Printer`. Pak načte vestavěnou knihovnu `ml.ti5l`.
-- Vedlejší okna dostávají vlastní view model, který sdílí stejnou instanci jádra: `new PrinterViewModel(ViewModel.Printer)` a `new ProgramDebuggerViewModel(ViewModel.Engine)`.
-- `App.OnFrameworkInitializationCompleted` nastaví jen `desktop.MainWindow`. Ostatní okna se otevírají z menu.
+- `MainWindow` v konstruktoru vytvoří `new MainViewModel(new AvaloniaUiDispatcher())` a nastaví ho jako `DataContext`. Vložený prostředek končící na `ml.ti5l` načte ze sestavení Avalonie a předá ho do `MainViewModel.LoadMasterLibrary(Stream)`.
+- `App` (MAUI) vytvoří v konstruktoru app-level singleton `MainViewModel`, `PrinterViewModel` a `ProgramDebuggerViewModel` s `MauiUiDispatcher`; stránky dostávají tyto instance konstruktorem. `CreateWindow` vrátí `NavigationPage` s `MainPage`.
+- `MainViewModel` vytvoří `CalculatorEngine` a `PrinterEngine` a propojí je přes vlastnost `engine.Printer`. Vestavěnou knihovnu `ml.ti5l` načte platforma (Avalonia z embedded resource, MAUI z `MauiAsset`) a předá ji ve streamu.
+- Vedlejší okna/stránky sdílí stejnou instanci jádra: `new PrinterViewModel(ViewModel.Printer, dispatcher)` a `new ProgramDebuggerViewModel(ViewModel.Engine, dispatcher)`.
+- `App.OnFrameworkInitializationCompleted` v Avalonii nastaví jen `desktop.MainWindow`. Ostatní okna se otevírají z menu.
 
 ### 2.2 Cesta stisku klávesy
 
@@ -170,7 +186,7 @@ Události **nevyvolá**:
 - `PersistentState.LoadProgram` ani `LibraryModule.LoadFromFile` / `LoadFromStream`. View model po načtení volá `UpdateUiState()` sám, ale otevřený debugger se neaktualizuje, dokud nepřijde další `StateChanged` nebo uživatel nestiskne `Refresh`.
 - Přímé nastavení vlastností `PC`, `CurBank`, `X` a dalších. Například `ProgramDebuggerViewModel.Reset()` nastaví `PC = 0` a obnoví jen vlastní seznam. Stavový řádek hlavního okna ukazuje starou hodnotu až do další změny stavu.
 
-Protože běžící program volá události z vlákna na pozadí, všechny view modely v obsluze volají `Dispatcher.UIThread.Post(...)`. Aktualizace UI se tedy vždy provede na vlákně UI, ale **asynchronně**. Jádro nemá žádné zámky: během běhu programu vlákno na pozadí mění stav a vlákno UI ho souběžně čte. Cesta přes `ProcessKey` je chráněná tím, že za běhu programu kromě `R/S` nic nepřijímá; tlačítka debuggeru `Step (SST)` i `Reset (PC=0)` mají navíc stráž `IsRunning` a za běhu se ignorují (viz [kapitola 9](#9-technická-úskalí)).
+Protože běžící program volá události z vlákna na pozadí, všechny view modely v obsluze volají `IUiDispatcher.Post(...)`. Implementace je `AvaloniaUiDispatcher` (`Dispatcher.UIThread.Post`) v Avalonii a `MauiUiDispatcher` (`MainThread.BeginInvokeOnMainThread`) v MAUI. Aktualizace UI se tedy vždy provede na vlákně UI, ale **asynchronně**. Jádro nemá žádné zámky: během běhu programu vlákno na pozadí mění stav a vlákno UI ho souběžně čte. Cesta přes `ProcessKey` je chráněná tím, že za běhu programu kromě `R/S` nic nepřijímá; tlačítka debuggeru `Step (SST)` i `Reset (PC=0)` mají navíc stráž `IsRunning` a za běhu se ignorují (viz [kapitola 9](#9-technická-úskalí)).
 
 ## 3. Jádro – adresář Core
 
@@ -295,8 +311,10 @@ Podrobnosti formátu jsou v [kapitole 6](#6-formáty-souborů).
 
 | Metoda | Popis |
 |---|---|
-| `SaveProgram(engine, cesta, card, help)` | Zapíše `mimetype`, `prog00` z **`engine.UserProgram`** (vždy banka 0) a volitelně `card00` a `help00`. Kartu a nápovědu předává volající. `MainViewModel.SaveProgramFile` je bere z aktuálně zvolené banky. |
-| `LoadProgram(engine, cesta)` | Načte `prog00` do `UserProgram`, k němu `card00` a `help00`, vytvoří novou `Banks[0]` a nastaví `CurBank = 0`, `PC = 0`. Nevyvolá žádnou událost. |
+| `SaveProgram(engine, cesta, card, help)` | Otevře soubor a zavolá streamovou variantu. |
+| `SaveProgram(engine, stream, card, help)` | Zapíše `mimetype`, `prog00` z **`engine.UserProgram`** (vždy banka 0) a volitelně `card00` a `help00` do předaného streamu. `ZipArchive` je vytvořen s `leaveOpen: true`, stream zůstává volajícímu. Kartu a nápovědu předává volající; `MainViewModel.SaveProgramFile`/`SaveProgram(Stream)` je bere z aktuálně zvolené banky. |
+| `LoadProgram(engine, cesta)` | Otevře soubor a zavolá streamovou variantu. |
+| `LoadProgram(engine, stream)` | Načte `prog00` do `UserProgram`, k němu `card00` a `help00`, vytvoří novou `Banks[0]` a nastaví `CurBank = 0`, `PC = 0`. Stream se neuzavírá (`leaveOpen: true`). Nevyvolá žádnou událost. |
 
 ### 3.8 PrinterEngine
 
@@ -319,17 +337,18 @@ Jádro tiskne přes `Printer?.…`: `Prt` a trasovací tisk (`PrintDisplay`, dis
 | Třída | Odpovědnost |
 |---|---|
 | `ViewModelBase` | `INotifyPropertyChanged`, `OnPropertyChanged`, `SetProperty`. |
-| `MainViewModel` | Vlastní jádro a tiskárnu (`Engine`, `Printer`). Vlastnosti pro bindingy: `DisplayText`, `IsError`, `IsRunning`, `AngleModeText`, `IsSecondActive`, `IsInvActive`, `IsLrnActive`, `CurrentCard`, `StatusInfo`. Metody: `PressKey`, `UpdateUiState`, `LoadProgramFile`, `SaveProgramFile`, `LoadCustomLibrary`. Při startu načte vložený prostředek končící na `ml.ti5l` a jeho banky zapíše do `engine.Banks`. |
-| `PrinterViewModel` | Kopíruje `PrinterEngine.TapeLines` do `ObservableCollection<string> TapeLines` a do `FullTapeText` (pro schránku). Při každé změně pásky seznam celý přestaví. Metody `Advance`, `Clear`. |
-| `ProgramDebuggerViewModel` | Seznamy `Steps` (`ProgramStepItem`: `Step`, `OpCode`, `Mnemonic`, `IsCurrent`) a `Registers` (`MemoryRegisterItem`: `Index`, `Value`). Poslouchá jen `StateChanged`. Metody `Refresh`, `Step`, `Run` (přepíná start/stop), `Reset` (jen `PC = 0` a vlastní `Refresh`). |
+| `IUiDispatcher` | Jediná metoda `Post(Action)`; izoluje view modely od UI frameworku. |
+| `MainViewModel` | Konstruktor `MainViewModel(IUiDispatcher)`. Vlastní jádro a tiskárnu (`Engine`, `Printer`). Vlastnosti pro bindingy: `DisplayText`, `IsError`, `IsRunning`, `AngleModeText`, `IsSecondActive`, `IsInvActive`, `IsLrnActive`, `CurrentCard`, `StatusInfo`. Metody: `PressKey`, `UpdateUiState`, `LoadMasterLibrary(Stream)`, `LoadProgram(Stream)`, `SaveProgram(Stream)`, `LoadCustomLibrary(Stream)` a souborové varianty `LoadProgramFile`, `SaveProgramFile`, `LoadCustomLibrary(string)`. Implementuje `IDisposable` a v `Dispose` se odhlásí z událostí jádra. |
+| `PrinterViewModel` | Kopíruje `PrinterEngine.TapeLines` do `ObservableCollection<string> TapeLines` a do `FullTapeText` (pro schránku). Změny pásky jsou přes dispatcher koalescované (`Interlocked` příznak) a seznam se aktualizuje přírůstkově, aby výpis `2nd List` nezahlcoval UI. Metody `Advance`, `Clear`, `IDisposable`. |
+| `ProgramDebuggerViewModel` | Seznamy `Steps` (`ProgramStepItem`: `Step`, `OpCode`, `Mnemonic`, `IsCurrent`) a `Registers` (`MemoryRegisterItem`: `Index`, `Value`). Poslouchá jen `StateChanged` přes dispatcher. Metody `Refresh`, `Step`, `Run` (přepíná start/stop), `Reset` (jen `PC = 0` a vlastní `Refresh`), `IDisposable`. |
 
 Poznámky k chování:
 
 - `UpdateUiState` skládá `StatusInfo` jako `User Bank 00` / `Library Bank NN`, `PC` a `Regs: 100 − RegOffset / 10`. Hodnota `Regs` neodpovídá skutečnému počtu použitelných registrů (všech 100 je vždy dostupných), viz [Odchylky, kapitola 3.10](ODCHYLKY_A_OMEZENI.md#310-rozdělení-paměti).
-- Hlášení `Loaded program…`, `Saved program…` a `Error: …` zůstane ve `StatusInfo` jen do další změny stavu – pak ho `UpdateUiState` přepíše. ⚠️ Hlášení `Loaded library …` se na stavovém řádku nikdy neukáže: v `LoadCustomLibrary` se po něm hned volá `UpdateUiState()`, které ho okamžitě přepíše (`MainViewModel.cs`, `StatusInfo = "Loaded library …"` → `UpdateUiState()`).
+- Hlášení `Loaded program…`, `Saved program…` a `Error: …` zůstane ve `StatusInfo` jen do další změny stavu – pak ho `UpdateUiState` přepíše. `LoadCustomLibrary` volá nejdřív `UpdateUiState()` a teprve potom nastaví `StatusInfo`, takže se hlášení `Loaded library …` skutečně zobrazí (dřívější chyba byla opravena).
 - Výjimky při načítání a ukládání view model zachytí a zobrazí ve stavovém řádku. Výjimky z jádra při stisku klávesy zachycené nejsou.
 - Debugger zobrazuje `100 − RegOffset / 10` registrů (výchozí stav R00–R51). `IsCurrent` se sice nastavuje, ale XAML ho nikde nepoužívá, takže aktuální krok se nezvýrazňuje. Při běhu programu přijde `StateChanged` po většině kroků a `Refresh` pokaždé projde celý seznam kroků.
-- `PrinterViewModel` ani `ProgramDebuggerViewModel` se po zavření okna z událostí neodhlásí. Každé otevření okna vytvoří nový view model.
+- `PrinterViewModel` ani `ProgramDebuggerViewModel` se v Avalonii po zavření okna od událostí odhlásí přes `IDisposable` (`OnClosed`). V MAUI jsou oba app-level singletony a žijí po celou dobu běhu aplikace.
 
 ## 5. Okna a ovládací prvky
 
@@ -343,6 +362,22 @@ Poznámky k chování:
 | `HelpWindow` | jen C# | `ScrollViewer` s jedním `TextBlock`; otevírá se nemodálně. |
 | `AboutWindow` | jen C# | Titulek „About TI5X“; otevírá se modálně přes `ShowDialog(this)`. |
 | `KeyButton` | `UserControl` (XAML) | Vlastnosti `KeyText`, `AltText` (popisek 2nd nad klávesou), `KeyCode` (primární kód), `StyleType` (`Standard`, `Number`, `Yellow`, `TopRow`). Kliknutí volá `MainViewModel.PressKey(KeyCode)`. Funkce 2nd řeší jádro, klávesa posílá vždy primární kód. |
+
+### 5.1 Android aplikace (MAUI)
+
+| Třída | Typ | Popis |
+|---|---|---|
+| `MauiProgram` | vstupní bod | `MauiApp.CreateBuilder().UseMauiApp<App>()`; bez vlastních fontů. |
+| `App` | `Application` | Vytvoří tři app-level view modely s `MauiUiDispatcher`; `CreateWindow` vrátí `NavigationPage` s `MainPage`. |
+| `MainPage` | XAML + code-behind | Stejná mřížka 45 kláves jako desktop, toolbar s položkou **Menu**, indikátory, LED displej a proužek karty. Při prvním zobrazení načte `ml.ti5l` z `MauiAsset` přes `FileSystem.OpenAppPackageFileAsync` a `MemoryStream`. Menu používá `DisplayActionSheetAsync`; otevření/načtení souborů `FilePicker`, uložení `AndroidDocumentSaver`. |
+| `PrinterPage` | XAML | `ScrollView` s `BindableLayout` nad `TapeLines`; tlačítka `Advance`, `Copy Tape` (`Clipboard.Default.SetTextAsync`), `Clear Tape`. |
+| `DebuggerPage` | XAML | Dva `CollectionView` (kroky, registry) a tlačítka `Step (SST)`, `Run / Halt`, `Reset`, `Refresh`; stejná logika jako desktop. |
+| `HelpPage` | XAML + code-behind | Czech sekce nápovědy sestavené do `VerticalStackLayout`; otevírá se jako podstránka. |
+| `KeyButtonView` | `ContentView` (XAML) | Bindable vlastnosti `KeyText`, `AltText`, `KeyCode`, `StyleType`; vlastní `BindingContext` a barevné styly. Kliknutí předává `KeyCode` do `MainPage`. |
+| `LedDisplayView` | `GraphicsView` + `IDrawable` | Kreslí 12 sedmisegmentových pozic přes `DisplayCodes.StringToSegments`, včetně zkosení maticí `Matrix3x2`; `IDispatcherTimer` 300 ms zajišťuje blikání. |
+| `CardStripView` | `GraphicsView` + `IDrawable` | Kreslí kartu `CardDef` stejně jako Avalonia (titulky, pět sloupců A–E a A'–E'). |
+| `MainActivity` | Android aktivita | `MauiAppCompatActivity`, portrait, mapuje hardwarové klávesy v `OnKeyDown` na kódy TI-59 a předává výsledek `AndroidDocumentSaver` z `OnActivityResult`. |
+| `AndroidDocumentSaver` | Android služba | `Intent.ActionCreateDocument` + `TaskCompletionSource<Stream?>`; výsledek otevře `ContentResolver.OpenOutputStream(uri, "wt")`. Při zrušení vrátí `null`; žádné oprávnění k úložišti. |
 | `LedDisplayControl` | `Control` (vlastní vykreslení) | Vlastnosti `Text`, `IsError`, `IsRunning`. Kreslí 12 sedmisegmentových pozic přes `DisplayCodes.StringToSegments`. `DispatcherTimer` 300 ms zajišťuje blikání při chybě a střídání jasu při běhu programu. |
 | `CardStripControl` | `Control` (vlastní vykreslení) | Vlastnost `Card`. Kreslí `TitleLeft`, `TitleRight` a pět sloupců s popisky `A`–`E` a `A'`–`E'`. Bez karty zobrazí „USER PROGRAM / CARD SLOT“. Ostatní sloty `CardDef` a `Style` nevykresluje. |
 
@@ -479,7 +514,7 @@ dotnet test --solution TI5X.slnx --coverage   # report v tests/TI5X.Core.Tests/b
 ```
 
 - Testy používají **TUnit** na Microsoft.Testing.Platform (`dotnet test` spouští MTP runner díky `global.json`), běží paralelně a aserce se musí `await`ovat.
-- Testují se jen třídy z `src/TI5X.Core/`. View modely a okna automatické testy nemají.
+- Testují se jen třídy z `src/TI5X.Core/`. Sdílené view modely, okna ani Android UI automatické testy nemají.
 - Testy nikdy nezapisují do repozitáře: assety se kopírují do výstupního adresáře testů (`Content` s `CopyToOutputDirectory`), dočasné soubory se mažou v `finally`.
 - CI (`.github/workflows/ti5x-dotnet.yml`) spouští build, kontrolu formátování, testy s pokrytím, SBOM a Dafny důkazy včetně shody generovaného C# kódu.
 
@@ -493,7 +528,7 @@ Testy jsou v adresáři `tests/TI5X.Core.Tests/`:
 | `BasicMathTests.cs` | Aritmetika a priority, režimy úhlů, převody `Arith`. |
 | `DisplayCodesTests.cs` | Segmenty LED displeje. |
 | `LunarLanderTests.cs` | Kompletní scénáře Lunar Lander (13 testů) z původní konzolové sady. |
-| `Ti5pRoundtripTests.cs` | Roundtrip `.ti5p` a konzistence commitnutého assetu (generuje do temp adresáře a porovná dekomprimované položky; nic nepřepisuje). |
+| `Ti5pRoundtripTests.cs` | Roundtrip `.ti5p` (soubor i `MemoryStream`), konzistence commitnutého assetu a ověření, že streamové overloady nezavírají předaný stream. |
 | `EngineSafetyTests.cs` | Zastavení/restart běhu, meze po `0 Op 17`, krátké knihovní banky, krokování. |
 | `MergedCodesTests.cs` | Sloučené kódy, `RTN`, dvoubajtové adresy skoků, číslo před `R/S`, `HIR`. |
 | `LrnEntryTests.cs` | Kódování LRN: číslice `00`–`09`, 2nd, `INV SBR` → `92`, sloučené IND kódy, adresy `0n nn`. |
@@ -504,7 +539,7 @@ Testy přistupují k jádru dvěma způsoby. `ExecuteKeyInteractive` obchází k
 
 ### 7.3 Přehled testů
 
-Původních 17 scénářů konzolového runneru bylo 1:1 přeneseno (Init, FreeFall, Hover, Walkthrough, FuelClamping, SafeLanding, Rebound, Crash, Telemetry, WinningGame, ResumeAfterQuery, Roundtrip, PhysicalKeys, CrashManualRecall, BasicMath, AngleConversions a konzistence assetu) a doplněno o nové sady: bezpečnost (`EngineSafetyTests`), conformance instrukční sady (`MergedCodesTests`, `LrnEntryTests`), vyčerpávající sweep (`ExhaustiveOpcodeTests`) a shoda s Dafny modelem (`PartitionModelTests`). Celkem 56 testů; přesný stav ukáže `dotnet test --solution TI5X.slnx`.
+Původních 17 scénářů konzolového runneru bylo 1:1 přeneseno (Init, FreeFall, Hover, Walkthrough, FuelClamping, SafeLanding, Rebound, Crash, Telemetry, WinningGame, ResumeAfterQuery, Roundtrip, PhysicalKeys, CrashManualRecall, BasicMath, AngleConversions a konzistence assetu) a doplněno o nové sady: bezpečnost (`EngineSafetyTests`), conformance instrukční sady (`MergedCodesTests`, `LrnEntryTests`), vyčerpávající sweep (`ExhaustiveOpcodeTests`) a shoda s Dafny modelem (`PartitionModelTests`). Celkem 64 testů; přesný stav ukáže `dotnet test --solution TI5X.slnx`.
 
 ### 7.4 Jak přidat test
 
@@ -574,7 +609,7 @@ Kódy instrukcí jsou dané klávesnicí TI-59 a všechny pozice už mají konst
 Po změně chování jádra:
 
 - [ ] `dotnet build TI5X.Avalonia.csproj` projde bez chyb.
-- [ ] `dotnet test --solution TI5X.slnx` projde (56 testů) a testy nezmění žádný soubor v repozitáři.
+- [ ] `dotnet test --solution TI5X.slnx` projde (64 testů) a testy nezmění žádný soubor v repozitáři.
 - [ ] [ODCHYLKY_A_OMEZENI.md](ODCHYLKY_A_OMEZENI.md) – upravit matici podpory, kapitolu Op kódů, případně odstranit opravenou odchylku.
 - [ ] [PRIRUCKA_TI59.md](PRIRUCKA_TI59.md) – popis funkce a tabulka kódů.
 - [ ] [EMULATOR_UZIVATEL.md](EMULATOR_UZIVATEL.md) – pokud se mění ovládání, menu nebo zkratky.
@@ -589,7 +624,7 @@ Přehled technických problémů v kódu, na které při úpravách narazíte. �
 |---|---|---|
 | ~~Logická délka programu neodpovídá délce pole~~ **opraveno** | `Partition.EffectiveMaxProg` vrací minimum logického rozdělení a skutečné délky pole; vzorec je ověřen Dafny modelem (`src/TI5X.Verified/partition.dfy`) a diferenciálním testem. | `FindLabel`, `List`, `Op 8`, `SST` i běh za koncem banky končí definovanou chybou, ne výjimkou. Přepočet Op 16/17 stále neodpovídá originálu (viz [Odchylky 3.10](ODCHYLKY_A_OMEZENI.md#310-rozdělení-paměti)). |
 | ~~Souběh `StartProgram`/`StopProgram`~~ **opraveno** | Běh pracuje s lokálním tokenem a generací běhu; `finally` mění sdílený stav jen vlastnící běh. `StepProgram` i debugger `Step`/`Reset` jsou za běhu ignorovány. | Rychlé zastavení a nové spuštění nemůže ukončit nový běh ani číst zrušený token (testy `EngineSafetyTests`). Stav enginu zůstává sdílený s UI bez zámků – počítat s tím při editaci v debuggeru. |
-| Události téměř při každém kroku | `ExecuteKeyInteractive` → `NotifyStateChanged` → `Dispatcher.UIThread.Post` | Při běhu programu se do fronty UI posílá aktualizace po většině kroků. Otevřený debugger pokaždé projde všech 960 kroků. |
+| Události téměř při každém kroku | `ExecuteKeyInteractive` → `NotifyStateChanged` → `IUiDispatcher.Post` | Při běhu programu se do fronty UI posílá aktualizace po většině kroků. Otevřený debugger pokaždé projde všech 960 kroků. |
 | Načítání souborů bez události | `PersistentState.LoadProgram`, `LibraryModule` | Debugger se po načtení sám neobnoví. |
 | Neodhlášené události | `PrinterViewModel`, `ProgramDebuggerViewModel` | Po zavření okna zůstává view model přihlášený k událostem jádra. |
 | Nepoužité členy | `PrinterEngine.Chars`, `LibraryModule.ModuleHelp`, `ProgBank.HelpHtml` (jen se přenáší), `ProgramStepItem.IsCurrent` (bez bindingu) | Připravené pro budoucí rozšíření; nespoléhejte na ně. |

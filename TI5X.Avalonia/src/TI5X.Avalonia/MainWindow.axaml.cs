@@ -1,10 +1,12 @@
+using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using TI5X.Avalonia.Core;
-using TI5X.Avalonia.ViewModels;
+using TI5X.Avalonia.Services;
 using TI5X.Avalonia.Views;
+using TI5X.ViewModels;
 
 namespace TI5X.Avalonia;
 
@@ -16,7 +18,24 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainViewModel();
+        var viewModel = new MainViewModel(new AvaloniaUiDispatcher());
+        DataContext = viewModel;
+        LoadEmbeddedMasterLibrary(viewModel);
+    }
+
+    private static void LoadEmbeddedMasterLibrary(MainViewModel viewModel)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var resName = assembly.GetManifestResourceNames()
+            .FirstOrDefault(r => r.EndsWith("ml.ti5l", StringComparison.OrdinalIgnoreCase));
+
+        if (resName == null) return;
+
+        using var stream = assembly.GetManifestResourceStream(resName);
+        if (stream != null)
+        {
+            viewModel.LoadMasterLibrary(stream);
+        }
     }
 
     private MainViewModel? ViewModel => DataContext as MainViewModel;
@@ -143,7 +162,7 @@ public partial class MainWindow : Window
         {
             _printerWindow = new PrinterWindow
             {
-                DataContext = new PrinterViewModel(ViewModel.Printer)
+                DataContext = new PrinterViewModel(ViewModel.Printer, new AvaloniaUiDispatcher())
             };
             _printerWindow.Closed += (s, args) => _printerWindow = null;
             _printerWindow.Show();
@@ -161,7 +180,7 @@ public partial class MainWindow : Window
         {
             _debuggerWindow = new ProgramDebuggerWindow
             {
-                DataContext = new ProgramDebuggerViewModel(ViewModel.Engine)
+                DataContext = new ProgramDebuggerViewModel(ViewModel.Engine, new AvaloniaUiDispatcher())
             };
             _debuggerWindow.Closed += (s, args) => _debuggerWindow = null;
             _debuggerWindow.Show();

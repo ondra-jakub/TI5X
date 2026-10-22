@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using TI5X.Avalonia.ViewModels;
+using TI5X.ViewModels;
 
 namespace TI5X.Avalonia.Views;
 
@@ -12,6 +12,12 @@ public partial class ProgramDebuggerWindow : Window
     }
 
     private ProgramDebuggerViewModel? ViewModel => DataContext as ProgramDebuggerViewModel;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        (DataContext as IDisposable)?.Dispose();
+    }
 
     private void OnStepClick(object? sender, RoutedEventArgs e)
     {

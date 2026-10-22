@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using TI5X.Avalonia.ViewModels;
+using TI5X.ViewModels;
 
 namespace TI5X.Avalonia.Controls;
 

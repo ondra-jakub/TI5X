@@ -46,6 +46,33 @@ public class Ti5pRoundtripTests
         }
     }
 
+    [Test]
+    public async Task Save_and_load_through_memory_stream_keep_stream_open()
+    {
+        var saveEngine = TestHelpers.SetupEngineWithProgram(TestHelpers.LunarLanderProgram);
+        using var stream = new MemoryStream();
+
+        PersistentState.SaveProgram(saveEngine, stream, TestHelpers.LanderCard(), TestHelpers.LanderHelp);
+        await Assert.That(stream.Length).IsGreaterThan(0);
+        await Assert.That(stream.CanRead).IsTrue();
+
+        stream.Position = 0;
+        var loadEngine = new CalculatorEngine();
+        PersistentState.LoadProgram(loadEngine, stream);
+
+        await Assert.That(stream.CanRead).IsTrue();
+        await Assert.That(stream.CanSeek).IsTrue();
+
+        var loadedProgram = loadEngine.UserProgram.Take(TestHelpers.LunarLanderProgram.Length).ToArray();
+        await Assert.That(loadedProgram.SequenceEqual(TestHelpers.LunarLanderProgram)).IsTrue();
+
+        await Assert.That(loadEngine.Banks[0]?.Card?.TitleLeft ?? "").IsEqualTo("LUNAR LANDER");
+        await Assert.That(loadEngine.Banks[0]?.Card?.EPrime ?? "").IsEqualTo("CRASH");
+        await Assert.That(loadEngine.Banks[0]?.HelpHtml ?? "").IsEqualTo(TestHelpers.LanderHelp);
+        await Assert.That(loadEngine.CurBank).IsEqualTo(0);
+        await Assert.That(loadEngine.PC).IsEqualTo(0);
+    }
+
     /// <summary>
     /// Replaces the old GenerateLanderAsset test: the committed asset must stay
     /// byte-identical (after decompression) to what the current code produces.

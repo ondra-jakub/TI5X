@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TI5X.Maui.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="PageBackground">#181615</Color>
+            <Color x:Key="PanelBackground">#221E1C</Color>
+            <Color x:Key="PanelBorder">#3D3530</Color>
+            <Color x:Key="Gold">#E6B432</Color>
+            <Color x:Key="TextPrimary">#E0D8D0</Color>
+            <Color x:Key="TextMuted">#8A8078</Color>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

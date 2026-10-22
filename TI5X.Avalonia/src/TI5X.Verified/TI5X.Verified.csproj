@@ -14,5 +14,6 @@
          It is generated from partition.dfy by "dafny translate cs" with the
          "include-runtime" option. Regenerate and diff via CI; do not edit by hand. -->
     <GeneratedCode>true</GeneratedCode>
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 </Project>

@@ -228,6 +228,12 @@
       },
       "ti5x.core": {
         "type": "Project"
+      },
+      "ti5x.viewmodels": {
+        "type": "Project",
+        "dependencies": {
+          "TI5X.Core": "[1.0.0, )"
+        }
       }
     }
   }

@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TI5X.Core\TI5X.Core.csproj" />
+    <ProjectReference Include="..\TI5X.ViewModels\TI5X.ViewModels.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
