@@ -90,11 +90,21 @@ public class LedDisplayControl : Control
         bool showDigits = !IsError || _flashState;
         Color activeColor = IsRunning && !_flashState ? LedDimColor : LedOnColor;
 
-        for (int i = 0; i < DisplayCodes.NrDigits; ++i)
+        // Uniform italic shear applied to the whole glyph row: every segment is drawn as a
+        // plain rectangle in unsheared coordinates and the transform slants all of them at
+        // once, so the top half no longer appears offset as a block from the bottom half.
+        double slant = digitHeight * 0.08;
+        double shearRate = slant / digitHeight;
+        var shear = new Matrix(1.0, 0.0, -shearRate, 1.0, slant + shearRate * yOrigin, 0.0);
+
+        using (context.PushTransform(shear))
         {
-            double xOrigin = i * digitWidth;
-            int code = showDigits ? segments[i] : 0;
-            RenderDigit(context, code, xOrigin, yOrigin, digitWidth, digitHeight, activeColor);
+            for (int i = 0; i < DisplayCodes.NrDigits; ++i)
+            {
+                double xOrigin = i * digitWidth;
+                int code = showDigits ? segments[i] : 0;
+                RenderDigit(context, code, xOrigin, yOrigin, digitWidth, digitHeight, activeColor);
+            }
         }
     }
 
@@ -104,19 +114,18 @@ public class LedDisplayControl : Control
         double actualW = w * 0.7;
         double actualH = h;
         double stroke = actualH * 0.10;
-        double slant = actualH * 0.08;
 
-        // Draw 7 segments + decimal point
+        // Draw 7 segments + decimal point (unsheared; italic slant comes from the transform)
         // Segments: A (top), B (top-right), C (bot-right), D (bot), E (bot-left), F (top-left), G (mid), DP (dot)
-        DrawHorizontalSeg(context, x + marginX + slant, y, actualW, stroke, (segMask & DisplayCodes.SegA) != 0, activeColor);
-        DrawHorizontalSeg(context, x + marginX + slant * 0.5, y + actualH / 2.0 - stroke / 2.0, actualW, stroke, (segMask & DisplayCodes.SegG) != 0, activeColor);
+        DrawHorizontalSeg(context, x + marginX, y, actualW, stroke, (segMask & DisplayCodes.SegA) != 0, activeColor);
+        DrawHorizontalSeg(context, x + marginX, y + actualH / 2.0 - stroke / 2.0, actualW, stroke, (segMask & DisplayCodes.SegG) != 0, activeColor);
         DrawHorizontalSeg(context, x + marginX, y + actualH - stroke, actualW, stroke, (segMask & DisplayCodes.SegD) != 0, activeColor);
 
-        DrawVerticalSeg(context, x + marginX + actualW - stroke + slant * 0.75, y + stroke * 0.5, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegB) != 0, activeColor);
-        DrawVerticalSeg(context, x + marginX + actualW - stroke + slant * 0.25, y + actualH / 2.0, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegC) != 0, activeColor);
+        DrawVerticalSeg(context, x + marginX + actualW - stroke, y + stroke * 0.5, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegB) != 0, activeColor);
+        DrawVerticalSeg(context, x + marginX + actualW - stroke, y + actualH / 2.0, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegC) != 0, activeColor);
 
-        DrawVerticalSeg(context, x + marginX + slant * 0.75, y + stroke * 0.5, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegF) != 0, activeColor);
-        DrawVerticalSeg(context, x + marginX + slant * 0.25, y + actualH / 2.0, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegE) != 0, activeColor);
+        DrawVerticalSeg(context, x + marginX, y + stroke * 0.5, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegF) != 0, activeColor);
+        DrawVerticalSeg(context, x + marginX, y + actualH / 2.0, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegE) != 0, activeColor);
 
         // Decimal point
         DrawDot(context, x + marginX + actualW + stroke * 0.4, y + actualH - stroke, stroke * 1.2, (segMask & DisplayCodes.SegDp) != 0, activeColor);
