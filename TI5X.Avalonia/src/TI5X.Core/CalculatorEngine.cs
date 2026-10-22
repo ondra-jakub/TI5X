@@ -1384,7 +1384,7 @@ public class CalculatorEngine
         // The usable range is bounded by the actual bank array: Op 17 can claim more
         // logical steps than the 960-byte bank 0 holds, and library banks are loaded
         // with arrays as short as their file content. Reads must never exceed it.
-        // The bound itself is verified in TI5X.Verified/partition.dfy.
+        // The bound itself is verified in src/TI5X.Verified/partition.dfy.
         return Partition.EffectiveMaxProg(RegOffset, GetCurProg().Length, CurBank);
     }
 

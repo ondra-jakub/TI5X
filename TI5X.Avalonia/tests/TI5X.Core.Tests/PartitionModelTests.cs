@@ -6,7 +6,7 @@ namespace TI5X.Core.Tests;
 
 /// <summary>
 /// Differential proof: the C# partition arithmetic must agree with the
-/// Dafny-verified model (TI5X.Verified/partition.dfy) over a swept input
+/// Dafny-verified model (src/TI5X.Verified/partition.dfy) over a swept input
 /// space, and must satisfy the verified bounds: never negative, never above
 /// the physical bank length, and within the logical partition.
 /// </summary>

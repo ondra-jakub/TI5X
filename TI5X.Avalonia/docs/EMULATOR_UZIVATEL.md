@@ -46,16 +46,16 @@ Názvy položek menu, tlačítek a oken jsou v aplikaci anglicky a v této pří
 **Spuštění** z kořenového adresáře repozitáře (adresář nad `TI5X.Avalonia`):
 
 ```sh
-dotnet run --project TI5X.Avalonia/TI5X.Avalonia.csproj
+dotnet run --project TI5X.Avalonia/src/TI5X.Avalonia/TI5X.Avalonia.csproj
 ```
 
-nebo přímo z adresáře projektu `TI5X.Avalonia`:
+nebo přímo z adresáře projektu `TI5X.Avalonia/src/TI5X.Avalonia`:
 
 ```sh
 dotnet run
 ```
 
-První spuštění trvá déle, protože se obnovují balíčky a sestavuje projekt. Při startu se automaticky načte vestavěná knihovna `Assets/ml.ti5l` (viz [kapitola 6](#6-knihovny-ti5l-a-vestavěná-master-library)).
+První spuštění trvá déle, protože se obnovují balíčky a sestavuje projekt. Při startu se automaticky načte vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` (viz [kapitola 6](#6-knihovny-ti5l-a-vestavěná-master-library)).
 
 Po spuštění je kalkulačka ve výchozím stavu: displej `0.`, úhlový režim `DEG`, prázdný program v bance 0, vynulované registry a příznaky.
 
@@ -147,7 +147,7 @@ Po operaci se soubory se na stavovém řádku dočasně objeví zpráva, např. 
 
 | Položka | Činnost |
 |---|---|
-| `New Program` | Smaže program banky 0 a provede úplný reset kalkulačky: vynuluje registry, příznaky, zásobníky, displej, nastaví `DEG`, standardní formát, PC = 0 a banku 0. ⚠️ **Odstraní také všechny načtené knihovny včetně vestavěné Master Library** ([Odchylky, bod 8](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení)). Knihovnu obnovíte novým spuštěním aplikace nebo načtením `Assets/ml.ti5l` přes `Load Library Module (.ti5l)...`. Na dotaz se neptá. |
+| `New Program` | Smaže program banky 0 a provede úplný reset kalkulačky: vynuluje registry, příznaky, zásobníky, displej, nastaví `DEG`, standardní formát, PC = 0 a banku 0. ⚠️ **Odstraní také všechny načtené knihovny včetně vestavěné Master Library** ([Odchylky, bod 8](ODCHYLKY_A_OMEZENI.md#2-nejdůležitější-omezení)). Knihovnu obnovíte novým spuštěním aplikace nebo načtením `src/TI5X.Avalonia/Assets/ml.ti5l` přes `Load Library Module (.ti5l)...`. Na dotaz se neptá. |
 | `Open Program (.ti5p)...` | Otevře dialog pro výběr souboru `.ti5p` (filtr `TI-5X Program (*.ti5p)` nebo `All files (*.*)`). Program se nahraje do banky 0, viz [kapitola 5](#5-programy-ti5p). |
 | `Save Program (.ti5p)...` | Otevře dialog pro uložení (výchozí přípona `ti5p`). Uloží program banky 0, viz [kapitola 5](#5-programy-ti5p). |
 | `Load Library Module (.ti5l)...` | Otevře dialog pro výběr knihovny `.ti5l` (filtr `TI-5X Library (*.ti5l)` nebo `All files (*.*)`), viz [kapitola 6](#6-knihovny-ti5l-a-vestavěná-master-library). |
@@ -243,7 +243,7 @@ Soubor `.ti5l` je knihovní modul – archiv ZIP s více programy (`prog01`, `pr
 
 ### Vestavěná knihovna
 
-Při startu aplikace se automaticky načte `Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje **jen banku 01** (127 kroků, bez karty), nikoli celou Master Library originálu. Její sloučené kódy instrukcí se provádějí správně, zbývající banky Master Library chybí ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
+Při startu aplikace se automaticky načte `src/TI5X.Avalonia/Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje **jen banku 01** (127 kroků, bez karty), nikoli celou Master Library originálu. Její sloučené kódy instrukcí se provádějí správně, zbývající banky Master Library chybí ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
 
 ### Načtení vlastní knihovny
 
@@ -320,18 +320,18 @@ Debugger se obnovuje automaticky po většině operací kalkulačky (např. `STO
 
 ## 9. Ukázka: Lunar Lander
 
-Jako ukázkový program je přiložena hra **Lunar Lander** (přistání na Měsíci) v souboru [`Assets/lunar_lander.ti5p`](../Assets/lunar_lander.ti5p). Pravidla, fyzikální model a podrobné ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
+Jako ukázkový program je přiložena hra **Lunar Lander** (přistání na Měsíci) v souboru [`src/TI5X.Avalonia/Assets/lunar_lander.ti5p`](../src/TI5X.Avalonia/Assets/lunar_lander.ti5p). Pravidla, fyzikální model a podrobné ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
 
 Postup:
 
-1. `File > Open Program (.ti5p)...` a vyberte `Assets/lunar_lander.ti5p` v adresáři projektu (soubor se automaticky nenačítá).
+1. `File > Open Program (.ti5p)...` a vyberte `src/TI5X.Avalonia/Assets/lunar_lander.ti5p` v adresáři projektu (soubor se automaticky nenačítá).
 2. Proužek karty ukáže `LUNAR LANDER`, `TI-58 / TI-59` a štítky `INIT`, `BURN`, `FUEL`, `ALT`, `VEL` (a nad nimi `PHYS`, `TOUCH`, `HUD`, `WIN`, `CRASH`).
 3. Stiskněte `A` (nebo `F1`) – hra se inicializuje (palivo 600, rychlost −500, výška 2500) a displej ukáže stav ve tvaru `-V.AAAA` (rychlost a výška).
 4. V každém kole zadejte množství spáleného paliva a stiskněte `R/S` (myší) nebo `B` (`F2`).
 5. `C`, `D`, `E` (`F3`–`F5`) zobrazí zbývající palivo, výšku a rychlost. Po takovém dotazu pokračujte zadáním paliva a klávesou `B`, ne `R/S`.
 6. Bezpečné přistání zobrazí koncovou rychlost ve formátu `Fix 2`, havárie se ohlásí blikajícím displejem (chybový stav).
 
-Kódy programu s komentáři jsou v `TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`) a slouží také jako vzor pro psaní vlastních programů.
+Kódy programu s komentáři jsou v `tests/TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`) a slouží také jako vzor pro psaní vlastních programů.
 
 ---
 
@@ -347,7 +347,7 @@ Kódy programu s komentáři jsou v `TI5X.Core.Tests/TestHelpers.cs` (`LunarLand
 | Problém | Příčina a řešení |
 |---|---|
 | Program zapsaný v `LRN` počítá nesmysly nebo končí chybou. | Programy zapsané **starší verzí emulátoru** (surové kódy kláves) je potřeba přepsat – nový `LRN` ukládá standardní kódy TI-59. Zkontrolujte kódy kroků v debuggeru ([kapitola 5](#vytváření-programů)). |
-| Po `File > New Program` nefunguje `2nd Pgm 01`. | `New Program` odstraní i knihovny. Načtěte `Assets/ml.ti5l` přes `File > Load Library Module (.ti5l)...` nebo aplikaci spusťte znovu. |
+| Po `File > New Program` nefunguje `2nd Pgm 01`. | `New Program` odstraní i knihovny. Načtěte `src/TI5X.Avalonia/Assets/ml.ti5l` přes `File > Load Library Module (.ti5l)...` nebo aplikaci spusťte znovu. |
 | Klávesy `A`–`E` spouštějí jiný program, než se čeká. | Je vybraná knihovní banka (stavový řádek ukazuje `Library Bank NN`). Stiskněte `RST`. |
 | Po načtení programu jsou v registrech staré hodnoty. | Načtení `.ti5p` registry nemaže. Použijte `2nd CMs`. |
 | Displej bliká a kalkulačka nereaguje. | Pokud displej mění jas, běží program – zastavte ho `R/S`. Pokud číslice blikají naplno, jde o chybu – stiskněte `CE` nebo `CLR`. |

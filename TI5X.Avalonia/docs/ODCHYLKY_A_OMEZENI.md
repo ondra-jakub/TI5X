@@ -41,7 +41,7 @@ Jak byl obsah ověřen:
 
 - ruční procházení větví `ProcessKey`, `CollectOperand`, `ExecuteKeyInteractive`, `ExecuteSingleKey`, `ExecuteSingleProgramStep`, `ProcessLrnKey` a `ExecuteOp` v jádru,
 - **testovací sadou `TI5X.Core.Tests`** (TUnit): migrované scénáře Lunar Lander, conformance testy instrukční sady, vyčerpávající sweep všech opcodů × operandů (10 000 kombinací), paralelní a souběhové testy. Body *(ověřeno)* nyní odpovídají automatizovaným testům v `TI5X.Core.Tests`,
-- **Dafny modelem** `TI5X.Verified/partition.dfy`, jehož vygenerovaný kód test porovnává s produkční aritmetikou rozdělení paměti.
+- **Dafny modelem** `src/TI5X.Verified/partition.dfy`, jehož vygenerovaný kód test porovnává s produkční aritmetikou rozdělení paměti.
 
 Jako „originál“ se zde myslí kalkulačka TI-59 s tiskárnou PC-100A podle manuálu Texas Instruments.
 
@@ -55,7 +55,7 @@ Tyto odchylky mají na běžné používání největší dopad:
    - ⚠️ **Zlomová změna:** programy dříve zapsané emulátorem (surové kódy kláves, jednobajtové adresy `61 nn` s `nn` ≤ 9, dvoukrokové `2nd`/`INV`) je nutné přepsát; nový dekodér čte bajty `00`–`09` na místě adresy skoku jako první bajt dvoubajtové adresy a bajt `21` na místě operandu vede k chybě. Expanded IND (`kód 40 nn`) zůstává podporován i nadále.
 2. **`HIR` (kód 82) je definovaný no-op.** Původní sémantika skrytých registrů není v dostupných pramenech doložena, a proto se kód v programu provádí bez účinku (dříve se vykonal jako číslice 1).
 3. **Každá chyba zastaví běžící program**, bez ohledu na příznak 8. *(ověřeno)* Chování příznaku 8 odpovídající originálu zatím není doloženo z primárního zdroje.
-4. **`File > New Program` smaže i načtené knihovny.** Volá `Reset()` s `clearLibs: true`, takže zmizí i vestavěná banka Master Library. Obnoví ji nové spuštění aplikace nebo `File > Load Library Module (.ti5l)...` s `Assets/ml.ti5l`.
+4. **`File > New Program` smaže i načtené knihovny.** Volá `Reset()` s `clearLibs: true`, takže zmizí i vestavěná banka Master Library. Obnoví ji nové spuštění aplikace nebo `File > Load Library Module (.ti5l)...` s `src/TI5X.Avalonia/Assets/ml.ti5l`.
 
 ---
 
@@ -205,7 +205,7 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 | `Pgm IND nn` | ✅ | Neexistující banka vede k chybě. |
 | Op 9 (stažení knihovního programu) | ❌ | |
 | Magnetické karty (čtení, zápis, `2nd Write`) | ❌ | Kartu nahrazují soubory `.ti5p` a `.ti5l`. Karta se zobrazuje jen jako popisný proužek (štítky A–E'). |
-| Master Library | ⚠️ | Vestavěná `Assets/ml.ti5l` obsahuje **jen banku 01** (127 kroků, bez popisu karty). Její sloučené kódy (`62`, `92`) se nyní provádějí správně; zbývající banky Master Library chybí. |
+| Master Library | ⚠️ | Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje **jen banku 01** (127 kroků, bez popisu karty). Její sloučené kódy (`62`, `92`) se nyní provádějí správně; zbývající banky Master Library chybí. |
 | Nápověda v knihovnách (`help`, `helpNN`) | ❌ | Načte se, ale aplikace ji nikde nezobrazuje. |
 | `.ti5p` – uložení | ⚠️ | Uloží jen program banky 0 (všech 960 kroků) a kartu/nápovědu **aktuální** banky. Neukládá registry, příznaky, režimy ani rozdělení. Ze štítků karty uloží jen `titleleft`, `titleright` a `a`–`eprime` (ztratí se `subtitle*`, `primecenter`, `base*`). Texty štítků se neescapují pro XML. |
 | `.ti5p` – načtení | ✅ | Nahradí program banky 0 a nastaví PC = 0 a banku 0. Registry nemění. |
@@ -293,7 +293,7 @@ Kódy 00–09 se v programu provedou jako číslice, kódy 10–19 jako volání
 
 ## 6. Obecná omezení aplikace
 
-- **Neúplná Master Library.** K dispozici je jen banka 01 z `Assets/ml.ti5l`; její sloučené kódy se provádějí správně, ale ostatní programy chybí. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...`. Načtená knihovna přepíše banky se stejným číslem.
+- **Neúplná Master Library.** K dispozici je jen banka 01 z `src/TI5X.Avalonia/Assets/ml.ti5l`; její sloučené kódy se provádějí správně, ale ostatní programy chybí. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...`. Načtená knihovna přepíše banky se stejným číslem.
 - **`.ti5p` neukládá registry**, příznaky, režim úhlů, formát zobrazení ani rozdělení paměti. Obsah registrů se při načtení programu nemění.
 - **Omezená fyzická klávesnice.** Viz [3.1](#31-klávesnice-2nd-a-inv). Ostatní funkce se ovládají myší na virtuální klávesnici.
 - **Debugger** (`View > Program Debugger / Steps`) zobrazuje kroky aktuální banky, přičemž bajty operandů ukazuje také jako mnemoniky (např. adresa `42` se zobrazí jako `STO`). Registry ukazuje jen R00–R51 podle chybného přepočtu z `RegOffset`. `Reset` nastaví pouze PC = 0; `Step` i `Reset` jsou při běhu programu ignorovány.
@@ -308,7 +308,7 @@ Kódy 00–09 se v programu provedou jako číslice, kódy 10–19 jako volání
 
 Vzhledem k zbývajícím omezením fungují spolehlivě tyto postupy:
 
-- Programy zapisujte v režimu LRN (nyní ukládá standardní kódy TI-59) nebo je připravujte jako `.ti5p` s kódy TI-59: číslice `00`–`09`, funkce 2nd jedním kódem, sloučené IND kódy, adresy skoků `0n nn`. Vzorem je `Assets/lunar_lander.ti5p` a [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
+- Programy zapisujte v režimu LRN (nyní ukládá standardní kódy TI-59) nebo je připravujte jako `.ti5p` s kódy TI-59: číslice `00`–`09`, funkce 2nd jedním kódem, sloučené IND kódy, adresy skoků `0n nn`. Vzorem je `src/TI5X.Avalonia/Assets/lunar_lander.ti5p` a [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
 - Podprogramy ukončujte `INV SBR` (nebo `RTN`, `92`). Podprogram volaný z klávesnice (`A`–`E'`) a ukončený `R/S` nechá návratovou adresu v zásobníku.
 - Expanded IND (`kód 40 nn`) i sloučené kódy (`72 05`) jsou zaměnitelné; pro registry 21 a 40 používejte vždy nepřímé adresování.
 - Absolutní adresy skoků zapisujte třímístně (`GTO 123` → `61 01 23`); jednobajtovou formu `20`–`99` emulátor akceptuje, ale standard TI-59 ji nedefinuje.

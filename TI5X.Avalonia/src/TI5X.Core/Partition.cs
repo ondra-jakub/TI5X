@@ -3,7 +3,7 @@ namespace TI5X.Avalonia.Core;
 /// <summary>
 /// Memory partition arithmetic for the calculator engine.
 ///
-/// This mirrors the Dafny-verified model in <c>TI5X.Verified/partition.dfy</c>
+/// This mirrors the Dafny-verified model in <c>src/TI5X.Verified/partition.dfy</c>
 /// (lemma <c>EffectiveMaxProgBounds</c> proves the result is never negative and
 /// never exceeds the physical bank length). The test suite proves that this
 /// implementation and the verified generated code agree over a swept input

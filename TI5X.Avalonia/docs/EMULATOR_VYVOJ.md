@@ -2,7 +2,7 @@
 
 Tento dokument je určený vývojářům, kteří chtějí emulátor TI5X upravovat nebo rozšiřovat. Popisuje architekturu aplikace, jednotlivé třídy, formáty souborů `.ti5p` a `.ti5l`, testovací projekt a postup přidání nové instrukce nebo Op kódu.
 
-Popis odpovídá stavu kódu v adresářích `TI5X.Core/`, `ViewModels/`, `Views/`, `Controls/`, `TI5X.Verified/` a `TI5X.Core.Tests/` a v souborech `MainWindow.axaml(.cs)` a `App.axaml.cs`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
+Popis odpovídá stavu kódu v adresářích `src/TI5X.Core/`, `src/TI5X.Avalonia/ViewModels/`, `src/TI5X.Avalonia/Views/`, `src/TI5X.Avalonia/Controls/`, `src/TI5X.Verified/` a `tests/TI5X.Core.Tests/` a v souborech `MainWindow.axaml(.cs)` a `App.axaml.cs`. Pokud se kód změní, je potřeba tento dokument aktualizovat.
 
 Související dokumenty:
 
@@ -57,38 +57,43 @@ Související dokumenty:
 | Položka | Hodnota |
 |---|---|
 | Řešení | `TI5X.slnx` – aplikace, jádro, testy a verifikované komponenty (centrální správa verzí balíčků v `Directory.Packages.props`, SDK i MTP připnuto v `global.json`). |
-| Hlavní projekt | `TI5X.Avalonia.csproj` – `WinExe`, `net10.0`, `Nullable` a `ImplicitUsings` zapnuté. |
-| Jádro | `TI5X.Core/TI5X.Core.csproj` – knihovna bez závislosti na Avalonii (`namespace TI5X.Avalonia.Core`). |
-| Verifikace | `TI5X.Verified/TI5X.Verified.csproj` – C# kód generovaný z Dafny modelů (`generated/`, zdroje `*.dfy`); regeneruje se přes `dafny translate cs`, CI hlídá shodu. |
+| Hlavní projekt | `src/TI5X.Avalonia/TI5X.Avalonia.csproj` – `WinExe`, `net10.0`, `Nullable` a `ImplicitUsings` zapnuté. |
+| Jádro | `src/TI5X.Core/TI5X.Core.csproj` – knihovna bez závislosti na Avalonii (`namespace TI5X.Avalonia.Core`). |
+| Verifikace | `src/TI5X.Verified/TI5X.Verified.csproj` – C# kód generovaný z Dafny modelů (`generated/`, zdroje `*.dfy`); regeneruje se přes `dafny translate cs`, CI hlídá shodu. |
 | UI framework | Avalonia 12.0.4 (`Avalonia`, `Avalonia.Desktop`, `Avalonia.Themes.Fluent`, `Avalonia.Fonts.Inter`), v konfiguraci Debug navíc `AvaloniaUI.DiagnosticsSupport`. |
 | Bindingy | `AvaloniaUseCompiledBindingsByDefault = true` – každé XAML okno musí mít `x:DataType`. |
-| Prostředky | `Assets/` je `EmbeddedResource` hlavního projektu. Za běhu se používá jen vložený `ml.ti5l`. |
-| Testy | `TI5X.Core.Tests/TI5X.Core.Tests.csproj` – TUnit na Microsoft.Testing.Platform; běžící přes `dotnet test` (viz kap. 7). |
+| Prostředky | `src/TI5X.Avalonia/Assets/` je `EmbeddedResource` hlavního projektu. Za běhu se používá jen vložený `ml.ti5l`. |
+| Testy | `tests/TI5X.Core.Tests/TI5X.Core.Tests.csproj` – TUnit na Microsoft.Testing.Platform; běžící přes `dotnet test` (viz kap. 7). |
 | CI | `.github/workflows/ti5x-dotnet.yml` – build, formát, testy s pokrytím, SBOM a Dafny důkazy. |
 
 Struktura adresářů:
 
 ```
 TI5X.Avalonia/
-  Program.cs, App.axaml(.cs)     start aplikace, vytvoření MainWindow
-  MainWindow.axaml(.cs)          hlavní okno, menu, fyzická klávesnice
-  ViewModels/                    MVVM vrstva (INotifyPropertyChanged)
-  Views/                         vedlejší okna (tiskárna, debugger, nápověda, o aplikaci)
-  Controls/                      vlastní ovládací prvky (klávesa, LED displej, karta)
-  Assets/                        ml.ti5l, lunar_lander.ti5p
-  TI5X.Core/                     emulace bez závislosti na Avalonii
-  TI5X.Verified/                 Dafny modely a generovaný C# (bounds, aritmetika)
-  TI5X.Core.Tests/               testy (TUnit)
+  TI5X.slnx, Directory.*.props,
+  global.json, nuget.config       řešení a centrální nastavení
   docs/                          dokumentace
+  src/
+    TI5X.Avalonia/               desktopová aplikace (Avalonia 12)
+      Program.cs, App.axaml(.cs)     start aplikace, vytvoření MainWindow
+      MainWindow.axaml(.cs)          hlavní okno, menu, fyzická klávesnice
+      ViewModels/                    MVVM vrstva (INotifyPropertyChanged)
+      Views/                         vedlejší okna (tiskárna, debugger, nápověda, o aplikaci)
+      Controls/                      vlastní ovládací prvky (klávesa, LED displej, karta)
+      Assets/                        ml.ti5l, lunar_lander.ti5p
+    TI5X.Core/                   emulace bez závislosti na Avalonii
+    TI5X.Verified/               Dafny modely a generovaný C# (bounds, aritmetika)
+  tests/
+    TI5X.Core.Tests/             testy (TUnit)
 ```
 
 Základní příkazy (spouštějte z adresáře `TI5X.Avalonia/`):
 
 ```sh
 dotnet build TI5X.slnx -warnaserror
-dotnet run --project TI5X.Avalonia.csproj
+dotnet run --project src/TI5X.Avalonia/TI5X.Avalonia.csproj
 dotnet test --solution TI5X.slnx
-dotnet format TI5X.slnx --verify-no-changes --exclude TI5X.Verified/generated
+dotnet format TI5X.slnx --verify-no-changes --exclude src/TI5X.Verified/generated
 ```
 
 Jádro nepoužívá žádné typy z Avalonie, takže je testovatelné bez grafického rozhraní; testy i Dafny důkazy na něm stojí.
@@ -171,7 +176,7 @@ Protože běžící program volá události z vlákna na pozadí, všechny view 
 
 ### 3.1 CalculatorEngine
 
-Hlavní třída emulace (`TI5X.Core/CalculatorEngine.cs`). Obsahuje stav kalkulačky, zpracování kláves, interpret programu i všechny matematické funkce.
+Hlavní třída emulace (`src/TI5X.Core/CalculatorEngine.cs`). Obsahuje stav kalkulačky, zpracování kláves, interpret programu i všechny matematické funkce.
 
 **Konstanty**
 
@@ -228,7 +233,7 @@ Interní metody jsou pojmenované podle funkce: `ProcessDigit`, `ProcessDot`, `P
 
 ### 3.2 Arith
 
-Statická pomocná třída (`TI5X.Core/Arith.cs`):
+Statická pomocná třída (`src/TI5X.Core/Arith.cs`):
 
 - konstanty úhlových režimů `ANG_DEG = 0`, `ANG_RAD = 1`, `ANG_GRAD = 2` a formátů `FORMAT_FIXED = 0`, `FORMAT_FLOAT = 1`, `FORMAT_ENG = 2` (`CalculatorEngine` je jen přejímá),
 - `MaxExponent = 99`, `MinExponent = -99`,
@@ -239,7 +244,7 @@ Statická pomocná třída (`TI5X.Core/Arith.cs`):
 
 ### 3.3 KeyCodes
 
-Kódy kláves a mnemoniky tiskárny (`TI5X.Core/KeyCodes.cs`):
+Kódy kláves a mnemoniky tiskárny (`src/TI5X.Core/KeyCodes.cs`):
 
 - **Primární klávesy** mají kód `řádek × 10 + sloupec` (řádky 1–9, sloupce 1–5), např. `KEY_STO = 42`.
 - **Funkce 2nd** mají ve stejném řádku sloupec 6–9 a 0 (`KEY_CMS = 47`, `KEY_IND = 40`, `KEY_E_PRIME = 10`). Převod primární klávesy na funkci 2nd dělá `CalculatorEngine.MapSecond`.
@@ -251,7 +256,7 @@ Kódy kláves a mnemoniky tiskárny (`TI5X.Core/KeyCodes.cs`):
 
 ### 3.4 DisplayCodes
 
-Sedmisegmentový displej (`TI5X.Core/DisplayCodes.cs`):
+Sedmisegmentový displej (`src/TI5X.Core/DisplayCodes.cs`):
 
 - bitové masky segmentů `SegA` (0x001), `SegF` (0x002), `SegB` (0x004), `SegG` (0x008), `SegE` (0x010), `SegC` (0x020), `SegD` (0x040) a desetinné tečky `SegDp` (0x100),
 - `NrDigits = 12` – počet pozic displeje,
@@ -260,7 +265,7 @@ Sedmisegmentový displej (`TI5X.Core/DisplayCodes.cs`):
 
 ### 3.5 ProgBank, CardDef a pomocné struktury
 
-Soubor `TI5X.Core/ProgBank.cs`:
+Soubor `src/TI5X.Core/ProgBank.cs`:
 
 | Typ | Obsah |
 |---|---|
@@ -271,7 +276,7 @@ Soubor `TI5X.Core/ProgBank.cs`:
 
 ### 3.6 LibraryModule
 
-Načítání knihoven `.ti5l` (`TI5X.Core/LibraryModule.cs`). Třída umí jen číst, zápis knihovny v aplikaci neexistuje.
+Načítání knihoven `.ti5l` (`src/TI5X.Core/LibraryModule.cs`). Třída umí jen číst, zápis knihovny v aplikaci neexistuje.
 
 | Člen | Popis |
 |---|---|
@@ -286,7 +291,7 @@ Podrobnosti formátu jsou v [kapitole 6](#6-formáty-souborů).
 
 ### 3.7 PersistentState
 
-Čtení a zápis programů `.ti5p` (`TI5X.Core/PersistentState.cs`):
+Čtení a zápis programů `.ti5p` (`src/TI5X.Core/PersistentState.cs`):
 
 | Metoda | Popis |
 |---|---|
@@ -295,7 +300,7 @@ Podrobnosti formátu jsou v [kapitole 6](#6-formáty-souborů).
 
 ### 3.8 PrinterEngine
 
-Model tiskárny PC-100A (`TI5X.Core/PrinterEngine.cs`):
+Model tiskárny PC-100A (`src/TI5X.Core/PrinterEngine.cs`):
 
 | Člen | Popis |
 |---|---|
@@ -447,7 +452,7 @@ Chování při načtení:
 - Pole programu banky má přesně tolik bajtů, kolik obsahoval soubor. Nedoplňuje se na 1000, i když `GetMaxProg()` pro knihovní banky vrací 1000 (viz [kapitola 9](#9-technická-úskalí)).
 - `MainViewModel.LoadCustomLibrary` zapíše banky do `engine.Banks[NN]` a přepíše stávající banky se stejným číslem. Ostatní banky zůstanou.
 - Položka `prog00` v knihovně by přepsala `Banks[0]` polem, které není `UserProgram`. Banka 0 by se tím odpojila od pole, které používá `LRN` a `Save Program`. Knihovny proto mají používat banky 01–99.
-- Vestavěná `Assets/ml.ti5l` obsahuje `mimetype`, `help` a jen `prog01` (127 kroků, bez karty).
+- Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje `mimetype`, `help` a jen `prog01` (127 kroků, bez karty).
 
 ### 6.7 Co se neukládá
 
@@ -470,17 +475,17 @@ Serializace celého stavu kalkulačky v aplikaci neexistuje. `PersistentState` p
 
 ```sh
 dotnet test --solution TI5X.slnx
-dotnet test --solution TI5X.slnx --coverage   # report v TI5X.Core.Tests/bin/.../TestResults
+dotnet test --solution TI5X.slnx --coverage   # report v tests/TI5X.Core.Tests/bin/.../TestResults
 ```
 
 - Testy používají **TUnit** na Microsoft.Testing.Platform (`dotnet test` spouští MTP runner díky `global.json`), běží paralelně a aserce se musí `await`ovat.
-- Testují se jen třídy z `TI5X.Core/`. View modely a okna automatické testy nemají.
+- Testují se jen třídy z `src/TI5X.Core/`. View modely a okna automatické testy nemají.
 - Testy nikdy nezapisují do repozitáře: assety se kopírují do výstupního adresáře testů (`Content` s `CopyToOutputDirectory`), dočasné soubory se mažou v `finally`.
 - CI (`.github/workflows/ti5x-dotnet.yml`) spouští build, kontrolu formátování, testy s pokrytím, SBOM a Dafny důkazy včetně shody generovaného C# kódu.
 
 ### 7.2 Struktura testů
 
-Testy jsou v adresáři `TI5X.Core.Tests/`:
+Testy jsou v adresáři `tests/TI5X.Core.Tests/`:
 
 | Soubor | Popis |
 |---|---|
@@ -503,7 +508,7 @@ Původních 17 scénářů konzolového runneru bylo 1:1 přeneseno (Init, FreeF
 
 ### 7.4 Jak přidat test
 
-1. Do příslušné třídy (nebo nové třídy v `TI5X.Core.Tests/`) přidejte metodu `[Test] public async Task Neco()`.
+1. Do příslušné třídy (nebo nové třídy v `tests/TI5X.Core.Tests/`) přidejte metodu `[Test] public async Task Neco()`.
 2. Vytvořte jádro (`new CalculatorEngine()` nebo `TestHelpers.SetupEngineWithProgram(...)`) a vstup zadejte přes `ExecuteKeyInteractive`, `TestHelpers.PressKeysAsync` nebo přímo `SetX`.
 3. Když test spouští program, čekejte přes `await TestHelpers.RunUntilHaltAsync(engine)`.
 4. Ověřte stav přes `await Assert.That(...)`: `engine.X` (čísla s tolerancí `.Within(1e-4)`), `engine.DisplayString`, `engine.Memories[n]`, `engine.State`, `engine.Flags[n]`, `engine.PC`. Aserce TUnit musí být vždy `await`ované, jinak se neprovedou.
@@ -582,7 +587,7 @@ Přehled technických problémů v kódu, na které při úpravách narazíte. �
 
 | Problém | Kde | Důsledek |
 |---|---|---|
-| ~~Logická délka programu neodpovídá délce pole~~ **opraveno** | `Partition.EffectiveMaxProg` vrací minimum logického rozdělení a skutečné délky pole; vzorec je ověřen Dafny modelem (`TI5X.Verified/partition.dfy`) a diferenciálním testem. | `FindLabel`, `List`, `Op 8`, `SST` i běh za koncem banky končí definovanou chybou, ne výjimkou. Přepočet Op 16/17 stále neodpovídá originálu (viz [Odchylky 3.10](ODCHYLKY_A_OMEZENI.md#310-rozdělení-paměti)). |
+| ~~Logická délka programu neodpovídá délce pole~~ **opraveno** | `Partition.EffectiveMaxProg` vrací minimum logického rozdělení a skutečné délky pole; vzorec je ověřen Dafny modelem (`src/TI5X.Verified/partition.dfy`) a diferenciálním testem. | `FindLabel`, `List`, `Op 8`, `SST` i běh za koncem banky končí definovanou chybou, ne výjimkou. Přepočet Op 16/17 stále neodpovídá originálu (viz [Odchylky 3.10](ODCHYLKY_A_OMEZENI.md#310-rozdělení-paměti)). |
 | ~~Souběh `StartProgram`/`StopProgram`~~ **opraveno** | Běh pracuje s lokálním tokenem a generací běhu; `finally` mění sdílený stav jen vlastnící běh. `StepProgram` i debugger `Step`/`Reset` jsou za běhu ignorovány. | Rychlé zastavení a nové spuštění nemůže ukončit nový běh ani číst zrušený token (testy `EngineSafetyTests`). Stav enginu zůstává sdílený s UI bez zámků – počítat s tím při editaci v debuggeru. |
 | Události téměř při každém kroku | `ExecuteKeyInteractive` → `NotifyStateChanged` → `Dispatcher.UIThread.Post` | Při běhu programu se do fronty UI posílá aktualizace po většině kroků. Otevřený debugger pokaždé projde všech 960 kroků. |
 | Načítání souborů bez události | `PersistentState.LoadProgram`, `LibraryModule` | Debugger se po načtení sám neobnoví. |
@@ -596,15 +601,15 @@ Přehled technických problémů v kódu, na které při úpravách narazíte. �
 
 ### 9.1 Regenerace verifikovaných komponent
 
-Nové Dafny komponenty patří do `TI5X.Verified/`:
+Nové Dafny komponenty patří do `src/TI5X.Verified/`:
 
-1. Přidejte `*.dfy` zdroj a ověřte ho: `dafny verify TI5X.Verified/<model>.dfy`.
+1. Přidejte `*.dfy` zdroj a ověřte ho: `dafny verify src/TI5X.Verified/<model>.dfy`.
 2. Vygenerujte C# **kanonickým příkazem CI** (verifikace proběhne znovu automaticky; jiný příkaz by změnil hlavičku generovaného souboru a rozbil CI diff):
    ```sh
    cd TI5X.Avalonia
-   dafny translate cs --include-runtime TI5X.Verified/<model>.dfy --output regen/<model>
-   cp regen/<model>.cs TI5X.Verified/generated/<model>.cs
-   cp regen/<model>-cs.dtr TI5X.Verified/generated/<model>-cs.dtr
+   dafny translate cs --include-runtime src/TI5X.Verified/<model>.dfy --output regen/<model>
+   cp regen/<model>.cs src/TI5X.Verified/generated/<model>.cs
+   cp regen/<model>-cs.dtr src/TI5X.Verified/generated/<model>-cs.dtr
    ```
 3. Zařaďte generovaný kód do `TI5X.Verified.csproj` a přidejte diferenciální test proti produkční implementaci.
 4. CI hlídá `dafny verify`, audit předpokladů i shodu regenerovaného kódu s commitnutým (porovnání ignoruje vložený řádek `Command-line arguments`); generovaný kód nikdy neupravujte ručně. |

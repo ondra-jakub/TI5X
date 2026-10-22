@@ -90,7 +90,7 @@ TI-59 (1977) je kapesní programovatelná kalkulačka s červeným LED displejem
 | Vnitřní přesnost | 13 číslic | `double`, asi 15–16 platných číslic |
 | Úhlové režimy | Deg, Rad, Grad | Deg, Rad, Grad (výchozí Deg) |
 | Formáty | standardní, Fix 0–8, vědecký (EE), inženýrský (Eng) | stejné |
-| Knihovní modul | Master Library (25 programů) | jen banka 01 ze souboru `Assets/ml.ti5l` ⚠️ |
+| Knihovní modul | Master Library (25 programů) | jen banka 01 ze souboru `src/TI5X.Avalonia/Assets/ml.ti5l` ⚠️ |
 | Magnetické karty | ano | ne – nahrazují je soubory `.ti5p`/`.ti5l` ❌ |
 | Tiskárna | PC-100A, 20 znaků na řádek | virtuální PC-100A, 20 znaků na řádek |
 
@@ -620,7 +620,7 @@ Do TI-59 se zasouvá knihovní modul s předem nahranými programy, standardně 
 Program z modulu používá datové registry uživatele a jejich obsah může přepsat. Popis kláves k programům Master Library je na kartičkách v manuálu modulu.
 
 ⚠️ **Emulátor:**
-- Vestavěná knihovna `Assets/ml.ti5l` obsahuje jen **banku 01**, která kvůli sloučeným kódům neběží správně.
+- Vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje jen **banku 01**, která kvůli sloučeným kódům neběží správně.
 - `Pgm nn` nechá banku nn vybranou i po návratu. Do banky 0 se vrátíte stiskem `RST`.
 - `Pgm` v programu skočí na krok 000 vybrané banky.
 - `Op 09` není implementován.
@@ -825,7 +825,7 @@ Sloupec **Emulátor při běhu** popisuje, co engine s kódem udělá, když ho 
 
 ### 15.2 Pravidla kódování programu
 
-Emulátor používá standardní kódování instrukcí TI-59. Vzorem je program Lunar Lander v `TI5X.Core.Tests/TestHelpers.cs` a v souboru `Assets/lunar_lander.ti5p`.
+Emulátor používá standardní kódování instrukcí TI-59. Vzorem je program Lunar Lander v `tests/TI5X.Core.Tests/TestHelpers.cs` a v souboru `src/TI5X.Avalonia/Assets/lunar_lander.ti5p`.
 
 1. **Číslice** mají kódy `00`–`09` (číslo 32 = `03 02`). Na klávesnici jsou totéž hodnoty 62–64, 72–74, 82–84, 92 číslicemi, v programu mají sloučený význam (viz pravidlo 7).
 2. **Druhé funkce** zapisujte jedním kódem (`58` = Fix, `77` = x≥t, `67` = x=t). Kód `21` ve zdrojovém programu nemá význam.
@@ -990,4 +990,4 @@ Použití: `5 A` → `5.`, `3 R/S` → `8.`
 
 ### 16.6 Lunar Lander
 
-Rozsáhlejší ukázkou je hra Lunar Lander (přistání na Měsíci). Program je připravený v souboru `Assets/lunar_lander.ti5p` a jeho kódy s komentáři jsou v `TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`). Pravidla hry, fyzikální model a ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
+Rozsáhlejší ukázkou je hra Lunar Lander (přistání na Měsíci). Program je připravený v souboru `src/TI5X.Avalonia/Assets/lunar_lander.ti5p` a jeho kódy s komentáři jsou v `tests/TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`). Pravidla hry, fyzikální model a ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).

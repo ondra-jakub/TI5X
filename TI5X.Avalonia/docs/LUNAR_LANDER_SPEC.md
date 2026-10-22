@@ -373,7 +373,7 @@ Step | Key Entry       | Code | Comment / Operation
 ### 11.1 Loading the program
 - **TI-58 / TI-59 (keyboard entry):** `2nd CP`, `LRN`, key in steps `000`–`141` from §9 (each code = one keystroke sequence, e.g. `STO 0 0` is entered as `STO 0 0` and stored as `42 00`), `LRN`, `RST`. Check with `SST`/`BST` against the address column.
 - **TI-59 (magnetic card):** after keying in, store bank 1 with `1 2nd Write` and insert side 1 of a card. Later reload with `CLR` + insert card. Write the labels from §10 on the card strip.
-- **TI5X.Avalonia:** File → Open Program → `Assets/lunar_lander.ti5p`. The card strip shows `INIT / BURN / FUEL / ALT / VEL`.
+- **TI5X.Avalonia:** File → Open Program → `src/TI5X.Avalonia/Assets/lunar_lander.ti5p`. The card strip shows `INIT / BURN / FUEL / ALT / VEL`.
 
 ### 11.2 Playing
 1. Press `A`. Display: `-500.2500` (descending at 500 ft/s, altitude 2500 ft).

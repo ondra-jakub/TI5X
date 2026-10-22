@@ -62,7 +62,7 @@ public class HelpWindow : Window
                         "• EMULATOR_UZIVATEL.md – ovládání aplikace (menu, soubory, tiskárna, debugger)\n" +
                         "• EMULATOR_VYVOJ.md – vývojářská dokumentace\n" +
                         "• ODCHYLKY_A_OMEZENI.md – seznam odchylek od originálu TI-59\n" +
-                        "• LUNAR_LANDER_SPEC.md – ukázkový program Lunar Lander (Assets/lunar_lander.ti5p)"),
+                        "• LUNAR_LANDER_SPEC.md – ukázkový program Lunar Lander (src/TI5X.Avalonia/Assets/lunar_lander.ti5p)"),
                 }
             }
         };

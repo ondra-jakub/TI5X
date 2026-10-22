@@ -7,7 +7,7 @@
 // returned by EffectiveMaxProg is never negative and never exceeds the
 // physical bank length.
 //
-// The C# engine mirrors this model in TI5X.Core/Partition.cs; the test
+// The C# engine mirrors this model in src/TI5X.Core/Partition.cs; the test
 // suite proves that both implementations agree on a swept input space.
 module Partition {
 

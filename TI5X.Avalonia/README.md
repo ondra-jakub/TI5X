@@ -8,7 +8,7 @@ Vyžaduje .NET 10 SDK a grafické prostředí macOS, Windows nebo Linux.
 Z kořenového adresáře repozitáře:
 
 ```sh
-dotnet run --project TI5X.Avalonia/TI5X.Avalonia.csproj
+dotnet run --project TI5X.Avalonia/src/TI5X.Avalonia/TI5X.Avalonia.csproj
 ```
 
 ## Ovládání

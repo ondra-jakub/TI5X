@@ -18,22 +18,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="TI5X.Core\TI5X.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <!-- Source of sibling sub-projects must not leak into the app compilation. -->
-    <Compile Remove="TI5X.Core\**" />
-    <Compile Remove="TI5X.Core.Tests\**" />
-    <Compile Remove="TI5X.Verified\**" />
-    <Compile Remove="regen\**" />
-    <EmbeddedResource Remove="TI5X.Core\**" />
-    <EmbeddedResource Remove="TI5X.Core.Tests\**" />
-    <EmbeddedResource Remove="TI5X.Verified\**" />
-    <EmbeddedResource Remove="regen\**" />
-    <None Remove="TI5X.Core\**" />
-    <None Remove="TI5X.Core.Tests\**" />
-    <None Remove="TI5X.Verified\**" />
-    <None Remove="regen\**" />
+    <ProjectReference Include="..\TI5X.Core\TI5X.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" />
