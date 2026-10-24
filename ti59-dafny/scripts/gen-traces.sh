@@ -4,8 +4,11 @@
 # Pouziti: ./scripts/gen-traces.sh [sim_dir]
 set -e
 
-SIM="${1:-/Users/ondra/ti59_chips/TMS0500-simulator}"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
+# Výchozí: vendored orákulum (scripts/build-oracle.sh); $TI59_SIM / 1. param
+# přepne na externí C simulátor (např. /Users/ondra/ti59_chips/TMS0500-simulator).
+SIM="${1:-${TI59_SIM:-$HERE/oracle/build/TMS0500-simulator}}"
+[ -x "$SIM/ti59d" ] || { echo "ti59d nenalezen v $SIM — spusť ./scripts/build-oracle.sh nebo nastav TI59_SIM"; exit 1; }
 OUT="$HERE/tests/traces"
 mkdir -p "$OUT"
 
@@ -20,7 +23,8 @@ run_trace() {
     rm -f "$SIM/log.txt"
     # -K vzdy (i prazdny boot script): bez nej key chip cte stdin a na EOF exituje
     (cd "$SIM" && ./ti59d "${CHIPS[@]}" -K "$HERE/tests/scripts/$script" -n "$cycles" -v 2 > /dev/null 2>&1)
-    gzip -9 -c "$SIM/log.txt" > "$OUT/$name.trace.txt.gz"
+    # -n: gzip bez mtime v hlavičce = regenerace byte-za-byte stejná
+    gzip -9 -nc "$SIM/log.txt" > "$OUT/$name.trace.txt.gz"
     printf '%-10s %8d cycles, %8d instr records, gz=%s\n' \
         "$name" "$cycles" "$(grep -c 'FA=' "$SIM/log.txt")" "$(du -h "$OUT/$name.trace.txt.gz" | cut -f1)"
 }

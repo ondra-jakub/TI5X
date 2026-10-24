@@ -1,0 +1,114 @@
+SR50
+
+register A-D : X register
+register E : Y register
+mem0 : Z register
+mem1 : M register (sto/rcl)
+
+Documentation explain the usage of register with sum of product.
+
+X is input/display register
+operation : 
+X = Z = Z (+|-) X
+X = Y = Y (*|/|^) X
+
+SR51
+
+register A-D : X register
+register E : Y register
+mem0 : Z register (sum of product)
+mem1 : M1 register
+mem2 : M2 register
+mem3 : M3 register
+
+same as SR50 (see documentation).
+
+M1/M2/M3 used for mean/variance/std dev
+
+M1 : x sum
+M2 : x^2 sum
+M3 : number of data
+
+= SR52 =
+
+http://www.datamath.org/Sci/WEDGE/SR-52_Undocumented.html
+
+== User memory ==
+RCL/STO xx
+
+CMs : clear ram 40-99
+RCL/STO 0-59 map to RAM 40-99
+
+Real ram end at 59, making 20 register.
+Firmware could support more ram.
+
+RCL 60-99 set CS bits
+
+R0: * input/output to polar conversion
+    * DSZ
+
+== system / AOS ==
+RCL/STO 60-69 map to RAM 00-09
+
+10 pending operation
+
+CLR : clear
+ RAM 0-9: 10 pending operation ?
+ G: parenthesis/operation
+
+
+== Program ==
+RCL/STO 70-99 map to RAM 10-39
+
+RAM 10-37
+
+224 steps
+
+5 flags (for condition)
+2 level of subroutine
+
+
+F : ffffsssSSSlPPpx
+f (flag)
+PPp (program count PP ram addr/p pos in data)
+sss/SSS (subroutine return addr)
+l subroutine level
+
+== Unused ==
+RAM 38-39
+
+
+= SR56 =
+
+== User memory ==
+RCL/STO x
+
+CMs : clear ram 20-29
+
+R0 : DSZ program instruction
+R8,R9 : Polar/Rectangular conversion
+R5,R6,R7 : Mean and StdDev
+
+== Program ==
+
+CP : clear ram 00-12
+
+100 steps (only 4 instructions in 12)
+
+4 level of subroutine
+
+== system / AOS ==
+
+7 pending operation
+
+RAM 13-19: 7 pending operation ?
+
+F : programm info (count, ...)
+G : parenthesis/operation
+H : subroutine return addr
+I : T register
+
+
+= TI 58/ 59 =
+
+see TI_58_59-HW-manual.pdf

@@ -4,11 +4,11 @@
 # Usage: ./scripts/corpus.sh [name ...]   (without arguments = entire corpus)
 set -u
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-SIM="${TI59_SIM:-/Users/ondra/ti59_chips/TMS0500-simulator}"
 RUNNER="$HERE/harness/bin/Debug/net8.0/Ti59Runner"
-ROMS="$SIM/rom/rom-ti59/TMC0582.txt $SIM/rom/rom-ti59/TMC0582-CONST-K.txt \
-$SIM/rom/rom-ti59/TMC0583.txt $SIM/rom/rom-ti59/TMC0583-CONST-K.txt \
-$SIM/rom/rom-ti59/TMC0571B.txt $SIM/rom/module-lib/TMC0541.txt"
+# ROM dumpy: vendored v repozitáři (bez externí závislosti na simulátoru)
+ROMS="$HERE/rom/rom-ti59/TMC0582.txt $HERE/rom/rom-ti59/TMC0582-CONST-K.txt \
+$HERE/rom/rom-ti59/TMC0583.txt $HERE/rom/rom-ti59/TMC0583-CONST-K.txt \
+$HERE/rom/rom-ti59/TMC0571B.txt $HERE/rom/module-lib/TMC0541.txt"
 
 # name=cycles (must match scripts/gen-traces.sh!)
 declare -a ALL=(boot 3000 add23 4000 mul57 4000 prconv 5000 invpr 5000

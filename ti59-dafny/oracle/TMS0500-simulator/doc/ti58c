@@ -1,0 +1,83 @@
+discovery
+
+2 instructions are used for RAM access
+
+ * cycle   irg[in]         ext[in]  IO
+ * 1       RCL2            x        I: addr= digit_1 * 16 + digit_0
+ * 2       x               x        x
+ * 3       x               x        O: data[addr]
+ * 4       x               x        x
+ *
+ * cycle   irg[in]         ext[in]  IO
+ * 1       STO2            x        I: addr= digit_1 * 16 + digit_0
+ * 2       x               x        x
+ * 3       x               x        I: data[addr]
+ * 4       x               x        x
+
+It is similar to RCL/STO used with TMC0580 DSCOM
+
+
+
+for example
+
+035C:   0111:   MOV     IO.ALL,B        ; output address
+035D:   0A76:   RAM2_W
+035E:   0101:   ADD     IO.ALL,A,#0     ; data to write in ram
+035F:   0111:   MOV     IO.ALL,B        ; output address
+0360:   0A86:   RAM2_R
+0361:   01D6:   MOV     D.ALL,#0        ; io read
+
+At startup, firmware is doing
+
+1. detect 64 / 128 number memory
+
+   ram[127] = 2302585092994990
+   test (ram[127] == 2302585092994990)
+
+2. check if it should clear memory
+  if (addr 60 != 2302585092994030)
+    clear ram from 0 to 63
+  write[60] 2302585092994030
+
+CP will clear
+wr=0 from 29 to 0
+
+CMs will clear
+wr=0 from 59 to 30
+
+extra unused memory : 61, 62, 63
+
+see https://www.rskey.org/gene/calcgene/58mems.htm
+
+
+
+printer detection is not connected to KP-0, but KP-10.
+
+key scan is different
+
+previous model scan keyboard from D13 to D15 on KN KO KP KQ KS KT
+
+0AE0:   WAIT    D14
+0820:   KEY     20      ;scan=1 KN KO KP KQ KS KT
+
+ti58c
+
+press
+
+scan keyboard press from D12 to D15 on KN KO KP KQ KS KT
+
+0AD0:   WAIT    D13
+0820:   KEY     20      ;scan=1 KN KO KP KQ KS KT
+
+
+unpress
+
+062D:   0AF0:   WAIT    D15
+062E:   0824:   KEY     24      ;scan=1 KN KO KQ KS KT
+062F:   1011:   BRA0    0627
+0630:   0AD0:   WAIT    D13
+0631:   08FB:   KEY     FB      ;scan=0 KP
+0632:   1017:   BRA0    0627
+0633:   0AA0:   WAIT    D10
+0634:   08F3:   KEY     F3      ;scan=1 KP
+
