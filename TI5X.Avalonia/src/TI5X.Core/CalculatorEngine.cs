@@ -88,6 +88,7 @@ public class CalculatorEngine
     private CancellationTokenSource? _runCts;
     private Task _runTask = Task.CompletedTask;
     private int _runGeneration;
+    private int _pendingLibBank = -1;
 
     /// <summary>
     /// Completes when the current (or last) background program run has fully finished,
@@ -339,8 +340,9 @@ public class CalculatorEngine
             return;
         }
 
-        // Symbolic keys A..E, A'..E'
-        if (AcceptSymbolic && (effectiveKey is >= KeyCodes.KEY_A and <= KeyCodes.KEY_E or >= KeyCodes.KEY_E_PRIME and <= KeyCodes.KEY_D_PRIME))
+        // Any non-digit key can be a program label. Authentic library modules
+        // use labels such as "=", CLR/CE or WRT, not just A..E'.
+        if (AcceptSymbolic && KeyToDigit(effectiveKey) < 0 && effectiveKey >= 10)
         {
             ExecuteCollectedFunction(effectiveKey, isSymbolic: true);
             return;
@@ -639,6 +641,7 @@ public class CalculatorEngine
                 FinishNumberEntry();
                 PC = 0;
                 CurBank = 0;
+                _pendingLibBank = -1;
                 break;
             case KeyCodes.KEY_R_S:
                 FinishNumberEntry();
@@ -774,17 +777,17 @@ public class CalculatorEngine
                 FinishNumberEntry();
                 if (inv)
                 {
-                    // R->P
-                    var (r, th) = Arith.RectToPolar(X, T, CurAngleMode);
-                    X = r;
-                    T = th;
+                    // R->P: x in T, y in X -> theta in X, r in T.
+                    var (r, th) = Arith.RectToPolar(T, X, CurAngleMode);
+                    X = th;
+                    T = r;
                 }
                 else
                 {
-                    // P->R
-                    var (xVal, yVal) = Arith.PolarToRect(X, T, CurAngleMode);
-                    X = xVal;
-                    T = yVal;
+                    // P->R: r in T, theta in X -> y in X, x in T.
+                    var (xVal, yVal) = Arith.PolarToRect(T, X, CurAngleMode);
+                    X = yVal;
+                    T = xVal;
                 }
                 SetX(X);
                 break;
@@ -1013,7 +1016,9 @@ public class CalculatorEngine
         if (OpStackCount < MaxOpStack)
         {
             OpStack[OpStackCount++] = new OpStackEntry(STACKOP_LPAREN, 0.0);
-            ResetEntry();
+            // Keep X intact: nested parentheses must not discard the pending
+            // value (the real machine keeps the display too).
+            State = EngineState.Result;
         }
         else
         {
@@ -1174,12 +1179,14 @@ public class CalculatorEngine
     public void ClearProgram()
     {
         Array.Clear(UserProgram, 0, UserProgram.Length);
-        PC = 0;
+        if (CurBank == 0)
+            PC = 0;
     }
 
     public void ClearAll()
     {
         OpStackCount = 0;
+        _pendingLibBank = -1;
         ResetEntry();
     }
 
@@ -1202,6 +1209,8 @@ public class CalculatorEngine
         {
             int addr = FindLabel(target);
             if (addr >= 0) PC = addr;
+            else if (target >= 20 && target < GetMaxProg())
+                PC = target; // legacy one-byte absolute address without a label
             else SetErrorState();
         }
         else
@@ -1215,7 +1224,20 @@ public class CalculatorEngine
     {
         if (ReturnStackCount < MaxReturnStack)
         {
-            ReturnStack[ReturnStackCount++] = new ReturnStackEntry(CurBank, PC, fromInteractive);
+            int returnBank = CurBank;
+            int returnPC = PC;
+            int pending = _pendingLibBank;
+            _pendingLibBank = -1;
+
+            if (pending >= 0 && pending < MaxBanks && pending < Banks.Length && Banks[pending] != null)
+            {
+                // A program used "Pgm nn" to select a library bank for this
+                // call; the return record still points at the calling bank.
+                CurBank = pending;
+                PC = 0;
+            }
+
+            ReturnStack[ReturnStackCount++] = new ReturnStackEntry(returnBank, returnPC, fromInteractive);
             ExecuteGto(target, isSymbolic, ind);
             if (fromInteractive && !IsRunning)
             {
@@ -1246,7 +1268,7 @@ public class CalculatorEngine
         }
     }
 
-    public void ExecutePgm(int bankNr, bool ind)
+    public void ExecutePgm(int bankNr, bool ind, bool fromProgram = false)
     {
         if (ind)
         {
@@ -1255,10 +1277,20 @@ public class CalculatorEngine
             else { SetErrorState(); return; }
         }
 
-        if (bankNr >= 0 && bankNr < MaxBanks && Banks[bankNr] != null)
+        if (bankNr >= 0 && bankNr < MaxBanks && bankNr < Banks.Length && Banks[bankNr] != null)
         {
-            CurBank = bankNr;
-            PC = 0;
+            if (fromProgram)
+            {
+                // In a program Pgm only selects the bank for the next SBR or
+                // label call; the current bank and PC are preserved (real TI-59).
+                _pendingLibBank = bankNr;
+            }
+            else
+            {
+                _pendingLibBank = -1;
+                CurBank = bankNr;
+                PC = 0;
+            }
         }
         else
         {
@@ -1297,7 +1329,9 @@ public class CalculatorEngine
     {
         if (reg >= 0 && reg < MaxFlags)
         {
-            Memories[reg] -= 1.0;
+            // The original reduces the magnitude toward zero; zero stays zero.
+            if (Memories[reg] > 0.0) Memories[reg] -= 1.0;
+            else if (Memories[reg] < 0.0) Memories[reg] += 1.0;
             bool jump = inv ? (Memories[reg] == 0.0) : (Memories[reg] != 0.0);
             ExecuteConditionalJump(jump);
         }
@@ -1399,8 +1433,8 @@ public class CalculatorEngine
         // R05: Σ x²
         // R06: Σ xy
         double sign = inv ? -1.0 : 1.0;
-        double xVal = X;
-        double yVal = T;
+        double yVal = X;
+        double xVal = T;
 
         Memories[1] += sign * yVal;
         Memories[2] += sign * yVal * yVal;
@@ -1431,16 +1465,18 @@ public class CalculatorEngine
             }
             double sx = Math.Sqrt(Math.Max(0, (Memories[5] - (Memories[4] * Memories[4]) / n) / (n - 1.0)));
             double sy = Math.Sqrt(Math.Max(0, (Memories[2] - (Memories[1] * Memories[1]) / n) / (n - 1.0)));
-            T = sy;
-            SetX(sx);
+            // Real machine: deviation of the displayed values (y-axis) on
+            // display, of the T values (x-axis) in T - mirrors the mean.
+            T = sx;
+            SetX(sy);
         }
         else
         {
-            // Mean
+            // Mean (real machine: y-bar on display, x-bar in T)
             double xBar = Memories[4] / n;
             double yBar = Memories[1] / n;
-            T = yBar;
-            SetX(xBar);
+            T = xBar;
+            SetX(yBar);
         }
     }
 
@@ -1481,7 +1517,8 @@ public class CalculatorEngine
             case 12: // Trend prediction (x -> y')
                 ExecuteTrend();
                 break;
-            case 13: // Correlation coefficient
+            case 13: // Correlation coefficient (emulator-legacy alias)
+            case 14: // Correlation coefficient (real TI-59 numbering)
                 ExecuteCorrelation();
                 break;
             case 16: // Display partition
@@ -1809,21 +1846,22 @@ public class CalculatorEngine
 
     private void ProcessLrnOperandKey(int effKey)
     {
-        // Symbolic label completes a branch target.
-        if (_lrnPhase == 1 && effKey is >= KeyCodes.KEY_A and <= KeyCodes.KEY_E
-                                     or >= KeyCodes.KEY_E_PRIME and <= KeyCodes.KEY_D_PRIME)
-        {
-            StoreLrnByte(effKey);
-            ResetLrnEntry();
-            ShowLrnDisplay();
-            return;
-        }
-
         if (effKey == KeyCodes.KEY_IND && _lrnAcceptsInd && !_lrnGotInd)
         {
             _lrnGotInd = true;
             _lrnAccum = 0;
             _lrnDigitsNeeded = 2; // indirect register takes two digits
+            ShowLrnDisplay();
+            return;
+        }
+
+        // Any non-digit key can be a program label (A..E' are only the common
+        // subset; library programs also use "=", CE, WRT etc.). Digit keys
+        // (codes 82-99) must go through KeyToDigit first.
+        if (_lrnPhase == 1 && KeyToDigit(effKey) < 0 && effKey >= 10)
+        {
+            StoreLrnByte(effKey);
+            ResetLrnEntry();
             ShowLrnDisplay();
             return;
         }
@@ -2034,6 +2072,7 @@ public class CalculatorEngine
     public void StopProgram()
     {
         IsRunning = false;
+        _pendingLibBank = -1;
         _runCts?.Cancel();
         NotifyStateChanged();
     }
@@ -2048,8 +2087,10 @@ public class CalculatorEngine
 
     /// <summary>
     /// Reads a branch target (GTO/SBR/conditionals) from the program bytes.
-    /// Forms: "1x" symbolic label, "0n nn" three-digit address, "40 nn" indirect,
-    /// or a single-byte absolute address (emulator convenience form 20-99).
+    /// Forms: key-code label 10-99 (any key, e.g. "=", CE, WRT in authentic
+    /// library modules), "0n nn" three-digit address, "40 nn" indirect byte,
+    /// or a single-byte absolute address (legacy emulator convenience form,
+    /// only used when no matching label exists).
     /// </summary>
     private BranchTarget? ReadBranchTarget(byte[] prog, int max)
     {
@@ -2060,7 +2101,7 @@ public class CalculatorEngine
             if (PC >= max) return null;
             return new BranchTarget(prog[PC++], Symbolic: false, Indirect: true);
         }
-        if (t1 is >= 10 and <= 19)
+        if (t1 is >= 10 and <= 99)
         {
             return new BranchTarget(t1, Symbolic: true, Indirect: false);
         }
@@ -2099,6 +2140,10 @@ public class CalculatorEngine
     /// </summary>
     private bool ExecuteMergedCode(byte op, byte[] prog, int max)
     {
+        // A merged instruction terminates any number entry that preceded it,
+        // exactly like the unmerged STO/RCL/... program paths.
+        FinishNumberEntry();
+
         if (op == KeyCodes.OP_INV_SBR) // 92 = RTN
         {
             ExecuteReturn();
@@ -2113,7 +2158,7 @@ public class CalculatorEngine
         int nn = prog[PC++];
         switch (op)
         {
-            case KeyCodes.OP_PGM_IND: ExecutePgm(nn, ind: true); break;
+            case KeyCodes.OP_PGM_IND: ExecutePgm(nn, ind: true, fromProgram: true); break;
             case KeyCodes.OP_EXC_IND: ExecuteExchange(nn, ind: true); break;
             case KeyCodes.OP_PRD_IND: ExecutePrd(nn, ind: true, inv: false); break;
             case KeyCodes.OP_STO_IND: ExecuteStore(nn, ind: true); break;
@@ -2237,7 +2282,9 @@ public class CalculatorEngine
                     if (target == null || reg > 9) { SetErrorState(); return false; }
                     bool inv = InvState;
                     InvState = false;
-                    Memories[reg] -= 1.0;
+                    // The original reduces the magnitude toward zero; zero stays zero.
+                    if (Memories[reg] > 0.0) Memories[reg] -= 1.0;
+                    else if (Memories[reg] < 0.0) Memories[reg] += 1.0;
                     bool jump = inv ? (Memories[reg] == 0.0) : (Memories[reg] != 0.0);
                     if (jump)
                     {
@@ -2262,7 +2309,7 @@ public class CalculatorEngine
                         case KeyCodes.KEY_SUM: ExecuteSum(val, ind, inv); break;
                         case KeyCodes.KEY_EXC: ExecuteExchange(val, ind); break;
                         case KeyCodes.KEY_PRD: ExecutePrd(val, ind, inv); break;
-                        case KeyCodes.KEY_PGM: ExecutePgm(val, ind); break;
+                        case KeyCodes.KEY_PGM: ExecutePgm(val, ind, fromProgram: true); break;
                         case KeyCodes.KEY_OP: ExecuteOp(val, ind); break;
                     }
                     return State != EngineState.Error;

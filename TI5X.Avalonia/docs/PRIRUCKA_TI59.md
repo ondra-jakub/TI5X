@@ -417,27 +417,27 @@ Statistické funkce sbírají součty do registrů R01–R06. Před novou sadou 
 
 **Originál TI-59:** datový bod se zadává jako x `x⇌t` y `2nd Σ+` (y na displeji, x v registru t). `INV 2nd Σ+` bod odebere. `2nd x̄` zobrazí průměr y (průměr x je po `x⇌t` v registru t), `INV 2nd x̄` směrodatnou odchylku. `Op 11` až `Op 15` počítají rozptyl, lineární regresi, korelaci a odhady.
 
-⚠️ **Emulátor:** role x a y jsou prohozené a Op kódy mají jiné číslování. *(ověřeno)*
+Konvence emulátoru odpovídají originálu: displej je **y**, registr t je **x**. Jediný rozdíl: korelační koeficient je v emulátoru navíc na `2nd Op 13`, tj. na klávesě, kde jej uvádí některé přehledy; originál používá `Op 14`.
 
-| Klávesy v emulátoru | Výsledek |
+| Klávesy | Výsledek |
 |---|---|
-| y `x⇌t` x `2nd Σ+` | přidá bod (hodnota na displeji je **x**, t je **y**), zobrazí n |
+| x `x⇌t` y `2nd Σ+` | přidá bod (displej je **y**, t je **x** — jako na originále), zobrazí n |
 | `INV 2nd Σ+` | odebere bod |
-| `2nd x̄` | průměr x (hodnot z displeje), v t průměr y |
-| `INV 2nd x̄` | výběrová směrodatná odchylka x (dělení n − 1), v t odchylka y |
+| `2nd x̄` | průměr y (na displeji), v t průměr x |
+| `INV 2nd x̄` | výběrová směrodatná odchylka hodnot z displeje (y), v t odchylka hodnot z t |
 | `2nd Op 11` | směrnice regresní přímky y = a·x + b, v t úsek b |
 | x `2nd Op 12` | odhad y′ pro zadané x |
-| `2nd Op 13` | korelační koeficient |
+| `2nd Op 13` (i `2nd Op 14`) | korelační koeficient |
 
 Pro data s **jednou proměnnou** stačí zadávat hodnoty a mačkat `2nd Σ+`; výsledky jsou stejné jako na originálu. Příklad *(ověřeno)*: `2nd CMs 2 2nd Σ+ 4 2nd Σ+ 6 2nd Σ+` → `3.`, `2nd x̄` → `4.`, `INV 2nd x̄` → `2.`.
 
-Příklad se dvěma proměnnými v emulátoru – body (1; 2), (2; 4), (3; 6,5) *(ověřeno)*:
+Příklad se dvěma proměnnými v emulátoru – body (1; 2), (2; 4), (3; 6,5) *(ověřeno, se stejnými výsledky jako na originále)*:
 
 | Klávesy | Displej |
 |---|---|
-| `2nd CMs 2 x⇌t 1 2nd Σ+` | `1.` |
-| `4 x⇌t 2 2nd Σ+` | `2.` |
-| `6.5 x⇌t 3 2nd Σ+` | `3.` |
+| `2nd CMs 1 x⇌t 2 2nd Σ+` | `2.` (zadávané y) |
+| `2 x⇌t 4 2nd Σ+` | `4.` |
+| `3 x⇌t 6.5 2nd Σ+` | `6.5` |
 | `2nd Op 11` | `2.25` (směrnice) |
 | `x⇌t` | `-0.333333333` (úsek) |
 | `4 2nd Op 12` | `8.666666667` (odhad y pro x = 4) |

@@ -245,7 +245,7 @@ Soubor `.ti5l` je knihovní modul – archiv ZIP s více programy (`prog01`, `pr
 
 ### Vestavěná knihovna
 
-Při startu aplikace se automaticky načte `src/TI5X.Avalonia/Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje **jen banku 01** (127 kroků, bez karty), nikoli celou Master Library originálu. Její sloučené kódy instrukcí se provádějí správně, zbývající banky Master Library chybí ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
+Při startu aplikace se automaticky načte `src/TI5X.Avalonia/Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje všech **25 programů** Master Library, sestavených z dumpu originálního CROM TMC0541 ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)). Volání návěšťím přijímá libovolný nečíslicový klíč (ML-01 používá např. `SBR =`); korelace je navíc dostupná i jako `Op 14`, jak ji čísuluje originál.
 
 ### Načtení vlastní knihovny
 

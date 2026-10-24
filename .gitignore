@@ -1,9 +1,18 @@
+# macOS
+.DS_Store
+
+# IDE / AI nástroje
+.idea/
+.junie/
+.kilo/
+
+# Android (původní Java projekt)
 /bin/
 /gen/
 /local.properties
 /keystore.properties
 
-# .NET (TI5X.Avalonia subtree)
+# .NET (podstrom TI5X.Avalonia)
 TI5X.Avalonia/**/bin/
 TI5X.Avalonia/**/obj/
 TI5X.Avalonia/**/*.user

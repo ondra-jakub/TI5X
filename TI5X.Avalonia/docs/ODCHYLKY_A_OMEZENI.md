@@ -110,7 +110,7 @@ Tyto odchylky mají na běžné používání největší dopad:
 | `INV x²` = √x, `INV √x` = x² | ⚠️ | Rozšíření emulátoru. Originál pro tyto klávesy inverzní funkci nemá. |
 | `sin cos tan` a jejich `INV` | ✅ | `INV sin` a `INV cos` mimo ⟨−1, 1⟩ hlásí chybu. |
 | `Deg`, `Rad`, `Grad` | ✅ | Výchozí je DEG. Režim ukazuje štítek v hlavním okně. |
-| `2nd P→R`, `INV 2nd P→R` | ⚠️ | *(ověřeno)* Opačné pořadí registrů. Emulátor bere **r na displeji a θ v registru t** a vrací **x na displeji a y v t**. Originál bere r v t a θ na displeji a vrací y na displeji a x v t. `INV P→R` je zrcadlové: x na displeji a y v t → r na displeji a θ v t. |
+| `2nd P→R`, `INV 2nd P→R` | ✅ | Konvence odpovídají originálu (ověřeno proti C simulátoru TMS0500 v režimu TI-59): `P→R` bere r v t, θ na displeji a vrací y na displeji, x v t. `INV P→R` zrcadlově: y na displeji, x v t, vrací θ na displeji, r v t. |
 | `2nd D.MS`, `INV 2nd D.MS` | ⚠️ | *(ověřeno)* **Prohozený směr.** `D.MS` převádí desetinné stupně na tvar DD.MMSS (`1.30` → `1.18`), `INV D.MS` převádí DD.MMSS na desetinné stupně. V originále je to obráceně. |
 | `2nd Int`, `INV 2nd Int` (zlomková část) | ✅ | |
 | `2nd \|x\|` | ✅ | |
@@ -134,10 +134,10 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 
 | Funkce | Stav | Poznámka |
 |---|---|---|
-| `2nd Σ+`, `INV 2nd Σ+` | ⚠️ | *(ověřeno)* **Prohozené role x a y.** Emulátor bere hodnotu na displeji jako **x** (R04/R05) a obsah registru t jako **y** (R01/R02). Originál bere displej jako y a t jako x. Pro data s jednou proměnnou to nevadí, protože průměr i odchylka se počítají z hodnot na displeji. |
-| `2nd x̄` | ⚠️ | Zobrazí průměr hodnot zadaných na displeji a do t uloží průměr hodnot z t. |
-| `INV 2nd x̄` | ⚠️ | Výběrová směrodatná odchylka (n−1) hodnot z displeje, do t uloží odchylku hodnot z t. Pro n ≤ 1 chyba. |
-| Op 11–15 | ⚠️ | Jiné číslování než originál, viz [Op kódy](#4-op-kódy). |
+| `2nd Σ+`, `INV 2nd Σ+` | ✅ | Konvence originálu: displej je **y** (R01/R02), obsah registru t je **x** (R04/R05/R06). Pro data s jednou proměnnou je výsledek stejný jako na originálu. *(ověřeno)* |
+| `2nd x̄` | ✅ | Zobrazí průměr hodnot z displeje (ȳ), v t je průměr hodnot z t (x̄). |
+| `INV 2nd x̄` | ✅ | Výběrová směrodatná odchylka (n−1) hodnot z displeje (sy) na displeji, odchylka hodnot z t (sx) v t. Pro n ≤ 1 chyba. |
+| Op 11–15 | ⚠️ | Op 11 (směrnice) a Op 12 (odhad y′) odpovídají tabulce níže; korelace je kód 13 a navíc 14 (číslování originálu, používá ji ML-01). Originální Op 15 chybí, viz [Op kódy](#4-op-kódy). |
 
 ### 3.7 Programování a režim LRN
 
@@ -157,24 +157,24 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 | `2nd Pause` v programu | ⚠️ | Zpoždění asi 500 ms, displej se během pauzy nijak zvlášť nezvýrazňuje. |
 | `2nd Pause` z klávesnice | ✅ | Nemá účinek. |
 | `2nd Nop` | ✅ | |
-| `2nd CP` | ✅ | Smaže program banky 0 a nastaví PC = 0. Rozdělení paměti nemění. |
-| `2nd Lbl` | ⚠️ | Návěštím může být libovolný kód. Hledá se jen v aktuální bance. Z klávesnice (`GTO`/`SBR`) a v roli cíle skoku se jako symbolická berou jen A–E' (kódy 10–19). |
+| `2nd CP` | ✅ | Smaže program banky 0; PC vynuluje jen v bance 0 (běhu programu z knihovní banky tedy nepřekáží). Rozdělení paměti nemění. |
+| `2nd Lbl` | ✅ | Návěštím je libovolný nečíslicový klíč (v ML-01 např. `=`, `CLR`, `WRT`), hledá se v aktuální bance. Z klávesnice (`GTO`/`SBR`) i v roli cíle skoku programu lze použít kódy 10–99; jednobajtová absolutní adresa 20–99 se použije jen tehdy, když odpovídající návěští neexistuje (doplňková forma emulátoru). |
 
 ### 3.8 Skoky, podprogramy a podmínky
 
 | Funkce | Stav | Poznámka |
 |---|---|---|
-| `GTO nnn` z klávesnice | ⚠️ | Vyžaduje 3 číslice nebo návěští A–E'. *(ověřeno)* `GTO IND nn` z klávesnice čeká na **3** číslice místo 2. |
-| `GTO` v programu | ✅ | Cíl se čte strukturálně: návěští A–E' (bajt `1x`), absolutní adresa ve tvaru `0n nn`, `40 nn` pro IND nebo jednobajtová absolutní adresa `20`–`99` (doplňková forma emulátoru). Sloučený kód `83 nn` = GTO IND. |
+| `GTO nnn` z klávesnice | ⚠️ | Vyžaduje 3 číslice nebo libovolné návěští (nečíslicový klíč). *(ověřeno)* `GTO IND nn` z klávesnice čeká na **3** číslice místo 2. |
+| `GTO` v programu | ✅ | Cíl se čte strukturálně: návěští libovolné klávesy (bajt 10–99), absolutní adresa ve tvaru `0n nn`, `40 nn` pro IND; jednobajtová absolutní adresa `20`–`99` se použije, jen pokud odpovídající návěští v bance neexistuje. Sloučený kód `83 nn` = GTO IND. |
 | `SBR` z klávesnice, klávesy A–E' | ✅ | Uloží návrat, spustí program a po `INV SBR` zastaví. |
 | `SBR` v programu | ✅ | Po `RTN`/`INV SBR` se vrací za volání a běh pokračuje. |
-| `SBR` s jiným návěštím než A–E' z klávesnice | ❌ | *(ověřeno)* Např. `SBR lnx` vede k chybě. |
+| `SBR` s jiným návěštím než A–E' z klávesnice | ✅ | Přijímá libovolný nečíslicový klíč jako návěští, např. `SBR =` nebo `SBR lnx`. |
 | `INV SBR` (návrat) | ✅ | |
 | `RTN` jako kód 92 | ✅ | Provede se jako návrat z podprogramu. |
 | Zásobník podprogramů 8 úrovní | ✅ | 9. úroveň vede k chybě. |
 | Podprogram ukončený `R/S` | ⚠️ | *(ověřeno)* Volání `A`–`E'` z klávesnice uloží návratovou adresu. Skončí-li podprogram `R/S` místo `INV SBR`, adresa v zásobníku zůstane. Po 8 takových voláních vede 9. volání k chybě a `RST` zásobník nevyprázdní. |
 | `2nd x=t`, `2nd x≥t` a jejich `INV` | ✅ | Při splnění se skočí na následující adresu nebo návěští, jinak se adresa přeskočí. V programu ✅. Z klávesnice podmínka při splnění čeká na adresu. Při nesplnění se posune PC, pokud je PC > 0. |
-| `2nd Dsz n` a `INV 2nd Dsz n` | ⚠️ | Jen registry 0–9 bez IND. *(ověřeno)* Emulátor vždy odečte 1; odchylka je patrná u záporné hodnoty (`−2` → `−3`), zatímco originál zmenšuje absolutní hodnotu směrem k nule. |
+| `2nd Dsz n` a `INV 2nd Dsz n` | ⚠️ | Jen registry 0–9 bez IND, což originál umí. Zmenšování odpovídá originálu: absolutní hodnota se zmenšuje směrem k nule, nula zůstává nula a smyčka se zastaví. *(ověřeno)* |
 | Op 20–29 / Op 30–39 | ⚠️ | Viz [Op kódy](#4-op-kódy). |
 
 ### 3.9 Příznaky
@@ -201,11 +201,12 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 | Funkce | Stav | Poznámka |
 |---|---|---|
 | `2nd Pgm nn` z klávesnice, pak A–E' | ⚠️ | Přepne banku na `nn` a nastaví PC = 0. Banka **zůstane vybraná** i po návratu z podprogramu, takže další A–E' se hledají v knihovně. Do banky 0 vrátí `RST` nebo `Pgm 00`. V originále platí `Pgm` jen pro nejbližší volání. |
-| `Pgm nn` v programu | ⚠️ | *(ověřeno)* Skočí na krok 000 vybrané banky místo výběru pro následující `SBR`. |
+| `Pgm nn` v programu | ✅ | Vybere banku pro nejbližší `SBR`/návěští; po návratu z podprogramu se běh vrací do volající banky. *(ověřeno)* |
 | `Pgm IND nn` | ✅ | Neexistující banka vede k chybě. |
 | Op 9 (stažení knihovního programu) | ❌ | |
+| Diagnostika ML-01 (`2nd Pgm 01`, `SBR =`) | ⚠️ | Inicializace, statistická řada, přesahy mezi bankami (`Pgm 15` a volání `SBR DMS`) i `P/R`/`Σ+` konvence nyní odpovídají originálu; selže jen závěrečný kontrolní součet — porovnání `x=t` (banka 01, PC 70) nedá shodu, vznikne záměrná instrukční chyba (`0`, `1/x`) místo tisku `MASTER` a `1`. Rutina DMS vrací `-0,50242` místo očekávaných `377,2580954`: originální mikrokód konverze `P/R` a statistických Op používá skryté pracovní registry R8/R9 (viz `doc/memory-map.txt` v TMS0500-simulátoru), které emulátor nemá napodobené. |
 | Magnetické karty (čtení, zápis, `2nd Write`) | ❌ | Kartu nahrazují soubory `.ti5p` a `.ti5l`. Karta se zobrazuje jen jako popisný proužek (štítky A–E'). |
-| Master Library | ⚠️ | Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje **jen banku 01** (127 kroků, bez popisu karty). Její sloučené kódy (`62`, `92`) se nyní provádějí správně; zbývající banky Master Library chybí. |
+| Master Library | ⚠️ | Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` je sestavena z dumpu originálního CROM TMC0541 (celkem 25 programů) nástrojem `util/mklibfromdump`. Návěští libovolných kláves a přesahy mezi bankami se nyní provádějí správně; celá ML-01 diagnostika ale stále selhává na závěrečném kontrolním součtu (viz další řádek). |
 | Nápověda v knihovnách (`help`, `helpNN`) | ❌ | Načte se, ale aplikace ji nikde nezobrazuje. |
 | `.ti5p` – uložení | ⚠️ | Uloží jen program banky 0 (všech 960 kroků) a kartu/nápovědu **aktuální** banky. Neukládá registry, příznaky, režimy ani rozdělení. Ze štítků karty uloží jen `titleleft`, `titleright` a `a`–`eprime` (ztratí se `subtitle*`, `primecenter`, `base*`). Texty štítků se neescapují pro XML. |
 | `.ti5p` – načtení | ✅ | Nahradí program banky 0 a nastaví PC = 0 a banku 0. Registry nemění. |
@@ -253,8 +254,8 @@ Podle `CalculatorEngine.ExecuteOp`. `Op IND nn` je podporován.
 | 10 | Signum | Ignoruje se. | ❌ |
 | 11 | Rozptyl | **Lineární regrese:** směrnice na displeji, úsek v t. | ⚠️ |
 | 12 | Směrnice a úsek | **Odhad y' z x na displeji.** | ⚠️ |
-| 13 | Korelační koeficient | Korelační koeficient. | ✅ |
-| 14 | Odhad y' z x | Ignoruje se. | ❌ |
+| 13 | Korelační koeficient | Korelační koeficient (emulátorová konvence). | ✅ |
+| 14 | Odhad y' z x | Korelační koeficient, stejný výsledek jako Op 13 (číslování tak, jak jej používá ML-01). | ⚠️ |
 | 15 | Odhad x' z y | Ignoruje se. | ❌ |
 | 16 | Zobrazit rozdělení paměti | Zobrazí chybnou hodnotu (`4852`), viz [3.10](#310-rozdělení-paměti). | ⚠️ |
 | 17 | Nové rozdělení paměti | Jiný výpočet počtu kroků, viz [3.10](#310-rozdělení-paměti). | ⚠️ |
@@ -264,7 +265,7 @@ Podle `CalculatorEngine.ExecuteOp`. `Op IND nn` je podporován.
 | 30–39 | Snížit R0–R9 o 1 | Sníží registr a novou hodnotu zapíše do X a na displej. | ⚠️ |
 | 40+ | – | Ignoruje se. | – |
 
-Op 11–13 počítají s rolemi x a y popsanými v [3.6](#36-statistika), tedy x = hodnota na displeji při `Σ+`.
+Op 11–14 počítají s rolemi x a y popsanými v [3.6](#36-statistika): displej při `Σ+` je y, obsah registru t je x.
 
 ---
 

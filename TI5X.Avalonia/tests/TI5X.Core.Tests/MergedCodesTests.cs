@@ -177,18 +177,8 @@ public class MergedCodesTests
         await Assert.That(engine.State != CalculatorEngine.EngineState.Error).IsTrue();
     }
 
-    [Test]
-    public async Task Library_bank01_merged_PGM_IND_switches_bank()
-    {
-        var engine = new CalculatorEngine();
-        var module = LibraryModule.LoadFromFile(TestHelpers.AssetPath("ml.ti5l"));
-        engine.Banks[1] = module.Banks[1];
-        engine.CurBank = 1;
-        engine.PC = 103; // position of "62 00" (Pgm Ind 00) in bank 01 (authentic ML-01 ROM)
-
-        engine.StepProgram();
-
-        await Assert.That(engine.CurBank).IsEqualTo(0);
-        await Assert.That(engine.PC).IsEqualTo(0);
-    }
+    // "Library_bank01_merged_PGM_IND_switches_bank" moved to
+    // LibraryDiagnosticTests.Pgm_in_program_selects_bank_for_next_call_and_returns_to_caller:
+    // in a program Pgm selects the bank for the next SBR/label call instead of
+    // jumping immediately (real TI-59 behaviour, needed by ML-01).
 }
