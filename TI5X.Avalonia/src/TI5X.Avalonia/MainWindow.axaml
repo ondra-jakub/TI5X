@@ -23,6 +23,10 @@
                 <Separator />
                 <MenuItem Header="_Exit" Click="OnMenuExit" />
             </MenuItem>
+            <MenuItem Header="_Library" x:Name="BuiltInLibraryMenu">
+                <!-- standard Solid State Software modules, populated in code from
+                     EmbeddedAssets.BuiltInLibraries -->
+            </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem Header="Virtual _Printer (PC-100A)" Click="OnMenuShowPrinter" />
                 <MenuItem Header="Program _Debugger / Steps" Click="OnMenuShowDebugger" />
@@ -33,7 +37,7 @@
             </MenuItem>
         </Menu>
 
-        <!-- Main Calculator Body -->
-        <views:CalculatorView Grid.Row="1" />
+        <!-- Main Calculator Body (with the printer pane on wide windows) -->
+        <views:CalculatorShell Grid.Row="1" />
     </Grid>
 </Window>

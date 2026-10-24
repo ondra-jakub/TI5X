@@ -27,10 +27,56 @@ public class MainActivity : AvaloniaMainActivity
         _fileService = new AndroidFileService(this);
         AppServices.FileService = _fileService;
         AppServices.Exit = FinishAffinity;
+        AppServices.KeyPressFeedback = ProvideKeyFeedback;
         ActivityResult = HandleActivityResult;
+
+        // Phones stay portrait (the Activity attribute); large tablets may rotate so the
+        // wide layout can show the printer beside the calculator (CalculatorShell).
+        if (Resources?.Configuration?.SmallestScreenWidthDp is >= 600)
+        {
+            RequestedOrientation = ScreenOrientation.Unspecified;
+        }
 
         base.OnCreate(savedInstanceState);
     }
+
+    /// <summary>
+    /// Short haptic tick for on-screen key presses (invoked from the shared
+    /// KeyButton control via AppServices.KeyPressFeedback; null on desktop).
+    /// </summary>
+    private void ProvideKeyFeedback()
+    {
+        try
+        {
+            Vibrator? vibrator = OperatingSystem.IsAndroidVersionAtLeast(31)
+                ? (GetSystemService(Context.VibratorManagerService) as VibratorManager)?.DefaultVibrator
+                : GetVibratorLegacy();
+
+            if (vibrator?.HasVibrator != true) return;
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
+            {
+                vibrator.Vibrate(VibrationEffect.CreateOneShot(25, VibrationEffect.DefaultAmplitude));
+            }
+            else
+            {
+                VibrateLegacy(vibrator);
+            }
+        }
+        catch (Exception)
+        {
+            // Haptics are best-effort; a key press must never fail on devices
+            // without a vibrator or with a broken vibrator service.
+        }
+    }
+
+#pragma warning disable CA1422 // legacy vibrator APIs: used only below their deprecation level
+    private Vibrator? GetVibratorLegacy()
+        => (Vibrator?)GetSystemService(Context.VibratorService);
+
+    private static void VibrateLegacy(Vibrator vibrator)
+        => vibrator.Vibrate(25);
+#pragma warning restore CA1422
 
     private void HandleActivityResult(int requestCode, Result resultCode, Intent? data)
     {

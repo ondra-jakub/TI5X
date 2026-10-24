@@ -184,7 +184,7 @@ public class MergedCodesTests
         var module = LibraryModule.LoadFromFile(TestHelpers.AssetPath("ml.ti5l"));
         engine.Banks[1] = module.Banks[1];
         engine.CurBank = 1;
-        engine.PC = 50; // position of "62 00" (Pgm Ind 00) in bank 01
+        engine.PC = 103; // position of "62 00" (Pgm Ind 00) in bank 01 (authentic ML-01 ROM)
 
         engine.StepProgram();
 

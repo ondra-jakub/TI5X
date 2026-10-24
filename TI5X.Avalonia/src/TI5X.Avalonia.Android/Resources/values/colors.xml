@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <color name="splash_background">#181615</color>
+  <!-- adaptive launcher icon background (matches the icon tile, see util/makeicons) -->
+  <color name="ic_launcher_background">#181615</color>
 </resources>

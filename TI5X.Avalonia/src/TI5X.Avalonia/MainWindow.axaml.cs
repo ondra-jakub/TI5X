@@ -19,6 +19,34 @@ public partial class MainWindow : Window
         // The view model is created and registered by App (AppServices) so that both the
         // desktop window and the single-view (Android) head share the same instance.
         DataContext = AppServices.RequireMain();
+
+        PopulateBuiltInLibraries();
+    }
+
+    private void PopulateBuiltInLibraries()
+    {
+        foreach (var library in EmbeddedAssets.BuiltInLibraries)
+        {
+            var item = new MenuItem
+            {
+                Header = library.DisplayName,
+                Tag = library
+            };
+            item.Click += OnLoadBuiltInLibrary;
+            BuiltInLibraryMenu.Items.Add(item);
+        }
+    }
+
+    private void OnLoadBuiltInLibrary(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: BuiltInLibrary library }
+            && EmbeddedAssets.OpenBuiltInLibrary(library) is { } stream)
+        {
+            using (stream)
+            {
+                AppServices.RequireMain().LoadBuiltInLibrary(stream, library.DisplayName);
+            }
+        }
     }
 
     private MainViewModel? ViewModel => DataContext as MainViewModel;

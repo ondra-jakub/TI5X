@@ -18,6 +18,12 @@ public static class AppServices
     /// <summary>Platform-specific application exit (desktop: close main window, Android: FinishAffinity).</summary>
     public static Action? Exit { get; set; }
 
+    /// <summary>
+    /// Optional tactile feedback invoked when an on-screen key is pressed
+    /// (Android head: short haptic tick via the Vibrator service; null on desktop).
+    /// </summary>
+    public static Action? KeyPressFeedback { get; set; }
+
     public static MainViewModel RequireMain()
         => Main ?? throw new InvalidOperationException("AppServices.Main was not initialized by the platform head.");
 

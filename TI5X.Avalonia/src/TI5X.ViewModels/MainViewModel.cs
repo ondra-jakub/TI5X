@@ -225,6 +225,33 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads one of the built-in Solid State Software modules (transcribed from the
+    /// original TMC0540 CROM dumps). Plugging in a module replaces any previously
+    /// loaded library banks, like swapping the physical module in the TI-59.
+    /// </summary>
+    public void LoadBuiltInLibrary(Stream stream, string displayName)
+    {
+        try
+        {
+            var library = LibraryModule.LoadFromStream(stream);
+            for (int i = 1; i < CalculatorEngine.MaxBanks; ++i)
+            {
+                _engine.Banks[i] = null;
+            }
+            foreach (var kv in library.Banks)
+            {
+                _engine.Banks[kv.Key] = kv.Value;
+            }
+            UpdateUiState();
+            StatusInfo = $"{displayName}: {library.Banks.Count} programs loaded";
+        }
+        catch (Exception ex)
+        {
+            StatusInfo = $"Error: {ex.Message}";
+        }
+    }
+
     public void LoadCustomLibrary(string filePath)
     {
         try

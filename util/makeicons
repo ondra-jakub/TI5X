@@ -1,0 +1,302 @@
+#!/usr/bin/python3
+#+
+# Renders the TI5X Android launcher icons (legacy mipmaps, round mipmaps and
+# adaptive-icon foregrounds) from the same flat design as the MAUI app icon
+# (src/TI5X.Maui/Resources/AppIcon/appicon.svg): a dark rounded tile with a
+# TI-59 calculator mock-up, red LED display and gold key rows.
+#
+# The drawing is done in pure Python (3x supersampled rectangles, box-filter
+# downsampling, hand-rolled PNG encoder) so the output is deterministic and
+# needs no external SVG rasterizer.
+#
+# Invoke as follows (writes into src/TI5X.Avalonia.Android/Resources):
+#
+#     makeicons
+#
+# Copyright 2026 the TI5X contributors.
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#-
+
+import struct
+import sys
+import zlib
+
+# design space: the MAUI icon SVG is a 456x456 tile
+DESIGN = 456
+
+# colors from appicon.svg
+BG = (24, 22, 21)         # #181615 tile
+BG_STROKE = (43, 43, 43)  # #2B2B2B tile border
+LCD_HOUSING = (16, 2, 2)  # #100202
+LCD_HOUSING_STROKE = (64, 10, 10) # #400A0A
+LED = (255, 45, 45)       # #FF2D2D
+LED_STROKE = (48, 0, 0)   # #300000
+KEY_LIGHT = (240, 238, 230) # off-white keys
+KEY_DARK = (48, 38, 34)   # #302622 brown keys
+KEY_GOLD = (230, 180, 50) # #E6B432 gold keys
+KEY_RED = (224, 96, 64)   # #E06040
+KEY_STROKE = (32, 32, 32)
+
+SS = 3 # supersampling factor
+
+
+class Canvas :
+    "RGBA image buffer, rectangle drawing in float design coordinates."
+
+    def __init__(self, size) :
+        self.size = size # pixel canvas is size*SS, drawn in design units `size`
+        self.px = bytearray(0 for _ in range(4 * size * SS * size * SS))
+    #end __init__
+
+    def fill_rect(self, x, y, w, h, color) :
+        # strokes are approximated by drawing the stroke color over the full rect,
+        # then the fill color inset by the stroke width (matches SVG inset strokes)
+        ss = SS
+        size = self.size * ss
+        scale = ss # 1 design unit = ss pixels
+        x0 = max(0, int(x * scale))
+        y0 = max(0, int(y * scale))
+        x1 = min(size, int((x + w) * scale + 0.5))
+        y1 = min(size, int((y + h) * scale + 0.5))
+        for py in range(y0, y1) :
+            row = py * size * 4
+            for pxx in range(x0, x1) :
+                p = (row + pxx * 4) + 3
+                self.px[p] = 255
+                self.px[p - 3] = color[0]
+                self.px[p - 2] = color[1]
+                self.px[p - 1] = color[2]
+            #end for
+        #end for
+    #end fill_rect
+
+    def inset_rect(self, x, y, w, h, fill, stroke, stroke_w) :
+        self.fill_rect(x, y, w, h, stroke)
+        self.fill_rect \
+          (
+            x + stroke_w,
+            y + stroke_w,
+            max(0, w - 2 * stroke_w),
+            max(0, h - 2 * stroke_w),
+            fill
+          )
+    #end inset_rect
+
+    def round_mask(self, radius) :
+        "alpha-mask the square canvas to a rounded rectangle (design units)"
+        ss = SS
+        size = self.size * ss
+        cx = cy = size / 2.0
+        for py in range(size) :
+            row = py * size * 4
+            for pxx in range(size) :
+                dx = pxx + 0.5 - cx
+                dy = py + 0.5 - cy
+                # rounded-rect coverage test
+                rx = radius * ss
+                qx = abs(dx) - (size / 2.0 - rx)
+                qy = abs(dy) - (size / 2.0 - rx)
+                outside = max(qx, qy)
+                if outside > 0 and qx * qx + qy * qy > rx * rx :
+                    self.px[row + pxx * 4 + 3] = 0
+                #end if
+            #end for
+        #end for
+    #end round_mask
+
+    def circle_mask(self) :
+        ss = SS
+        size = self.size * ss
+        cx = cy = size / 2.0
+        r = size / 2.0
+        for py in range(size) :
+            row = py * size * 4
+            for pxx in range(size) :
+                dx = pxx + 0.5 - cx
+                dy = py + 0.5 - cy
+                if dx * dx + dy * dy > r * r :
+                    self.px[row + pxx * 4 + 3] = 0
+                #end if
+            #end for
+        #end for
+    #end circle_mask
+
+    def downsample(self) :
+        "average SSxSS blocks -> final RGBA canvas at `self.size`"
+        ss = SS
+        big = self.size * ss
+        out = bytearray(4 * self.size * self.size)
+        for py in range(self.size) :
+            row_out = py * self.size * 4
+            for pxx in range(self.size) :
+                r = g = b = a = 0
+                for sy in range(ss) :
+                    row_in = (py * ss + sy) * big * 4
+                    for sx in range(ss) :
+                        p = row_in + (pxx * ss + sx) * 4
+                        r += self.px[p]
+                        g += self.px[p + 1]
+                        b += self.px[p + 2]
+                        a += self.px[p + 3]
+                    #end for
+                #end for
+                q = (ss * ss)
+                p = row_out + pxx * 4
+                out[p] = (r + q // 2) // q
+                out[p + 1] = (g + q // 2) // q
+                out[p + 2] = (b + q // 2) // q
+                out[p + 3] = (a + q // 2) // q
+            #end for
+        #end for
+        return out
+    #end downsample
+
+#end Canvas
+
+
+def draw_calculator(cv, offset_x, offset_y, scale) :
+    "calculator mock from appicon.svg, drawn at (offset_x, offset_y), scaled"
+    def rect(x, y, w, h, fill, stroke = None, sw = 0.0) :
+        if stroke != None :
+            cv.inset_rect \
+              (
+                offset_x + x * scale,
+                offset_y + y * scale,
+                w * scale,
+                h * scale,
+                fill,
+                stroke,
+                sw * scale
+              )
+        else :
+            cv.fill_rect(offset_x + x * scale, offset_y + y * scale, w * scale, h * scale, fill)
+        #end if
+    #end rect
+
+    # display housing with red LED area
+    rect(72, 57, 312, 72, LCD_HOUSING, LCD_HOUSING_STROKE, 3)
+    rect(84, 69, 288, 48, LED, LED_STROKE, 2)
+
+    # light key rows (16 squares, gap 2)
+    for i in range(16) :
+        rect(72 + i * 18, 141, 16, 16, KEY_GOLD if i == 11 else KEY_LIGHT, KEY_STROKE, 1)
+    #end for
+    for i in range(16) :
+        rect(72 + i * 18, 161, 16, 16, KEY_RED if i == 11 else KEY_DARK, KEY_STROKE, 1)
+    #end for
+
+    # gold key rows (18 wide, gap 2)
+    for i in range(16) :
+        rect(72 + i * 20, 201, 18, 16, KEY_GOLD, KEY_STROKE, 1)
+    #end for
+    for i in range(16) :
+        rect(72 + i * 20, 221, 18, 16, KEY_GOLD, KEY_STROKE, 1)
+    #end for
+
+    # brown function keys (28x30)
+    for i in range(10) :
+        rect(72 + i * 30, 249, 28, 30, KEY_DARK, KEY_STROKE, 1)
+    #end for
+
+    # base strip
+    rect(72, 287, 312, 32, LCD_HOUSING, LCD_HOUSING_STROKE, 3)
+#end draw_calculator
+
+
+def render_legacy(size, round_shape) :
+    "full square/round tile with the calculator at SVG proportions"
+    cv = Canvas(size)
+    scale = size / DESIGN
+    # background tile (round legacy icons get the circle mask instead of corner radii)
+    cv.inset_rect(1, 1, DESIGN - 2, DESIGN - 2, BG, BG_STROKE, 2)
+    draw_calculator(cv, 0, 0, scale)
+    if round_shape :
+        cv.circle_mask()
+    else :
+        cv.round_mask(8 * scale)
+    #end if
+    return cv.downsample()
+#end render_legacy
+
+
+def render_foreground(size) :
+    "adaptive icon foreground: transparent canvas, calculator centred in the safe zone"
+    cv = Canvas(size)
+    safe = size * 0.62 # content should fit within the inner ~66dp circle
+    scale = safe / DESIGN
+    offset = (size - DESIGN * scale) / 2.0
+    draw_calculator(cv, offset, offset, scale)
+    return cv.downsample()
+#end render_foreground
+
+
+def write_png(path, rgba, size) :
+    def chunk(tag, data) :
+        return \
+            (
+                struct.pack(">I", len(data))
+            +
+                tag
+            +
+                data
+            +
+                struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+            )
+    #end chunk
+
+    raw = bytearray()
+    stride = size * 4
+    for y in range(size) :
+        raw.append(0) # filter type 0
+        raw += rgba[y * stride : (y + 1) * stride]
+    #end for
+
+    with open(path, "wb") as f :
+        f.write(b"\x89PNG\r\n\x1a\n")
+        f.write(chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)))
+        f.write(chunk(b"IDAT", zlib.compress(bytes(raw), 9)))
+        f.write(chunk(b"IEND", b""))
+    #end with
+#end write_png
+
+
+def main(out_root) :
+    densities = \
+        {
+            "mdpi" : 1.0,
+            "hdpi" : 1.5,
+            "xhdpi" : 2.0,
+            "xxhdpi" : 3.0,
+            "xxxhdpi" : 4.0,
+        }
+
+    for dpi, factor in densities.items() :
+        legacy = int(48 * factor)
+        png = render_legacy(legacy, round_shape = False)
+        write_png("%s/mipmap-%s/ic_launcher.png" % (out_root, dpi), png, legacy)
+        png = render_legacy(legacy, round_shape = True)
+        write_png("%s/mipmap-%s/ic_launcher_round.png" % (out_root, dpi), png, legacy)
+
+        fg = int(108 * factor)
+        png = render_foreground(fg)
+        write_png("%s/mipmap-%s/ic_launcher_foreground.png" % (out_root, dpi), png, fg)
+    #end for
+    sys.stderr.write("icons written under %s/mipmap-*\n" % out_root)
+#end main
+
+if len(sys.argv) == 2 :
+    main(sys.argv[1])
+else :
+    sys.stderr.write("usage: %s android-resources-dir\n" % sys.argv[0])
+    sys.exit(1)
+#end if

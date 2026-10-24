@@ -59,7 +59,7 @@ Poznámky k pozorovanému chování:
 | `sv.MainView` přes `ISingleViewApplicationLifetime` | funguje, ale Avalonia.Android doporučuje (a bez varování vyžaduje) `IActivityApplicationLifetime.MainViewFactory`; bez `PageNavigationHost` navíc nefunguje systémové zpět | větev v `App` napřed použije `MainViewFactory`, root je `PageNavigationHost` |
 | odkaz head → desktop WinExe | `NETSDK1150` (executable reference) a `NETSDK1047` (RID-specific obnova odkazovaného projektu) | `ValidateExecutableReferencesMatchSelfContained=false` + `GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"` na `ProjectReference` (detaily v [EMULATOR_VYVOJ, 5.4](EMULATOR_VYVOJ.md#54-technická-úskalí-android-head-avalonia)) |
 | aktivita z plánu `Theme = Maui.SplashTheme` | nepřenosné; AvaloniaActivity = `AppCompatActivity` | vlastní `MyTheme.NoActionBar` (Theme.AppCompat.DayNight.NoActionBar) + barva pozadí, žádná splash obrazovka |
-| ikona aplikace „volitelně mipmap z legacy res“ | realizováno (výchozí robot Androidu) | kosmetické omezení, pro produkční verzi doplnit mipmap sety |
+| ikona aplikace „volitelně mipmap z legacy res" | původně výchozí robot Androidu; **doplňky 24. 10. 2026: hotovo** — mipmap + adaptivní ikona z `util/makeicons` (viz oddíl 8) | neomezení |
 
 ## 5. Srovnání s MAUI variantou
 
@@ -92,3 +92,31 @@ dotnet publish src/TI5X.Avalonia.Android/TI5X.Avalonia.Android.csproj -c Release
 ```
 
 V emulátoru Medium_Tablet_API_33 (1600×2560) pak: dotyk klávesnice, tlačítko **Menu** vlevo nahoře, položky open/save/load, podstránky Printer/Debugger/Help/About, zpět systémovým tlačítkem, ukončení přes **Exit**. Kontrola: `adb exec-out screencap -p > shot.png`, `adb shell uiautomator` nelze použít (Jedno nativní okno Avalonia), `logcat -d | grep -c "FATAL EXCEPTION"` = 0.
+
+## 8. Doplňky z 24. 10. 2026 (vestavěné knihovny + úpravy UI)
+
+### 8.1 Autentické Solid State Software moduly
+
+- **`util/mklibfromdump`** (Python, GPL) převádí ROM výpisy TMC0540 CROM z [Datamath Calculator Museum](http://www.datamath.org/Chips/TMC0540.htm) (`TMC054x.txt` + listingy `-PGMSUTF8.txt`) do formátu `.ti5l`: housekeeping hlavička (počet programů, 4místné BCD adresy začátků) → `progNN` (dvouciferné kódy kláves = přímý formát banky), názvy programů z listingů → `cardNN` (XML karty pro proužek). Skript křížově validuje adresy/délky proti listingům, hlídá limit 1000 kroků na banku.
+- Vygenerováno a vloženo do `src/TI5X.Avalonia/Assets/`: **`ml.ti5l`** (Master Library, 25 programů — kompletní, nahrazuje dřívější neúplnou rekonstrukci s jedinou bankou 01) + **`mod02.ti5l` … `mod13.ti5l`** (Applied Statistics až RPN Simulator; celkem 310 programů, ~60 tis. kódů kláves). Structural Engineering (TMC0553) **není zahrnut** — 3 jeho programy překračují limit enginu 1000 kroků na banku (1007/1255/1130).
+- Načtení: desktop menu **Library**, Android **☰ > Built-in Libraries** (nová podpoložka flyoutu). `MainViewModel.LoadBuiltInLibrary` vyčistí banky 01–99 a nahradí je vybraným modulem (sémantika výměny fyzického modulu). Master Library se nadále načítá při startu.
+- Testy: `LibraryModuleTests` (banky×modul, limit 1000, autentické bajty ML-01, karty); aktualizován `MergedCodesTests` („62 00“ na offsetu 103 v bankě 01).
+- Poznámka k licencím: obsah ROM je © Texas Instruments; Datamath výpisy publikuje pro účely zachování/dokumentace, komerční užití zakazuje. Pro open-source šíření je na majiteli repozitáře toto riziko potvrdit.
+
+### 8.2 Úpravy UI (Android + desktop)
+
+| Bod | Řešení |
+|---|---|
+| Ikona aplikace | `util/makeicons` (Python, bez externích rasterizérů) generuje mipmap sety `ic_launcher*` + adaptivní foreground z designu MAUI ikony (tmavá dlaždice, červený LED, zlaté klávesy); manifest `android:icon`/`android:roundIcon` |
+| Odezva kláves | `AppServices.KeyPressFeedback` (desktop null) → `MainActivity.ProvideKeyFeedback`: 25ms haptický tik přes `Vibrator`/`VibrationEffect` (API 26+, legacy větev pro 23–25), `VIBRATE` permission |
+| Tiskárna vedle kalkulačky | Nový `Views/CalculatorShell` (desktop + Android): od ~900 DIP šířky se vlevo zobrazí panel virtuální tiskárny (jako TI-59 v kolébce PC-100C), kalkulačka vpravo fixně 460 DIP; pod prahem chování beze změny. Tablety (sw ≥ 600dp) mohou otáčet (`RequestedOrientation = Unspecified`), telefony zůstávají portrait |
+| Tlačítka „moc nahoře“ | Chyba definic řádků v `CalculatorView` (keypad měl `Auto`, status hvězdičku) → prohozeno; klávesnice nyní vyplňuje prostor mezi proužkem karty a statusem. Rozestup kláves zvětšen (`Margin 2→3` v `KeyButton`) |
+| LED segmenty | `LedDisplayControl`: tenčí tah (7,5 % výšky číslice) + explicitní mezery na napojení (≈45 % tahu) — segmenty se nepřekrývají, vypadají jako diskrétní LED čárky |
+| Menu pod displayem | Světlá `TopCommandBar` lišta odstraněna; ☰ tlačítko v úzkém řádku pod displejem (viditelné jen v Android single-view = uvnitř `NavigationPage`) otevírá stejný `MenuFlyout` jako dřív, handlery přesunuty do `CalculatorView` |
+| About + zdrojové kódy | `HyperlinkButton` s `NavigateUri="https://github.com/ondra-jakub/TI5X"` v `AboutPage` (Android) i `AboutWindow` (desktop) |
+
+### 8.3 Verifikace
+
+- `dotnet build TI5X.slnx -c Release -warnaserror`: 0 chyb/varování; `dotnet test`: **67/67**; `dotnet format --verify-no-changes --exclude src/TI5X.Verified/generated`: beze změn; `aapt2 dump badging`: `android.permission.VIBRATE` + ikony v manifestu.
+- Emulátor Pixel_Tablet_API_33 (landscape 1280×800 DIP): aplikace startuje bez FATÁL; dotyk klávesy → záznam ve `dumpsys vibrator_manager` (`durationMs≈25`, opPkg = aplikace ⇒ haptika + hit-test klávesnice); dotyky v levé polovině (panel tiskárny) vibraci nevyvolávají (⇒ široké rozložení aktivní); ☰ → menu → **Exit** aplikaci korektně ukončí.
+- Provedeno A/B s baseline (starý kód): shodné výsledky ⇒ žádná regrese. Pozn.: `screencap` na emulátoru i fill-render desktop okna na daném Macu v době testu nebyly použitelné pro vizuální kontrolu (environmentální — zachytí jen text/LED, ne výplně; projevuje se i u starého buildu); vizuální kontrola vzhledu doporučena ručně v emulátoru/desktopu.

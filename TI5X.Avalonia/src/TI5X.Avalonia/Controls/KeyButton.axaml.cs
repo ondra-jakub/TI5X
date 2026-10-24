@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using TI5X.Avalonia.Services;
 using TI5X.ViewModels;
 
 namespace TI5X.Avalonia.Controls;
@@ -124,6 +125,9 @@ public partial class KeyButton : UserControl
 
     private void OnButtonClick(object? sender, RoutedEventArgs e)
     {
+        // Tactile feedback for touch heads (Android: short haptic tick; no-op on desktop).
+        AppServices.KeyPressFeedback?.Invoke();
+
         if (DataContext is MainViewModel vm)
         {
             vm.PressKey(KeyCode);

@@ -8,26 +8,9 @@
              x:Class="TI5X.Avalonia.Views.Pages.CalculatorPage"
              x:DataType="vm:MainViewModel">
 
-    <ContentPage.TopCommandBar>
-        <Button x:Name="MenuButton" Content="Menu">
-            <Button.Flyout>
-                <MenuFlyout>
-                    <MenuItem Header="New Program" Click="OnMenuNewProgram" />
-                    <MenuItem Header="Open Program (.ti5p)" Click="OnMenuOpenProgram" />
-                    <MenuItem Header="Save Program (.ti5p)" Click="OnMenuSaveProgram" />
-                    <Separator />
-                    <MenuItem Header="Load Library Module (.ti5l)" Click="OnMenuLoadLibrary" />
-                    <Separator />
-                    <MenuItem Header="Virtual Printer" Click="OnMenuShowPrinter" />
-                    <MenuItem Header="Program Debugger" Click="OnMenuShowDebugger" />
-                    <MenuItem Header="Help" Click="OnMenuShowHelp" />
-                    <MenuItem Header="About" Click="OnMenuShowAbout" />
-                    <Separator />
-                    <MenuItem Header="Exit" Click="OnMenuExit" />
-                </MenuFlyout>
-            </Button.Flyout>
-        </Button>
-    </ContentPage.TopCommandBar>
-
-    <views:CalculatorView />
+    <!-- The app menu is reachable from the ☰ button under the display (see
+         CalculatorView); this root page needs no top command bar, so the whole
+         screen stays dark. Wide screens additionally show the printer pane
+         (see CalculatorShell). -->
+    <views:CalculatorShell />
 </ContentPage>

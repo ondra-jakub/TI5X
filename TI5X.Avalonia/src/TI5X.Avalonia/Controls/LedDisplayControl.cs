@@ -110,45 +110,47 @@ public class LedDisplayControl : Control
 
     private void RenderDigit(DrawingContext context, int segMask, double x, double y, double w, double h, Color activeColor)
     {
+        const double StrokeRatio = 0.075; // segment thickness as a fraction of digit height
+        const double GapRatio = 0.45;     // junction clearance as a fraction of the stroke
+
         double marginX = w * 0.15;
         double actualW = w * 0.7;
         double actualH = h;
-        double stroke = actualH * 0.10;
+        double s = actualH * StrokeRatio;
+        double g = s * GapRatio;
 
-        // Draw 7 segments + decimal point (unsheared; italic slant comes from the transform)
-        // Segments: A (top), B (top-right), C (bot-right), D (bot), E (bot-left), F (top-left), G (mid), DP (dot)
-        DrawHorizontalSeg(context, x + marginX, y, actualW, stroke, (segMask & DisplayCodes.SegA) != 0, activeColor);
-        DrawHorizontalSeg(context, x + marginX, y + actualH / 2.0 - stroke / 2.0, actualW, stroke, (segMask & DisplayCodes.SegG) != 0, activeColor);
-        DrawHorizontalSeg(context, x + marginX, y + actualH - stroke, actualW, stroke, (segMask & DisplayCodes.SegD) != 0, activeColor);
+        double xLeft = x + marginX;
+        double xRight = x + marginX + actualW;
+        double mid = y + actualH / 2.0;
 
-        DrawVerticalSeg(context, x + marginX + actualW - stroke, y + stroke * 0.5, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegB) != 0, activeColor);
-        DrawVerticalSeg(context, x + marginX + actualW - stroke, y + actualH / 2.0, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegC) != 0, activeColor);
+        // Horizontal segments are shortened at both ends so the corners stay open;
+        // vertical segments stop `gap` short of every horizontal band, like the
+        // individual LED bars of the real display (no overlaps at the junctions).
+        double hX = xLeft + g;
+        double hW = Math.Max(0, actualW - 2 * g);
 
-        DrawVerticalSeg(context, x + marginX, y + stroke * 0.5, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegF) != 0, activeColor);
-        DrawVerticalSeg(context, x + marginX, y + actualH / 2.0, stroke, actualH / 2.0 - stroke * 0.5, (segMask & DisplayCodes.SegE) != 0, activeColor);
+        FillSeg(context, hX, y, hW, s, (segMask & DisplayCodes.SegA) != 0, activeColor);
+        FillSeg(context, hX, mid - s / 2.0, hW, s, (segMask & DisplayCodes.SegG) != 0, activeColor);
+        FillSeg(context, hX, y + actualH - s, hW, s, (segMask & DisplayCodes.SegD) != 0, activeColor);
+
+        double vTop = y + s + g;
+        double vUpper = mid - s / 2.0 - g;
+        double vLower = mid + s / 2.0 + g;
+        double vBot = y + actualH - s - g;
+
+        FillSeg(context, xRight - s, vTop, s, Math.Max(0, vUpper - vTop), (segMask & DisplayCodes.SegB) != 0, activeColor);
+        FillSeg(context, xRight - s, vLower, s, Math.Max(0, vBot - vLower), (segMask & DisplayCodes.SegC) != 0, activeColor);
+        FillSeg(context, xLeft, vTop, s, Math.Max(0, vUpper - vTop), (segMask & DisplayCodes.SegF) != 0, activeColor);
+        FillSeg(context, xLeft, vLower, s, Math.Max(0, vBot - vLower), (segMask & DisplayCodes.SegE) != 0, activeColor);
 
         // Decimal point
-        DrawDot(context, x + marginX + actualW + stroke * 0.4, y + actualH - stroke, stroke * 1.2, (segMask & DisplayCodes.SegDp) != 0, activeColor);
+        FillSeg(context, xRight + s * 0.35, y + actualH - s * 1.15, s * 1.15, s * 1.15, (segMask & DisplayCodes.SegDp) != 0, activeColor);
     }
 
-    private void DrawHorizontalSeg(DrawingContext context, double x, double y, double w, double h, bool isOn, Color activeColor)
+    private static void FillSeg(DrawingContext context, double x, double y, double w, double h, bool isOn, Color activeColor)
     {
+        if (w <= 0 || h <= 0) return;
         var brush = new SolidColorBrush(isOn ? activeColor : LedOffColor);
-        var rect = new Rect(x + h * 0.3, y, Math.Max(0, w - h * 0.6), h);
-        context.FillRectangle(brush, rect);
-    }
-
-    private void DrawVerticalSeg(DrawingContext context, double x, double y, double w, double h, bool isOn, Color activeColor)
-    {
-        var brush = new SolidColorBrush(isOn ? activeColor : LedOffColor);
-        var rect = new Rect(x, y + w * 0.3, w, Math.Max(0, h - w * 0.6));
-        context.FillRectangle(brush, rect);
-    }
-
-    private void DrawDot(DrawingContext context, double x, double y, double size, bool isOn, Color activeColor)
-    {
-        var brush = new SolidColorBrush(isOn ? activeColor : LedOffColor);
-        var rect = new Rect(x, y, size, size);
-        context.FillRectangle(brush, rect);
+        context.FillRectangle(brush, new Rect(x, y, w, h));
     }
 }

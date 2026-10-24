@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:label="TI5X (Avalonia)" android:allowBackup="true" />
+    <!-- short haptic tick when pressing the on-screen calculator keys -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <application android:label="TI5X (Avalonia)"
+                 android:icon="@mipmap/ic_launcher"
+                 android:roundIcon="@mipmap/ic_launcher_round"
+                 android:allowBackup="true" />
 </manifest>

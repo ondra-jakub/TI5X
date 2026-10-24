@@ -2,14 +2,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="280"
+             mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="320"
              x:Class="TI5X.Avalonia.Views.Pages.AboutPage"
              Header="About TI5X">
 
     <ScrollViewer>
-        <Border Margin="16">
+        <StackPanel Margin="16" Spacing="10">
             <TextBlock Text="TI5X — TI-59 calculator&#x0a;&#x0a;Android (Avalonia) port of the TI5X project.&#x0a;.NET 10 / Avalonia 12&#x0a;&#x0a;See the original project COPYING file for license terms."
                        TextWrapping="Wrap" />
-        </Border>
+            <TextBlock Text="Source codes:" />
+            <HyperlinkButton Content="github.com/ondra-jakub/TI5X"
+                             NavigateUri="https://github.com/ondra-jakub/TI5X" />
+        </StackPanel>
     </ScrollViewer>
 </ContentPage>

@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:TI5X.Avalonia.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="TI5X.Avalonia.Views.CalculatorShell">
+
+    <!-- Responsive host: on narrow screens only the calculator is shown; from
+         ~900 DIP width the virtual printer appears on the left beside it, like
+         the TI-59 sitting in its PC-100 printing cradle. -->
+    <Grid x:Name="RootGrid">
+        <Border x:Name="PrinterPane"
+                IsVisible="False"
+                Margin="10,10,0,10"
+                Padding="4"
+                Background="#221E1C"
+                CornerRadius="12"
+                BorderBrush="#3D3530"
+                BorderThickness="2"
+                MaxWidth="640">
+            <views:PrinterView x:Name="PrinterViewControl" />
+        </Border>
+
+        <views:CalculatorView x:Name="Calculator" MaxHeight="900" VerticalAlignment="Center" />
+    </Grid>
+</UserControl>

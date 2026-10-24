@@ -6,7 +6,7 @@
              x:Class="TI5X.Avalonia.Controls.KeyButton"
              x:Name="Root">
 
-    <Grid RowDefinitions="Auto,*" Margin="2">
+    <Grid RowDefinitions="Auto,*" Margin="3">
         <!-- 2nd upper modifier label -->
         <TextBlock Grid.Row="0"
                    Text="{Binding #Root.AltText}"

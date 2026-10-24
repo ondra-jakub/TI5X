@@ -33,7 +33,8 @@ public static class HelpSections
             "Detaily: sledování běhu, návěští, skoky a podprogramy popisuje příručka v adresáři docs (viz odkaz níže)."),
 
         new("Soubory",
-            "File > Open Program (.ti5p)... načte program do banky 0 (registry zůstávají beze změny), Save Program (.ti5p)... uloží program banky 0. Load Library Module (.ti5l)... načte knihovní modul do bank 01–99; vestavěná knihovna (jen banka 01, neúplná) se načte při startu.\n\n" +
+            "File > Open Program (.ti5p)... načte program do banky 0 (registry zůstávají beze změny), Save Program (.ti5p)... uloží program banky 0. Load Library Module (.ti5l)... načte knihovní modul z disku do bank 01–99.\n\n" +
+            "Vestavěná Master Library (25 programů přepsaných z ROM originálního modulu TMC0540) se načte při startu. Zbylých dvanáct standardních modulů Solid State Software (Applied Statistics až RPN Simulator) je vestavěných také — najdete je v menu Library (desktop), resp. ☰ > Built-in Libraries (Android). Vybraný modul nahradí dřívější knihovny, jako při výměně fyzického modulu v zadní patičce TI-59.\n\n" +
             "New Program smaže program i všechny načtené knihovny včetně vestavěné."),
 
         new("Tiskárna a debugger",
