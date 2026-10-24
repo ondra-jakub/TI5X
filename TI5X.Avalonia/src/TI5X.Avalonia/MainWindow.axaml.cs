@@ -1,8 +1,6 @@
-using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
 using TI5X.Avalonia.Core;
 using TI5X.Avalonia.Services;
 using TI5X.Avalonia.Views;
@@ -18,24 +16,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        var viewModel = new MainViewModel(new AvaloniaUiDispatcher());
-        DataContext = viewModel;
-        LoadEmbeddedMasterLibrary(viewModel);
-    }
-
-    private static void LoadEmbeddedMasterLibrary(MainViewModel viewModel)
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        var resName = assembly.GetManifestResourceNames()
-            .FirstOrDefault(r => r.EndsWith("ml.ti5l", StringComparison.OrdinalIgnoreCase));
-
-        if (resName == null) return;
-
-        using var stream = assembly.GetManifestResourceStream(resName);
-        if (stream != null)
-        {
-            viewModel.LoadMasterLibrary(stream);
-        }
+        // The view model is created and registered by App (AppServices) so that both the
+        // desktop window and the single-view (Android) head share the same instance.
+        DataContext = AppServices.RequireMain();
     }
 
     private MainViewModel? ViewModel => DataContext as MainViewModel;
@@ -83,76 +66,27 @@ public partial class MainWindow : Window
 
     private void OnMenuNewProgram(object? sender, RoutedEventArgs e)
     {
-        ViewModel?.Engine.ClearProgram();
-        ViewModel?.Engine.Reset();
-        ViewModel?.UpdateUiState();
+        FileActions.NewProgram(AppServices.RequireMain());
     }
 
     private async void OnMenuOpenProgram(object? sender, RoutedEventArgs e)
     {
-        if (ViewModel == null) return;
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Open TI-5X Program",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType("TI-5X Program (*.ti5p)") { Patterns = new[] { "*.ti5p" } },
-                new FilePickerFileType("All files (*.*)") { Patterns = new[] { "*.*" } }
-            }
-        });
-
-        if (files.Count > 0)
-        {
-            string path = files[0].Path.LocalPath;
-            ViewModel.LoadProgramFile(path);
-        }
+        await FileActions.OpenProgramAsync(AppServices.RequireMain(), AppServices.RequireFileService());
     }
 
     private async void OnMenuSaveProgram(object? sender, RoutedEventArgs e)
     {
-        if (ViewModel == null) return;
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save TI-5X Program",
-            DefaultExtension = "ti5p",
-            FileTypeChoices = new[]
-            {
-                new FilePickerFileType("TI-5X Program (*.ti5p)") { Patterns = new[] { "*.ti5p" } }
-            }
-        });
-
-        if (file != null)
-        {
-            string path = file.Path.LocalPath;
-            ViewModel.SaveProgramFile(path);
-        }
+        await FileActions.SaveProgramAsync(AppServices.RequireMain(), AppServices.RequireFileService());
     }
 
     private async void OnMenuLoadLibrary(object? sender, RoutedEventArgs e)
     {
-        if (ViewModel == null) return;
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Load TI-5X Library Module",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType("TI-5X Library (*.ti5l)") { Patterns = new[] { "*.ti5l" } },
-                new FilePickerFileType("All files (*.*)") { Patterns = new[] { "*.*" } }
-            }
-        });
-
-        if (files.Count > 0)
-        {
-            string path = files[0].Path.LocalPath;
-            ViewModel.LoadCustomLibrary(path);
-        }
+        await FileActions.LoadLibraryAsync(AppServices.RequireMain(), AppServices.RequireFileService());
     }
 
     private void OnMenuExit(object? sender, RoutedEventArgs e)
     {
-        Close();
+        AppServices.Exit?.Invoke();
     }
 
     private void OnMenuShowPrinter(object? sender, RoutedEventArgs e)

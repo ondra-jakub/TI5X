@@ -31,6 +31,9 @@ Související dokumenty:
    - [3.8 PrinterEngine](#38-printerengine)
 4. [View modely](#4-view-modely)
 5. [Okna a ovládací prvky](#5-okna-a-ovládací-prvky)
+   - [5.1 Android aplikace (MAUI)](#51-android-aplikace-maui)
+   - [5.2 Sdílené stránky a ovládací prvky (refaktoring pro Android head)](#52-sdílené-stránky-a-ovládací-prvky-refaktoring-pro-android-head)
+   - [5.3 Android aplikace (Avalonia, experimentální)](#53-android-aplikace-avalonia-experimentální)
 6. [Formáty souborů](#6-formáty-souborů)
    - [6.1 Společný základ](#61-společný-základ)
    - [6.2 Program .ti5p](#62-program-ti5p)
@@ -380,6 +383,48 @@ Poznámky k chování:
 | `AndroidDocumentSaver` | Android služba | `Intent.ActionCreateDocument` + `TaskCompletionSource<Stream?>`; výsledek otevře `ContentResolver.OpenOutputStream(uri, "wt")`. Při zrušení vrátí `null`; žádné oprávnění k úložišti. |
 | `LedDisplayControl` | `Control` (vlastní vykreslení) | Vlastnosti `Text`, `IsError`, `IsRunning`. Kreslí 12 sedmisegmentových pozic přes `DisplayCodes.StringToSegments`. `DispatcherTimer` 300 ms zajišťuje blikání při chybě a střídání jasu při běhu programu. |
 | `CardStripControl` | `Control` (vlastní vykreslení) | Vlastnost `Card`. Kreslí `TitleLeft`, `TitleRight` a pět sloupců s popisky `A`–`E` a `A'`–`E'`. Bez karty zobrazí „USER PROGRAM / CARD SLOT“. Ostatní sloty `CardDef` a `Style` nevykresluje. |
+
+### 5.2 Sdílené stránky a ovládací prvky (refaktoring pro Android head)
+
+Aby head pro Android mohl stavebnice desktopu znovu použít, jsou prezentační bity oddělené od oken:
+
+- `Views/CalculatorView`, `Views/PrinterView`, `Views/DebuggerView` – `UserControl` s tělem (badge, LED, proužek karty, mřížka kláves / páska / kroky+registry). Windows (`MainWindow`, `PrinterWindow`, `ProgramDebuggerWindow`) zůstaly jen jako tenké obaly s lištou menu, resp. s `OnClosed` pro odstranění VM.
+- `Views/HelpSections.cs` – jediný zdroj české nápovědy (přepisuje duplicitní texty z desktopu i MAUI). `HelpWindow` a sdílená `Views/Pages/HelpPage` z něj staví UI.
+- `Views/Pages/` – `CalculatorPage` (s `ContentPage.TopCommandBar` = tlačítko **Menu** a `MenuFlyout` se stejnými položkami jako MAUI), `PrinterPage`, `DebuggerPage`, `HelpPage`, `AboutPage`. Stránky se na desktopu nikdy nevytvářejí – kompilují se jen do sestavení, takže žádné `#if ANDROID` není potřeba.
+- `Services/IAppFileService` + `OpenedFile` – abstrakce výběru souborů. Každý otevřený soubor je bufferovaný do seekable `MemoryStream` (zip kontejner vyžaduje seekable stream). Desktop implementuje `StorageFileService` (StorageProvider), Android `AndroidFileService` (SAF; port MAUI `AndroidDocumentSaver` s `OpenOutputStream(uri, "wt")`; kódy požadavků `0x5449`/`0x544A`).
+- `Services/FileActions` – New/Open/Save/LoadLibrary nad `MainViewModel` + `IAppFileService`; volají ho desktop menu i `CalculatorPage`.
+- `Services/AppServices` – statická registrace `Main`, `FileService`, `Exit` (desktop: `Close()`, Android: `FinishAffinity`) pro hlavy bez DI.
+- `Services/NavigationHelper` – najde nadřazený `NavigationPage` (vizuální/logický strom) pro push z `CalculatorPage`; VM tiskárny a debuggeru se uvolní v obsluze `NavigationPage.Popped` (`DataContext as IDisposable`).
+- `Services/EmbeddedAssets` – načtení `ml.ti5l` z embedded resource; volá ho `App` při vytvoření VM (desktop i single-view).
+
+### 5.3 Android aplikace (Avalonia, experimentální)
+
+`src/TI5X.Avalonia.Android` (net10.0-android, ID `nz.gen.geek_central.ti5x.avalonia`) odkazuje přímo na desktopový `TI5X.Avalonia` (WinExe) – žádný samostatný UI projekt neexistuje; proto csproj nastavuje `ValidateExecutableReferencesMatchSelfContained=false` a na `ProjectReference` `GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"` (jinak obnovovací graf selže – viz [5.4](#54-technická-úskalí-android-head-avalonia)). Struktura:
+
+| Třída | Typ | Popis |
+|---|---|---|
+| `MainApplication` | `AvaloniaAndroidApplication<App>` | Vstupní bod; `CustomizeAppBuilder` přidá `WithInterFont()` a `LogToTrace()`. Aplikační třída Androidu musí být podtřídou `Android.App.Application` – o to se postará `AvaloniaAndroidApplication<TApp>`, které v `OnCreate` sestaví `AppBuilder` a spustí Avalonia dřív než jakákoli aktivita. |
+| `MainActivity` | `AvaloniaMainActivity` | Před `base.OnCreate` nastaví `AppServices.FileService` (AndroidFileService), `AppServices.Exit` a `ActivityResult` (předá výsledky SAF dialogů). `OnKeyDown` mapuje hardwarové klávesy na `KEY_*` (`F1`–`F5` = `A`–`E`). |
+| `AndroidFileService` | `IAppFileService` | `ActionOpenDocument`/`ActionCreateDocument` + `TaskCompletionSource` sloty; otevřený proud bufferuje do `MemoryStream`. |
+| `MainView` (v `App`) | `PageNavigationHost` | `MainViewFactory` vytváří `PageNavigationHost { Page = new NavigationPage { Content = CalculatorPage } }` – host je nutný, aby systémové tlačítko zpět fungovalo jako navigace a insets šly na stránky. |
+
+Důležitá fakta pro udržování:
+
+- `MinSupportedOSPlatformVersion` je 23 – AndroidX `lifecycle-runtime` (závislost `Avalonia.Android 12.0.4`) nesestaví manifest s minSdk 21; oficiální Avalonia Android šablona také používá 23.
+- Aktivita musí mít AppCompat téma (`@style/MyTheme.NoActionBar` odvozené z `Theme.AppCompat.DayNight.NoActionBar`), jinak `AppCompatActivity.SetContentView` spadne při startu.
+- `ContentPage.TopCommandBar` se vykresluje v navigační liště `NavigationPage`; výchozí `BarLayoutBehavior` je `Inset`.
+- Ovládací prvky `KeyButton`, `LedDisplayControl` a `CardStripControl` se používají beze změn (DataContext teče ze stránky).
+
+### 5.4 Technická úskalí android head (Avalonia)
+
+| Problém | Projev | Řešení |
+|---|---|---|
+| Odkaz na WinExe z self-contained Androidu | `NETSDK1150` (`ValidateExecutableReferencesMatchSelfContained`) | V head csproj `ValidateExecutableReferencesMatchSelfContained=false`. |
+| RID globální vlastnosti tečou do odkazovaného net10.0 projektu | `NETSDK1047`: assets bez cíle `net10.0/android-arm64` | Na `ProjectReference` nastavit `GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"` – sdílený projekt se pak staví RID-agnosticky. |
+| Aktivanta bez AppCompat tématu | `IllegalStateException: You need to use a Theme.AppCompat theme` při startu (AvaloniaActivity dědí `AppCompatActivity`) | `[Activity(Theme = "@style/MyTheme.NoActionBar", ...)]` + `Resources/values/styles.xml` a `colors.xml` v head projektu. |
+| minSdk 21 | manifest merger odmítne AndroidX `lifecycle-runtime` (minSdk 23) | `SupportedOSPlatformVersion` 23.0 (oficiální Avalonia šablona také používá 23). |
+| Systémové tlačítko zpět ukončí aplikaci místo popnutí stránky | `MainView` bez hostitele → `BackRequested` se nepropadne do navigace | zalomit root do `PageNavigationHost` (podle oficiální Avalonia xplat šablony) a nastavovat přes `IActivityApplicationLifetime.MainViewFactory`. |
+| `ISingleViewApplicationLifetime.MainView` na Androidu | Avalonia.Android hlásí přes log, že se místo toho má používat `IActivityApplicationLifetime.MainViewFactory` | větev v `App.OnFrameworkInitializationCompleted` napřed testuje `IActivityApplicationLifetime`. |
 
 ## 6. Formáty souborů
 

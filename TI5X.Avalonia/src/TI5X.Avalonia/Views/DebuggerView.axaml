@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TI5X.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="550"
+             x:Class="TI5X.Avalonia.Views.DebuggerView"
+             x:DataType="vm:ProgramDebuggerViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <Button Content="Step (SST)" Click="OnStepClick" Background="#3D3530" Foreground="#E0D8D0" />
+            <Button Content="Run / Halt (R/S)" Click="OnRunClick" Background="#3D3530" Foreground="#E0D8D0" />
+            <Button Content="Reset (PC=0)" Click="OnResetClick" Background="#3D3530" Foreground="#E0D8D0" />
+            <Button Content="Refresh" Click="OnRefreshClick" Background="#3D3530" Foreground="#E0D8D0" />
+        </StackPanel>
+
+        <!-- Main Content Grid: Program steps on left, Data Memories on right -->
+        <Grid Grid.Row="1" ColumnDefinitions="2*,*">
+            <!-- Program Steps -->
+            <Border Grid.Column="0" Background="#181614" BorderBrush="#3D3530" BorderThickness="1" CornerRadius="4" Margin="0,0,6,0">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="Program Steps" FontWeight="Bold" Foreground="#E6B432" Margin="8,6" />
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Steps}" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProgramStepItem">
+                                <Grid ColumnDefinitions="50,40,*">
+                                    <TextBlock Grid.Column="0" Text="{Binding Step, StringFormat='{}{0:D3}'}" Foreground="#999" FontFamily="Consolas, monospace" />
+                                    <TextBlock Grid.Column="1" Text="{Binding OpCode, StringFormat='{}{0:D2}'}" Foreground="#E6B432" FontWeight="Bold" FontFamily="Consolas, monospace" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Mnemonic}" Foreground="#E0D8D0" FontFamily="Consolas, monospace" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Memory Registers -->
+            <Border Grid.Column="1" Background="#181614" BorderBrush="#3D3530" BorderThickness="1" CornerRadius="4" Margin="6,0,0,0">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="Data Registers" FontWeight="Bold" Foreground="#E6B432" Margin="8,6" />
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Registers}" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MemoryRegisterItem">
+                                <Grid ColumnDefinitions="45,*">
+                                    <TextBlock Grid.Column="0" Text="{Binding Index, StringFormat='{}R{0:D2}:'}" Foreground="#999" FontFamily="Consolas, monospace" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Value, StringFormat='{}{0:G8}'}" Foreground="#E0D8D0" FontFamily="Consolas, monospace" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

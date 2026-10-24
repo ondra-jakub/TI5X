@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TI5X.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="500"
+             x:Class="TI5X.Avalonia.Views.PrinterView"
+             x:DataType="vm:PrinterViewModel">
+
+    <Grid RowDefinitions="*,Auto" Margin="12">
+        <!-- Thermal Paper Roll View -->
+        <Border Grid.Row="0"
+                Background="#F4F1EA"
+                BorderBrush="#B8B2A4"
+                BorderThickness="2"
+                CornerRadius="4"
+                Padding="8">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding TapeLines}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"
+                                       FontFamily="Courier New, Consolas, monospace"
+                                       FontSize="15"
+                                       FontWeight="Bold"
+                                       Foreground="#2A2421"
+                                       LetterSpacing="2"
+                                       Margin="2,0" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Printer Controls -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+            <Button Content="Advance" Click="OnAdvanceClick" Background="#3D3530" Foreground="#E0D8D0" />
+            <Button Content="Copy Tape" Click="OnCopyClick" Background="#3D3530" Foreground="#E0D8D0" />
+            <Button Content="Clear Tape" Click="OnClearClick" Background="#5A3030" Foreground="#F0D0D0" />
+        </StackPanel>
+    </Grid>
+</UserControl>

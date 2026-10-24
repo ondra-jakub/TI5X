@@ -1,6 +1,6 @@
-# TI5X pro .NET 10, Avalonia 12 a Android (MAUI)
+# TI5X pro .NET 10, Avalonia 12 a Android (MAUI i Avalonia)
 
-Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace v Avalonia 12.0.4 a mobilní aplikace pro Android v .NET MAUI. Projekt je portovaný z původního Android projektu TI5X v tomto repozitáři; původní Android zdroje zůstávají zachované. Emulační jádro a view modely jsou společné pro obě aplikace.
+Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace a dvě mobilní aplikace pro Android – stabilní varianta v .NET MAUI a experimentální varianta přímo v Avalonia 12.0.4. Projekt je portovaný z původního Android projektu TI5X v tomto repozitáři; původní Android zdroje zůstávají zachované. Emulační jádro, view modely i sdílené UI komponenty jsou společné pro všechny tři aplikace.
 
 ## Spuštění
 
@@ -26,6 +26,17 @@ dotnet publish src/TI5X.Maui/TI5X.Maui.csproj -c Release -f net10.0-android -p:A
 
 APK najdete v `src/TI5X.Maui/bin/Release/net10.0-android/publish/`. Aplikace nevyžaduje oprávnění k úložišti; soubory `.ti5p`/`.ti5l` otevírá a ukládá přes systémový výběr souborů (SAF). Bližší popis je v [uživatelské příručce](docs/EMULATOR_UZIVATEL.md#12-android-aplikace-maui).
 
+## Android (Avalonia, experimentální)
+
+Spike aplikace postavená přímo na **Avalonia 12** bez MAUI (`src/TI5X.Avalonia.Android`): používá tytéž sdílené stránky jako desktop, navigaci `NavigationPage` a SAF pro soubory. Vyžaduje Android 6.0 (API 23), sestavení cílí na API 36 a je ověřené na Androidu 13 (API 33). Instaluje se vedle MAUI varianty (odlišné ID aplikace).
+
+```sh
+dotnet publish src/TI5X.Avalonia.Android/TI5X.Avalonia.Android.csproj -c Release -f net10.0-android -p:AndroidPackageFormats=apk
+adb install -r src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/nz.gen.geek_central.ti5x.avalonia-Signed.apk
+```
+
+Popis a vyhodnocení spikeu (ověřené funkce, načtená data, doporučení) jsou v [docs/AVALONIA_ANDROID_VYHODNOCENI.md](docs/AVALONIA_ANDROID_VYHODNOCENI.md); ovládání je popsáno v [uživatelské příručce, kap. 13](docs/EMULATOR_UZIVATEL.md#13-android-aplikace-avalonia-experimentální).
+
 ## Ovládání
 
 - Klávesnice kalkulačky na obrazovce: číselný vstup, aritmetika, vědecké funkce, paměti, režimy DEG/RAD/GRAD a programování.
@@ -45,6 +56,7 @@ Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/):
 | [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, projekt `TI5X.Core`, formáty souborů, testy, Dafny verifikace, postup rozšiřování. |
 | [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md) | Jediný úplný seznam rozdílů oproti originálu TI-59 a chybějících funkcí. |
 | [Specifikace Lunar Lander](docs/LUNAR_LANDER_SPEC.md) | Ukázkový program: pravidla hry, fyzikální model, kompletní výpis 142 kroků. |
+| [Vyhodnocení Android spikey na Avalonii](docs/AVALONIA_ANDROID_VYHODNOCENI.md) | Experimentální head `TI5X.Avalonia.Android`: funkční protokol smoke testu, naměřená data, výhody/nevýhody oproti MAUI a doporučení. |
 
 > **Důležité:** programy zapsané v režimu `LRN` se ukládají ve standardním kódování TI-59 a lze je spouštět; programy ze **starší verze emulátoru** (surové kódy kláves) je potřeba přepsat. Postup psaní programů popisuje [příručka, kapitola 15](docs/PRIRUCKA_TI59.md#152-pravidla-kódování-programu).
 

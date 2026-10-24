@@ -1,0 +1,26 @@
+<ContentPage xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:TI5X.Avalonia.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="820"
+             x:Class="TI5X.Avalonia.Views.Pages.HelpPage"
+             Header="Nápověda TI5X">
+
+    <ScrollViewer>
+        <ItemsControl ItemsSource="{x:Static views:HelpSections.Sections}" Margin="16,16,16,24">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="views:HelpSection">
+                    <StackPanel Spacing="4" Margin="0,0,0,14">
+                        <TextBlock Text="{Binding Heading}"
+                                   FontSize="15"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Text}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</ContentPage>

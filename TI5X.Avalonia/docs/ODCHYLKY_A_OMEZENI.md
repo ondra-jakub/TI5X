@@ -304,6 +304,7 @@ Kódy 00–09 se v programu provedou jako číslice, kódy 10–19 jako volání
 - **Soubory v Androidu přes SAF.** Místo cest k souborům se používají content URI systémového výběru; obsah se vždy načítá/ukládá přes `MemoryStream`. Aplikace nevyžaduje žádné oprávnění k úložišti.
 - **Stav se neobnovuje po ukončení procesu.** Android může aplikaci kdykoli ukončit; program, registry ani příznaky se automaticky neukládají a po novém startu se načte jen vestavěná knihovna.
 - **Vlákna.** Běh programu používá generaci běhu a lokální token zrušení; rychlé zastavení a nové spuštění již nemůže ukončit nový běh ani číst zrušený token. Stav enginu ale nadále sdílí UI vlákno bez zamykání, proto se při editaci v debuggeru v průběhu kroku může krátce zobrazit mezistav.
+- **Experimentální Android verze na Avalonii** (`src/TI5X.Avalonia.Android`) má oproti MAUI verzi tato omezení: vyžaduje Android 6.0 (API 23), protože závislosti `Avalonia.Android` (AndroidX lifecycle) nesestaví s minSdk 21; nemá ikonu aplikace ani splash obrazovku (nainstaluje se výchozí robot Androidu); navigační lišta (`NavigationPage`) má systémové světlé téma, nemodifikované na tmavé barevné schéma aplikace; SAF dialog s MIME `*/*` nezakáže vybrat soubor s jinou příponou (při neúspěšném načtení vypíše chybu). Ověřeno ručním smoke testem na API 33, viz [AVALONIA_ANDROID_VYHODNOCENI.md](AVALONIA_ANDROID_VYHODNOCENI.md).
 
 ---
 

@@ -1,6 +1,6 @@
 # Uživatelská příručka emulátoru TI5X (Avalonia a Android)
 
-Tato příručka popisuje ovládání emulátoru kalkulačky TI-59 pro .NET 10: desktopové aplikace v Avalonia 12 a mobilní aplikace pro Android v .NET MAUI. Vysvětluje okno aplikace, menu, klávesové zkratky, práci se soubory, virtuální tiskárnu a debugger. Androidová verze se ovládá stejně; její odlišnosti shrnuje [kapitola 12](#12-android-aplikace-maui).
+Tato příručka popisuje ovládání emulátoru kalkulačky TI-59 pro .NET 10: desktopové aplikace v Avalonia 12 a mobilní aplikace pro Android v .NET MAUI. Vysvětluje okno aplikace, menu, klávesové zkratky, práci se soubory, virtuální tiskárnu a debugger. Androidová verze se ovládá stejně; její odlišnosti shrnuje [kapitola 12](#12-android-aplikace-maui) a experimentální varianta přímo na Avalonii [kapitola 13](#13-android-aplikace-avalonia-experimentální).
 
 Související dokumenty:
 
@@ -34,6 +34,7 @@ Názvy položek menu, tlačítek a oken jsou v aplikaci anglicky a v této pří
 10. [Nápověda a informace o aplikaci](#10-nápověda-a-informace-o-aplikaci)
 11. [Časté problémy](#11-časté-problémy)
 12. [Android aplikace (MAUI)](#12-android-aplikace-maui)
+13. [Android aplikace (Avalonia, experimentální)](#13-android-aplikace-avalonia-experimentální)
 
 ---
 
@@ -394,3 +395,43 @@ Aplikace je uzamčená na orientaci na výšku, stejně jako původní Android p
 - Běh na pozadí a obnovení po ukončení procesu nejsou ošetřené: pokud Android aplikaci z paměti ukončí, po návratu začne s prázdným stavem (program ani registry se neukládají automaticky).
 - Automatizované UI testy neexistují; Android verze je ověřená sestavením a ručním smoke testem na API 33.
 - Fyzická klávesnice nemusí být dostupná na všech zařízeních; plnohodnotné ovládání je dotykové.
+
+---
+
+## 13. Android aplikace (Avalonia, experimentální)
+
+Vedle MAUI verze existuje experimentální Android aplikace postavená přímo na Avalonia 12 (`src/TI5X.Avalonia.Android`), tedy bez .NET MAUI. Používá tentýž sdílený UI kód jako desktop (stránky, ovládací prvky i nápověda), jen v jednoduchém mobilním rozložení bez horní lišty s nabídkami. Funkčně se od MAUI verze liší minimálně; celkové vyhodnocení obou variant je v [AVALONIA_ANDROID_VYHODNOCENI.md](AVALONIA_ANDROID_VYHODNOCENI.md).
+
+### 13.1 Instalace a spuštění
+
+Aplikace cílí na Android 6.0 (API 23) a vyšší (viz poznámku níže); sestavení používá target API 36 a je ověřené na Androidu 13 (API 33). Instalace:
+
+```sh
+adb install -r nz.gen.geek_central.ti5x.avalonia-Signed.apk
+```
+
+APK vznikne příkazem:
+
+```sh
+dotnet publish src/TI5X.Avalonia.Android/TI5X.Avalonia.Android.csproj -c Release -f net10.0-android -p:AndroidPackageFormats=apk
+```
+
+Aplikace `TI5X (Avalonia)` se instaluje vedle MAUI verze (odlišné ID `nz.gen.geek_central.ti5x.avalonia`), obě lze mít nainstalované současně.
+
+### 13.2 Ovládání
+
+- Ovládání je shodné s MAUI verzí (kapitola 12.2): kalkulačka na dotyk, všechna menu pod tlačítkem **Menu**, tiskárna a debugger jako podstránky, stejný kód hardware kláves včetně podpory `F1`–`F5`.
+- Podstránky (tiskárna, debugger, nápověda, About) mají v horní liště název a šipku zpět; systémová klávesa zpět funguje korektně – navrací v navigačním zásobníku, na hlavní stránce ukončí aplikaci.
+- Chybí ikona aplikace (nainstaluje se výchozí robot Androidu) a nástěná/splash obrazovka; jedná se o kosmetické omezení experimentu.
+
+### 13.3 Soubory a oprávnění
+
+- Stejný tok jako MAUI verze: open/save přes Storage Access Framework, bez oprávnění k úložišti. Uložený soubor má výchozí název `program.ti5p`.
+- Vestavěná knihovna `ml.ti5l` je v sestavení desktopové aplikace (sdílený projekt) a načte se při startu aplikace, jako na desktopu.
+- Výběr souborů na Androidu není omezený na přípony (SAF dialog s MIME `*/*`); lze vybrat libovolný soubor a aplikace ho zkusí načíst jako program/knihovnu (při chybě stavový řádek vypíše hlášku).
+
+### 13.4 Omezení Android (Avalonia) verze
+
+- Závislosti Avalonia.Android (AndroidX lifecycle) vyžadují minimálně API 23 (Android 6.0) – oproti MAUI/originálu je minimum posunuté.
+- Běh na pozadí a obnovení po ukončení procesu nejsou ošetřené (stejně jako u MAUI verze).
+- Automatizované UI testy neexistují; ověření proběhlo sestavením a ručním smoke testem na API 33 (viz [vyhodnocení](AVALONIA_ANDROID_VYHODNOCENI.md)).

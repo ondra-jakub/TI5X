@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TI5X.ViewModels"
+             xmlns:ctrl="using:TI5X.Avalonia.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="780"
+             x:Class="TI5X.Avalonia.Views.CalculatorView"
+             x:DataType="vm:MainViewModel">
+
+    <!-- Main Calculator Body -->
+    <Border Background="#221E1C" Margin="10" CornerRadius="12" BorderBrush="#3D3530" BorderThickness="2" Padding="12">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+            <!-- Top Badge / Brand Header -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,0,4,8">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="TEXAS INSTRUMENTS" FontSize="11" FontWeight="Bold" Foreground="#C8BFB5" LetterSpacing="1" />
+                    <TextBlock Text=" TI-59" FontSize="11" FontWeight="Heavy" Foreground="#E6B432" Margin="6,0,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <!-- Mode status pills -->
+                    <Border Background="#332B25" CornerRadius="3" Padding="4,1">
+                        <TextBlock Text="{Binding AngleModeText}" FontSize="9" FontWeight="Bold" Foreground="#E6B432" />
+                    </Border>
+                    <Border Background="#332B25" CornerRadius="3" Padding="4,1" IsVisible="{Binding IsSecondActive}">
+                        <TextBlock Text="2nd" FontSize="9" FontWeight="Bold" Foreground="#F5D061" />
+                    </Border>
+                    <Border Background="#332B25" CornerRadius="3" Padding="4,1" IsVisible="{Binding IsInvActive}">
+                        <TextBlock Text="INV" FontSize="9" FontWeight="Bold" Foreground="#E06040" />
+                    </Border>
+                    <Border Background="#332B25" CornerRadius="3" Padding="4,1" IsVisible="{Binding IsLrnActive}">
+                        <TextBlock Text="LRN" FontSize="9" FontWeight="Bold" Foreground="#FF3333" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <!-- 7-Segment LED Display Area -->
+            <Border Grid.Row="1"
+                    Background="#100202"
+                    BorderBrush="#400A0A"
+                    BorderThickness="3"
+                    CornerRadius="6"
+                    Height="64"
+                    Margin="0,0,0,10"
+                    BoxShadow="inset 0 0 10 #000000">
+                <ctrl:LedDisplayControl Text="{Binding DisplayText}"
+                                       IsError="{Binding IsError}"
+                                       IsRunning="{Binding IsRunning}"
+                                       Margin="6,4" />
+            </Border>
+
+            <!-- Program Label Card Slip Window -->
+            <Border Grid.Row="2"
+                    Background="#2B2623"
+                    BorderBrush="#4A423D"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Height="50"
+                    Margin="0,0,0,8"
+                    Padding="2">
+                <ctrl:CardStripControl Card="{Binding CurrentCard}" />
+            </Border>
+
+            <!-- Keypad 9x5 Grid -->
+            <Grid Grid.Row="3" Margin="0,4,0,4"
+                  RowDefinitions="*,*,*,*,*,*,*,*,*"
+                  ColumnDefinitions="*,*,*,*,*">
+
+                <!-- Row 1: A, B, C, D, E -->
+                <ctrl:KeyButton Grid.Row="0" Grid.Column="0" KeyText="A" AltText="A´" KeyCode="11" StyleType="TopRow" />
+                <ctrl:KeyButton Grid.Row="0" Grid.Column="1" KeyText="B" AltText="B´" KeyCode="12" StyleType="TopRow" />
+                <ctrl:KeyButton Grid.Row="0" Grid.Column="2" KeyText="C" AltText="C´" KeyCode="13" StyleType="TopRow" />
+                <ctrl:KeyButton Grid.Row="0" Grid.Column="3" KeyText="D" AltText="D´" KeyCode="14" StyleType="TopRow" />
+                <ctrl:KeyButton Grid.Row="0" Grid.Column="4" KeyText="E" AltText="E´" KeyCode="15" StyleType="TopRow" />
+
+                <!-- Row 2: 2nd, INV, lnx, CE, CLR -->
+                <ctrl:KeyButton Grid.Row="1" Grid.Column="0" KeyText="2nd" AltText="" KeyCode="21" StyleType="Yellow" />
+                <ctrl:KeyButton Grid.Row="1" Grid.Column="1" KeyText="INV" AltText="" KeyCode="22" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="1" Grid.Column="2" KeyText="lnx" AltText="log" KeyCode="23" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="1" Grid.Column="3" KeyText="CE" AltText="CP" KeyCode="24" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="1" Grid.Column="4" KeyText="CLR" AltText="" KeyCode="25" StyleType="Yellow" />
+
+                <!-- Row 3: LRN, x⇌t, x², √x, 1/x -->
+                <ctrl:KeyButton Grid.Row="2" Grid.Column="0" KeyText="LRN" AltText="Pgm" KeyCode="31" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="2" Grid.Column="1" KeyText="x⇌t" AltText="P→R" KeyCode="32" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="2" Grid.Column="2" KeyText="x²" AltText="sin" KeyCode="33" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="2" Grid.Column="3" KeyText="√x" AltText="cos" KeyCode="34" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="2" Grid.Column="4" KeyText="1/x" AltText="tan" KeyCode="35" StyleType="Standard" />
+
+                <!-- Row 4: SST, STO, RCL, SUM, yˣ -->
+                <ctrl:KeyButton Grid.Row="3" Grid.Column="0" KeyText="SST" AltText="Ins" KeyCode="41" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="3" Grid.Column="1" KeyText="STO" AltText="CMs" KeyCode="42" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="3" Grid.Column="2" KeyText="RCL" AltText="Exc" KeyCode="43" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="3" Grid.Column="3" KeyText="SUM" AltText="Prd" KeyCode="44" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="3" Grid.Column="4" KeyText="yˣ" AltText="Ind" KeyCode="45" StyleType="Standard" />
+
+                <!-- Row 5: BST, EE, (, ), ÷ -->
+                <ctrl:KeyButton Grid.Row="4" Grid.Column="0" KeyText="BST" AltText="Del" KeyCode="51" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="4" Grid.Column="1" KeyText="EE" AltText="Eng" KeyCode="52" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="4" Grid.Column="2" KeyText="(" AltText="Fix" KeyCode="53" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="4" Grid.Column="3" KeyText=")" AltText="Int" KeyCode="54" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="4" Grid.Column="4" KeyText="÷" AltText="|x|" KeyCode="55" StyleType="Yellow" />
+
+                <!-- Row 6: GTO, 7, 8, 9, × -->
+                <ctrl:KeyButton Grid.Row="5" Grid.Column="0" KeyText="GTO" AltText="Pause" KeyCode="61" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="5" Grid.Column="1" KeyText="7" AltText="x=t" KeyCode="62" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="5" Grid.Column="2" KeyText="8" AltText="Nop" KeyCode="63" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="5" Grid.Column="3" KeyText="9" AltText="Op" KeyCode="64" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="5" Grid.Column="4" KeyText="×" AltText="Deg" KeyCode="65" StyleType="Yellow" />
+
+                <!-- Row 7: SBR, 4, 5, 6, - -->
+                <ctrl:KeyButton Grid.Row="6" Grid.Column="0" KeyText="SBR" AltText="Lbl" KeyCode="71" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="6" Grid.Column="1" KeyText="4" AltText="x≥t" KeyCode="72" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="6" Grid.Column="2" KeyText="5" AltText="∑+" KeyCode="73" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="6" Grid.Column="3" KeyText="6" AltText="x̄" KeyCode="74" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="6" Grid.Column="4" KeyText="-" AltText="Rad" KeyCode="75" StyleType="Yellow" />
+
+                <!-- Row 8: RST, 1, 2, 3, + -->
+                <ctrl:KeyButton Grid.Row="7" Grid.Column="0" KeyText="RST" AltText="St flg" KeyCode="81" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="7" Grid.Column="1" KeyText="1" AltText="If flg" KeyCode="82" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="7" Grid.Column="2" KeyText="2" AltText="D.MS" KeyCode="83" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="7" Grid.Column="3" KeyText="3" AltText="π" KeyCode="84" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="7" Grid.Column="4" KeyText="+" AltText="Grad" KeyCode="85" StyleType="Yellow" />
+
+                <!-- Row 9: R/S, 0, ., +/-, = -->
+                <ctrl:KeyButton Grid.Row="8" Grid.Column="0" KeyText="R/S" AltText="" KeyCode="91" StyleType="Standard" />
+                <ctrl:KeyButton Grid.Row="8" Grid.Column="1" KeyText="0" AltText="Dsz" KeyCode="92" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="8" Grid.Column="2" KeyText="." AltText="Adv" KeyCode="93" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="8" Grid.Column="3" KeyText="+/-" AltText="Prt" KeyCode="94" StyleType="Number" />
+                <ctrl:KeyButton Grid.Row="8" Grid.Column="4" KeyText="=" AltText="List" KeyCode="95" StyleType="Yellow" />
+            </Grid>
+
+            <!-- Bottom Status Line -->
+            <TextBlock Grid.Row="4"
+                       Text="{Binding StatusInfo}"
+                       FontSize="10"
+                       Foreground="#8A8078"
+                       HorizontalAlignment="Center"
+                       Margin="0,6,0,0" />
+        </Grid>
+    </Border>
+</UserControl>
