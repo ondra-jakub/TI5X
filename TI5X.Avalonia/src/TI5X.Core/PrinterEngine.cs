@@ -2,6 +2,17 @@ using System.Text;
 
 namespace TI5X.Avalonia.Core;
 
+// Virtual TI-59 printer (PC-100A/TMC0251). All print paths go through the
+// verified model port Ti59PrintMachine (font TMC0251, print_func mnemonics,
+// 20-character buffer, head mechanics identical to the C oracle print.c).
+// The public API and the UI surface (TapeLines, TapeChanged, MaxLines) are
+// unchanged; the tape row content is now the authentic 20-column line coming
+// out of the model (including unprinted columns as spaces).
+//
+// Documentation of limits: print paths driven by TI-59 ROM programs (e.g. the
+// ML-01 "MASTER" diagnostic tape) are NOT reproduced by the app - the app
+// does not execute the real ROM (verified model integration of the printer
+// is the source for the app paths only; see docs/ODCHYLKY_A_OMEZENI.md).
 public class PrinterEngine
 {
     public const int CharColumns = 20;
@@ -78,11 +89,19 @@ public class PrinterEngine
         [0x1f, 0x02, 0x04, 0x08, 0x04, 0x02, 0x1f]  /*77 Σ*/
     ];
 
+    private readonly Ti59PrintMachine _model = new();
+
     private readonly List<string> _tapeLines = new();
 
     public event Action? TapeChanged;
 
     public IReadOnlyList<string> TapeLines => _tapeLines;
+
+    // Obsah bufferu tiskarny (20 sloupcu) - pro diagnostiku a testy.
+    public string PrinterBuffer => _model.BufferString;
+
+    // Pozice tiskove hlavy (0..19, sweep zprava doleva jako v print.c).
+    public int PrinterHead => _model.Head;
 
     public void Clear()
     {
@@ -92,30 +111,190 @@ public class PrinterEngine
 
     public void Advance()
     {
-        _tapeLines.Add(string.Empty);
-        TrimTape();
+        _model.Advance();
+        TakeModelTape();
         TapeChanged?.Invoke();
     }
 
+    // Tisk textoveho radku: nasimuluje autenticky beh (clear bufferu + znaky
+    // pres font do bufferu + PRINT op). Radek se paduje/meze na 20 sloupcu
+    // (fyzicka paska ma vzdy 20 sloupcu; mezera = netisknuty sloupec - stejná
+    // semantika jako v korpusové pasence ml01print.tape.txt).
     public void PrintLine(string text)
     {
-        _tapeLines.Add(text);
-        TrimTape();
+        PrintLineToBuffer(text);
+        TakeModelTape();
         TapeChanged?.Invoke();
     }
 
+    // Tisk obsahuje print registru (Op 1-5, Master Library ML-01): tiskne se
+    // 20sloupcovy radek z PrintRegister (viz Render) pres model (clear + znaky
+    // + PRINT op) - stejna cesta jako PrintLine.
     public void Render(byte[] printRegister)
     {
         var sb = new StringBuilder();
         for (int i = 0; i < Math.Min(printRegister.Length, CharColumns); ++i)
         {
-            byte code = printRegister[i];
-            sb.Append(CodeToChar(code));
+            sb.Append(PrintRegisterChar(printRegister[i]));
         }
-        _tapeLines.Add(sb.ToString());
-        TrimTape();
+        PrintLineToBuffer(sb.ToString());
+        TakeModelTape();
         TapeChanged?.Invoke();
     }
+
+    // Kod XY: vyssi pole = X mod 8 (v 6bitovem poli nezbyva misto pro bity
+    // >= 8; "8"/"9" v desitkach se maskuji), nizsi pole = jednotky cela
+    // (0-9; jejich BCD bit 3 se ORuje do LSB vyssiho pole). Kod je vzdy
+    // 0-63; kod 00 = mezera.
+    //
+    // Overeno proti orakulu (realna ROM, eventy PRINT_CHAR; Master Library
+    // ML-01 = print register):
+    //   00->0  12->10 '9'  16->14 'D'  17->15 'E'  18->8 '7'   20->16 '-'
+    //   54->44 'e'         56->46 ')'  89->9 '8'   99->9 '8'   19->9 '8'
+    //   88->8 '7'          98->8 '7'   91->9 '8'
+    // Vzorec sedi na vsech 14 bodech; alternativa "druha cislice take mod 8"
+    // by dala pro 88/89 mezeru/jinou císlici, coz orakulum vyvraci.
+    public static char PrintRegisterChar(byte code)
+    {
+        int row = code / 10;
+        int col = code % 10;
+        int idx = (((row & 7) << 3) | col) & 0x3F;
+        return Ti59PrintMachine.FontTable[idx];
+    }
+
+    public static char CodeToChar(byte code) => PrintRegisterChar(code);
+
+    // UI (2-cifrne) kody programovych kroku, pro nez ma tiskarna TMC0251
+    // vlastni mnemoniku v print_func (print.c:86-130; tabulka = jediny
+    // zdroj pravdy v TI59PrintMachine.FuncTable). Ostatni kroky (cisla,
+    // LBL, HIR, D.MS, ...) tiskarna nema - fallback KeyCodes.KeyCodeSym
+    // (kvuli znakum mimo sadu TMC0251 upravi CharToFontIndex aliasy).
+    // Pozn.: na realnem TI-59 je 2ND OP 01-05 (print register) a listing
+    // soucasti Master Library (TMC0541); klavesa 93 "." nema v print_func
+    // protikus (0x23 "DPT" = nastava desetinne carky, ne znak tecky).
+    private static readonly (int UiCode, byte FuncCode)[] ListFuncMap =
+    [
+        (22, 0x22), // INV
+        (24, 0x26), // CE
+        (25, 0x21), // CLR
+        (30, 0x5D), // TAN
+        (31, 0x73), // LRN
+        (33, 0x33), // x^2
+        (34, 0x3C), // sX (sqrt)
+        (35, 0x36), // 1/x
+        (38, 0x57), // SIN
+        (39, 0x56), // COS
+        (42, 0x66), // STO
+        (43, 0x68), // RCL
+        (44, 0x61), // SUM
+        (45, 0x1B), // Y^x
+        (48, 0x3D), // X|Y (EXC)
+        (52, 0x2D), // EE
+        (53, 0x71), // (
+        (54, 0x72), // )
+        (55, 0x16), // /
+        (61, 0x7A), // GTO
+        (65, 0x17), // x
+        (75, 0x12), // -
+        (78, 0x69), // $+ (SUM+)
+        (85, 0x13), // +
+        (87, 0x7C), // IF (2nd IFF)
+        (89, 0x67), // pi
+        (94, 0x27), // +/-
+        (95, 0x11), // =
+    ];
+
+    // Mnemonika pro listing programu: autenticka TMC0251 mnemonika z
+    // print_func tam, kde existuje, jinak klavesni zkratka KeyCodeSym.
+    public static string ListMnemonic(int uiCode)
+    {
+        foreach (var (ui, funcCode) in ListFuncMap)
+        {
+            if (ui == uiCode && Ti59PrintMachine.FuncLookup(funcCode, out var mnemonic))
+            {
+                return mnemonic;
+            }
+        }
+        return KeyCodes.KeyCodeSym(uiCode);
+    }
+
+    private void PrintLineToBuffer(string text)
+    {
+        var line = ToLine(text);
+        _model.Clear();                          // 0x0A88: buffer = mezery, head = 19
+        for (int i = CharColumns - 1; i >= 0; --i)  // ROM naplni radek zprava doleva
+        {
+            _model.LoadChar(CharToFontIndex(line[i]));
+        }
+        _model.PrintLine();                      // 0x0AA8: radek pasky = buffer
+    }
+
+    // Radek pasky: max 20 znaku, kratsi se paduje do prava mezerami
+    // (netisknute sloupce); delsi se oreze (fyzicka paska ma 20 sloupcu).
+    private static string ToLine(string text)
+    {
+        var sb = new StringBuilder(text);
+        if (sb.Length > CharColumns)
+        {
+            sb.Length = CharColumns;
+        }
+        while (sb.Length < CharColumns)
+        {
+            sb.Append(' ');
+        }
+        return sb.ToString();
+    }
+
+    public static bool TryFontIndex(char ch, out byte index)
+    {
+        for (byte i = 0; i < Ti59PrintMachine.FontTable.Length; ++i)
+        {
+            if (Ti59PrintMachine.FontTable[i] == ch)
+            {
+                index = i;
+                return true;
+            }
+        }
+        index = 0;
+        return false;
+    }
+
+    public static byte CharToFontIndex(char ch)
+    {
+        if (TryFontIndex(ch, out var idx))
+        {
+            return idx;
+        }
+        // Fallback pro znaky mimo 64znakovou sadu TMC0251 (UI zkratky
+        // z KeyCodes.KeyCodeSym/PrintMnemonics maji pro nektere klavesy
+        // graficke znaky, ktere tiskarna nema - nahradi se nejblizsim
+        // tisknutelnym ekvivalentem; cizi znak se netiskne = mezera).
+        return ch switch
+        {
+            '÷' => CharToFontIndex('/'),   // 55 " ÷ " - tiskarna ma '/'
+            '×' => CharToFontIndex('x'),   // 65 " × "
+            '√' => CharToFontIndex('s'),   // "s" = sqrt glyf TMC0251
+            '∑' => CharToFontIndex('$'),   // 78 "$+ " - '$' = suma
+            '⇌' => CharToFontIndex('|'),   // 32 'X⇌T' - '|' = exchange glyf
+            'ⓧ' => CharToFontIndex('x'),   // 45 'Yx'
+            'π' => CharToFontIndex('p'),   // 'p' = pi glyf TMC0251
+            'ẍ' => CharToFontIndex('x'),   // 79
+            _ => 0,
+        };
+    }
+
+    private void TakeModelTape()
+    {
+        // Model si drzi celu pasku; UI vezme nove radky (max MaxLines).
+        foreach (var line in _model.Tape.Skip(_lastTaken))
+        {
+            _tapeLines.Add(line);
+        }
+        _lastTaken = _model.Tape.Count;
+        TrimTape();
+    }
+
+    private int _lastTaken;
 
     private void TrimTape()
     {
@@ -123,59 +302,5 @@ public class PrinterEngine
         {
             _tapeLines.RemoveAt(0);
         }
-    }
-
-    public static char CodeToChar(byte code)
-    {
-        int row = (code / 10) % 10;
-        int col = code % 10;
-        int idx = row * 8 + col;
-        return idx switch
-        {
-            0 => ' ',
-            >= 1 and <= 9 => (char)('0' + (idx - 1)),
-            10 => '9',
-            11 => 'A',
-            12 => 'B',
-            13 => 'C',
-            14 => 'D',
-            15 => 'E',
-            16 => '-',
-            17 => 'F',
-            18 => 'G',
-            19 => 'H',
-            20 => 'I',
-            21 => 'J',
-            22 => 'K',
-            23 => 'L',
-            24 => 'M',
-            25 => 'N',
-            26 => 'O',
-            27 => 'P',
-            28 => 'Q',
-            29 => 'R',
-            30 => 'S',
-            31 => 'T',
-            32 => '.',
-            33 => 'U',
-            34 => 'V',
-            35 => 'W',
-            36 => 'X',
-            37 => 'Y',
-            38 => 'Z',
-            39 => '+',
-            40 => '*',
-            41 => '/',
-            42 => '(',
-            43 => ')',
-            44 => ',',
-            45 => '=',
-            46 => '\'',
-            47 => '\"',
-            48 => '#',
-            50 => '?',
-            54 => 'π',
-            _ => ' '
-        };
     }
 }

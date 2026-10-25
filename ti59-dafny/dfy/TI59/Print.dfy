@@ -40,30 +40,35 @@ module TI59_Print {
 
   // [print.c:36-45] print_font - TMC0251 (TI-59), 64 znaku (8 radku x 8,
   // index = 6bitovy kod z ext; font[0]=' ', vsechny znaky unikatni).
+  // Znaky explicitne (ne retezcovymi literaly): delka a obsah jsou pak
+  // syntakticke, chyby rozpoctu (napr. vice znaku v radku) selhaji
+  // verifikaci postcondition. Unikatnost hlidi C# konzistencni test.
   function PrintFont(): seq<char>
+    ensures |PrintFont()| == 64
   {
-    " 0123456" +
-    "789ABCDE" +
-    "-FGHIJKL" +
-    "MNOPQRST" +
-    ".UVWXYZ+" +
-    "x*sp,e()," +
-    "^%|/='#~" +
-    "z?:!]\"][$"   // z=^2, ]=2nd, "=delta, [=product, $=sum
+    [' ', '0', '1', '2', '3', '4', '5', '6',
+     '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
+     '-', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+     '.', 'U', 'V', 'W', 'X', 'Y', 'Z', '+',
+     'x', '*', 's', 'p', 'e', '(', ')', ',',
+     '^', '%', '|', '/', '=', '\'', '#', '~',
+     'z', '?', ':', '!', ']', '"', '[', '$']
   }
 
   // [print.c:74-83] print_font_sr60 - TMC0254 (SR-60); pro ti59 neaktivni,
   // uklada se pro uplnost (jedna by maska odmitla ops TMC0251).
   function PrintFontSr60(): seq<char>
+    ensures |PrintFontSr60()| == 64
   {
-    " 0123456" +
-    "789.z#!\"" +
-    "=-+:x'~)" +
-    "s^$[/|e]" +
-    "QRSTUVWX" +
-    "YZ*p?,%(" +
-    "ABCDEFGH" +
-    "IJKLMNOP"
+    [' ', '0', '1', '2', '3', '4', '5', '6',
+     '7', '8', '9', '.', 'z', '#', '!', '"',
+     '=', '-', '+', ':', 'x', '\'', '~', ')',
+     's', '^', '$', '[', '/', '|', 'e', ']',
+     'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+     'Y', 'Z', '*', 'p', '?', ',', '%', '(',
+     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
   }
 
   // [print.c:86-130] print_func tabulka; 39 polozek, terminator

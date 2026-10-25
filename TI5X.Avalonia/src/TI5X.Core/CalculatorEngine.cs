@@ -1660,7 +1660,7 @@ public class CalculatorEngine
         for (int i = 0; i < max; ++i)
         {
             byte code = prog[i];
-            Printer?.PrintLine($"{i:D3}  {code:D2} {KeyCodes.KeyCodeSym(code)}");
+            Printer?.PrintLine($"{i:D3}  {code:D2} {PrinterEngine.ListMnemonic(code)}");
         }
     }
 
