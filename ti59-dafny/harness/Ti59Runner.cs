@@ -198,13 +198,13 @@ public static class Ti59Runner {
     var disp = TI59__Chips.__default.DispInit();
     var bus = TI59__Bus.__default.BusInit();
     var prnOpt = hasPrinter
-      ? (TI59__Machine._IPrnOpt)new TI59__Machine.PrnOpt_Prn(TI59__PrintCrd.__default.PrintInit())
+      ? (TI59__Machine._IPrnOpt)new TI59__Machine.PrnOpt_Prn(TI59__Print.__default.PrintInit())
       : new TI59__Machine.PrnOpt_PrnNone();
     var crdOpt = cardData != null
-      ? (TI59__Machine._ICrdOpt)new TI59__Machine.CrdOpt_Crd(TI59__PrintCrd.__default.CrdInit(SeqB(cardData)))
+      ? (TI59__Machine._ICrdOpt)new TI59__Machine.CrdOpt_Crd(TI59__Crd.__default.CrdInit(SeqB(cardData)))
       : new TI59__Machine.CrdOpt_CrdNone();
     TI59__Machine._IMachine m = new TI59__Machine.Machine(cpu, broms, scoms, rams, lib, keys, disp, bus, false,
-      prnOpt, crdOpt, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromArray(new TI59__PrintCrd._ITi59Event[0]));
+      prnOpt, crdOpt, Dafny.Sequence<TI59__Events._ITi59Event>.FromArray(new TI59__Events._ITi59Event[0]));
 
     if (!TI59__Machine.__default.MachineWF(m)) {
       Console.Error.WriteLine("MachineWF failed at init!");
@@ -283,7 +283,7 @@ public static class Ti59Runner {
       var crdState = ((TI59__Machine.CrdOpt_Crd)m.dtor_crdOpt)._crd;
       var cardOpt = crdState.dtor_cardOut;
       if (cardOpt.is_Card) {
-        var img = ((TI59__PrintCrd.OptCrd_Card)cardOpt)._img;
+        var img = ((TI59__Crd.OptCrd_Card)cardOpt)._img;
         var bytes = new byte[img.Count];
         for (long i = 0; i < img.Count; i++) bytes[i] = img.Select(i);
         File.WriteAllBytes(cardOutPath, bytes);
@@ -299,31 +299,31 @@ public static class Ti59Runner {
   // printf-vjerne formaty LOG volani C simulatoru (print.c/crd.c).
   // Vsechny LOG tvaru "PRINT_xxx[...]='...' " / "CRD.xxx[...]=.. " konci
   // mezerou; C je koncatenuje do radku, runner tiskne run cyklu na radku.
-  static void EventLogString(TI59__PrintCrd._ITi59Event ev, StringBuilder sb) {
+  static void EventLogString(TI59__Events._ITi59Event ev, StringBuilder sb) {
     if (ev.is_EvPrintChar) {
-      var e = (TI59__PrintCrd.Ti59Event_EvPrintChar)ev;
+      var e = (TI59__Events.Ti59Event_EvPrintChar)ev;
       sb.Append("PRINT_CHAR[").Append(e._head).Append("]='").Append((char)e._ch.Value).Append("' ");
     } else if (ev.is_EvPrintFunc) {
-      var e = (TI59__PrintCrd.Ti59Event_EvPrintFunc)ev;
+      var e = (TI59__Events.Ti59Event_EvPrintFunc)ev;
       sb.Append("PRINT_FUNC[").Append(e._head).Append("]='").Append(RuneStr(e._s)).Append("' ");
     } else if (ev.is_EvPrintNotFound) {
-      var e = (TI59__PrintCrd.Ti59Event_EvPrintNotFound)ev;
+      var e = (TI59__Events.Ti59Event_EvPrintNotFound)ev;
       sb.Append("PRINT[").Append(e._head).Append("]='").Append(e._code).Append(" not fund' ");
     } else if (ev.is_EvPrintClear) {
-      var e = (TI59__PrintCrd.Ti59Event_EvPrintClear)ev;
+      var e = (TI59__Events.Ti59Event_EvPrintClear)ev;
       sb.Append("PRINT_CLEAR[").Append(e._head).Append("]='").Append(ParseStr(e._buf)).Append("' ");
     } else if (ev.is_EvPrint) {
-      var e = (TI59__PrintCrd.Ti59Event_EvPrint)ev;
+      var e = (TI59__Events.Ti59Event_EvPrint)ev;
       sb.Append("PRINT[").Append(e._head).Append("]='").Append(ParseStr(e._buf)).Append("' ");
     } else if (ev.is_EvCrdRd) {
-      var e = (TI59__PrintCrd.Ti59Event_EvCrdRd)ev;
+      var e = (TI59__Events.Ti59Event_EvCrdRd)ev;
       sb.Append("CRD.rd[").Append(e._pc.ToString("0000")).Append("]=").Append(e._data.ToString("x2")).Append(" ");
     } else if (ev.is_EvCrdWr) {
-      var e = (TI59__PrintCrd.Ti59Event_EvCrdWr)ev;
+      var e = (TI59__Events.Ti59Event_EvCrdWr)ev;
       sb.Append("CRD.wr[").Append(e._pc.ToString("0000")).Append("]=").Append(e._data.ToString("x2")).Append(" ");
     } else if (ev.is_EvCrdOff) {
       // [crd.c:71] printf na stdout (ne do logu)
-      var e = (TI59__PrintCrd.Ti59Event_EvCrdOff)ev;
+      var e = (TI59__Events.Ti59Event_EvCrdOff)ev;
       Console.Write("crd read/write " + e._pc + "\n");
     }
   }

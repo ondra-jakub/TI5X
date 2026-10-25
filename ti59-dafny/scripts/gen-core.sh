@@ -9,12 +9,14 @@ cd "$HERE"
 
 echo "== dafny verify (plna sada) =="
 time dafny verify dfy/TI59/Nibbles.dfy dfy/TI59/AluOps.dfy dfy/TI59/Cpu.dfy \
-     dfy/TI59/Bus.dfy dfy/TI59/Chips.dfy dfy/TI59/PrintCrd.dfy dfy/TI59/Machine.dfy \
+     dfy/TI59/Bus.dfy dfy/TI59/Chips.dfy dfy/TI59/Ti59Events.dfy \
+     dfy/TI59/Print.dfy dfy/TI59/Crd.dfy dfy/TI59/Machine.dfy \
      --isolate-assertions --verification-time-limit 120
 
 echo "== dafny translate cs =="
 dafny translate cs dfy/TI59/Nibbles.dfy dfy/TI59/AluOps.dfy dfy/TI59/Cpu.dfy \
-     dfy/TI59/Bus.dfy dfy/TI59/Chips.dfy dfy/TI59/PrintCrd.dfy dfy/TI59/Machine.dfy \
+     dfy/TI59/Bus.dfy dfy/TI59/Chips.dfy dfy/TI59/Ti59Events.dfy \
+     dfy/TI59/Print.dfy dfy/TI59/Crd.dfy dfy/TI59/Machine.dfy \
      --no-verify --include-runtime -o generated/Ti59RomCore.cs
 
 echo "== dotnet build runner =="

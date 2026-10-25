@@ -4,7 +4,9 @@ module TI59_Machine {
   import opened TI59_Cpu
   import opened TI59_Bus
   import opened TI59_Chips
-  import opened TI59_PrintCrd
+  import opened TI59_Events
+  import opened TI59_Print
+  import opened TI59_Crd
 
   // ============================================================
   // Celny stroj: CPU + 3x brom + 2x scom + 4x ram + [print] + lib +

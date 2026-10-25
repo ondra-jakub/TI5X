@@ -15,7 +15,13 @@ rust-sync = false
 [options_by_module.TI59_Chips]
 legacy-module-names = false
 rust-sync = false
-[options_by_module.TI59_PrintCrd]
+[options_by_module.TI59_Events]
+legacy-module-names = false
+rust-sync = false
+[options_by_module.TI59_Print]
+legacy-module-names = false
+rust-sync = false
+[options_by_module.TI59_Crd]
 legacy-module-names = false
 rust-sync = false
 [options_by_module.TI59_Machine]

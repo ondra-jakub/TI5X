@@ -3,7 +3,9 @@ include "TI59/AluOps.dfy"
 include "TI59/Cpu.dfy"
 include "TI59/Bus.dfy"
 include "TI59/Chips.dfy"
-include "TI59/PrintCrd.dfy"
+include "TI59/Ti59Events.dfy"
+include "TI59/Print.dfy"
+include "TI59/Crd.dfy"
 include "TI59/Machine.dfy"
 
 module Smoke {

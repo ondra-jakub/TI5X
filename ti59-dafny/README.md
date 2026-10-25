@@ -30,8 +30,8 @@ dfy/TI59/Cpu.dfy       Cpu, tabulky ALU_OP/ALU_DST, run_early, Execute(),
                        alu_gen_digit (celý execute() z alu.c)
 dfy/TI59/Bus.dfy       sbernice + start cyklu/reset D-linky (vbus.c)
 dfy/TI59/Chips.dfy     brom, scom (v2), ram, lib (CROM), key (-K skript), display
-dfy/TI59/PrintCrd.dfy  tiskárna TMC0251 (print.c: fonty, mnemoniky, buffer/head),
-                       čtečka karet (crd.c), Ti59Event události
+dfy/TI59/Print.dfy     tiskárna TMC0251 (print.c: fonty, mnemoniky, buffer/head)
+dfy/TI59/Crd.dfy       čtečka karet (crd.c), Ti59Event události (Ti59Events.dfy)
 dfy/TI59/Machine.dfy   alu_process port, fold 16 stavů × W/R, StepInstruction,
                        TraceRec (LOG_HRAST pole), MachineWF invarianty
 dfy/Smoke.dfy          mini-ROM smoke test (dafny run)

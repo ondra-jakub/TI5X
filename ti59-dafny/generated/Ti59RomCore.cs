@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Collections;
 [assembly: DafnyAssembly.DafnySourceAttribute(@"// dafny 4.11.0.0
-// Command-line arguments: translate cs dfy/TI59/Nibbles.dfy dfy/TI59/AluOps.dfy dfy/TI59/Cpu.dfy dfy/TI59/Bus.dfy dfy/TI59/Chips.dfy dfy/TI59/PrintCrd.dfy dfy/TI59/Machine.dfy --no-verify --include-runtime -o generated/Ti59RomCore.cs
+// Command-line arguments: translate cs dfy/TI59/Nibbles.dfy dfy/TI59/AluOps.dfy dfy/TI59/Cpu.dfy dfy/TI59/Bus.dfy dfy/TI59/Chips.dfy dfy/TI59/Ti59Events.dfy dfy/TI59/Print.dfy dfy/TI59/Crd.dfy dfy/TI59/Machine.dfy --no-verify --include-runtime -o generated/Ti59RomCore.cs
 // the_program
 
 
@@ -1040,7 +1040,13 @@ module TI59_Chips {
   datatype Disp = Disp(out: seq<char>, out1: seq<char>, pos: nat)
 }
 
-module TI59_PrintCrd {
+module TI59_Events {
+
+  import opened TI59_Nibbles
+  datatype Ti59Event = EvPrintChar(head: nat, ch: char) | EvPrintFunc(head: nat, s: string) | EvPrintNotFound(head: nat, code: nat) | EvPrintClear(head: nat, buf: string) | EvPrint(head: nat, buf: string) | EvCrdRd(pc: nat, data: u8) | EvCrdWr(pc: nat, data: u8) | EvCrdOff(pc: nat)
+}
+
+module TI59_Print {
   predicate PrintWF(p: PrintState)
     decreases p
   {
@@ -1146,6 +1152,18 @@ module TI59_PrintCrd {
       (p, [])
   }
 
+  import opened TI59_Nibbles
+
+  import opened TI59_Bus
+
+  import opened TI59_Events
+
+  datatype PrintState = PrintState(buffer: seq<char>, head: int, tape: seq<seq<char>>)
+
+  datatype FuncIdx = FNone | FFound(i: nat)
+}
+
+module TI59_Crd {
   predicate CrdWF(c: CrdState)
     decreases c
   {
@@ -1191,11 +1209,7 @@ module TI59_PrintCrd {
 
   import opened TI59_Chips
 
-  datatype Ti59Event = EvPrintChar(head: nat, ch: char) | EvPrintFunc(head: nat, s: string) | EvPrintNotFound(head: nat, code: nat) | EvPrintClear(head: nat, buf: string) | EvPrint(head: nat, buf: string) | EvCrdRd(pc: nat, data: u8) | EvCrdWr(pc: nat, data: u8) | EvCrdOff(pc: nat)
-
-  datatype PrintState = PrintState(buffer: seq<char>, head: int, tape: seq<seq<char>>)
-
-  datatype FuncIdx = FNone | FFound(i: nat)
+  import opened TI59_Events
 
   datatype OptCrd = CardNone | Card(img: seq<u8>)
 
@@ -1443,7 +1457,11 @@ module TI59_Machine {
 
   import opened TI59_Chips
 
-  import opened TI59_PrintCrd
+  import opened TI59_Events
+
+  import opened TI59_Print
+
+  import opened TI59_Crd
 
   datatype OptRec = NoRec | YesRec(rec: TraceRec)
 
@@ -10307,185 +10325,8 @@ namespace TI59__Chips {
     }
   }
 } // end of namespace TI59__Chips
-namespace TI59__PrintCrd {
+namespace TI59__Events {
 
-  public partial class __default {
-    public static bool PrintWF(TI59__PrintCrd._IPrintState p) {
-      return ((new BigInteger(((p).dtor_buffer).Count)) == (new BigInteger(20))) && ((((p).dtor_head).Sign != -1) && (((p).dtor_head) <= (new BigInteger(19))));
-    }
-    public static TI59__PrintCrd._IPrintState PrintInit() {
-      return TI59__PrintCrd.PrintState.create(((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
-  BigInteger dim8 = new BigInteger(20);
-  var arr8 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim8, "array size exceeds memory limit")];
-  for (int i8 = 0; i8 < dim8; i8++) {
-    var _0___v0 = (BigInteger) i8;
-    arr8[(int)(_0___v0)] = new Dafny.Rune('X');
-  }
-  return Dafny.Sequence<Dafny.Rune>.FromArray(arr8);
-}))(), new BigInteger(5), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
-    }
-    public static BigInteger PrintHeadStep(BigInteger head) {
-      if ((head).Sign == 0) {
-        return new BigInteger(19);
-      } else {
-        return (head) - (BigInteger.One);
-      }
-    }
-    public static Dafny.ISequence<Dafny.Rune> PrintFont() {
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" 0123456"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("789ABCDE")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-FGHIJKL")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("MNOPQRST")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".UVWXYZ+")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x*sp,e(),")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^%|/='#~")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("z?:!]\"][$"));
-    }
-    public static Dafny.ISequence<Dafny.Rune> PrintFontSr60() {
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" 0123456"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("789.z#!\"")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=-+:x'~)")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("s^$[/|e]")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("QRSTUVWX")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("YZ*p?,%(")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ABCDEFGH")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("IJKLMNOP"));
-    }
-    public static Dafny.ISequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>> PrintFuncTable() {
-      return Dafny.Sequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>>.FromElements(_System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(0), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("   ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(17), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(18), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" - ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(19), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" + ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(22), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" / ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(23), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" x ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(26), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("xsY")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(27), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Y^x")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(33), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("CLR")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(34), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("INV")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(35), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DPT")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(38), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("CE ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(39), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+/-")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(45), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EE ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(49), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("e^x")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(51), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x^2")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(54), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("1/x")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(60), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("sX ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(61), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("X|Y")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(81), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("LNX")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(83), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("PRM")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(84), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" % ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(86), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("COS")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(87), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("SIN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(93), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("TAN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(97), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("SUM")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(102), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("STO")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(103), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pi ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(104), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("RCL")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(105), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("$+ ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(112), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ERR")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(113), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ( ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(114), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ) ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(115), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("LRN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(116), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("RUN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(118), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("HLT")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(120), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("STP")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(122), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("GTO")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(124), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("IF ")));
-    }
-    public static TI59__PrintCrd._IFuncIdx FuncLookup(Dafny.ISequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>> t, byte code, BigInteger k)
-    {
-    TAIL_CALL_START: ;
-      if ((k) >= (new BigInteger((t).Count))) {
-        return TI59__PrintCrd.FuncIdx.create_FNone();
-      } else if ((((t).Select(k)).dtor__0) == (code)) {
-        return TI59__PrintCrd.FuncIdx.create_FFound(k);
-      } else {
-        Dafny.ISequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>> _in0 = t;
-        byte _in1 = code;
-        BigInteger _in2 = (k) + (BigInteger.One);
-        t = _in0;
-        code = _in1;
-        k = _in2;
-        goto TAIL_CALL_START;
-      }
-    }
-    public static TI59__PrintCrd._IFuncIdx FuncMatch(byte code) {
-      return TI59__PrintCrd.__default.FuncLookup(TI59__PrintCrd.__default.PrintFuncTable(), code, BigInteger.Zero);
-    }
-    public static Dafny.ISequence<Dafny.Rune> BufStr20(Dafny.ISequence<Dafny.Rune> buffer) {
-      return (buffer).Subsequence(BigInteger.Zero, new BigInteger(20));
-    }
-    public static _System._ITuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>> PrintStep(TI59__PrintCrd._IPrintState p, TI59__Bus._IBus bus, BigInteger sstate, bool write)
-    {
-      var _pat_let_tv0 = p;
-      var _pat_let_tv1 = p;
-      var _pat_let_tv2 = p;
-      var _pat_let_tv3 = p;
-      var _pat_let_tv4 = p;
-      var _pat_let_tv5 = p;
-      var _pat_let_tv6 = p;
-      if ((((sstate) != (new BigInteger(15))) || (write)) || (((ushort)(((bus).dtor_irg) & ((ushort)(65295)))) != ((ushort)(2568)))) {
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(p, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-      } else if (((bus).dtor_irg) == ((ushort)(2664))) {
-        BigInteger _0_code = new BigInteger((ushort)(((ushort)(((bus).dtor_ext) >> ((int)((byte)(3))))) & ((ushort)(63))));
-        Dafny.Rune _1_ch = (TI59__PrintCrd.__default.PrintFont()).Select(_0_code);
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let188_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let188_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(TI59__PrintCrd.__default.PrintHeadStep((_pat_let_tv0).dtor_head), _pat_let189_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_pat_let189_0, _3_dt__update_hhead_h0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(Dafny.Sequence<Dafny.Rune>.Update((_pat_let_tv1).dtor_buffer, (_pat_let_tv2).dtor_head, _1_ch), _pat_let190_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(_pat_let190_0, _4_dt__update_hbuffer_h0 => TI59__PrintCrd.PrintState.create(_4_dt__update_hbuffer_h0, _3_dt__update_hhead_h0, (_2_dt__update__tmp_h0).dtor_tape))))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvPrintChar((p).dtor_head, _1_ch)));
-      } else if (((bus).dtor_irg) == ((ushort)(2680))) {
-        BigInteger _5_code = new BigInteger((ushort)(((ushort)(((bus).dtor_ext) >> ((int)((byte)(3))))) & ((ushort)(127))));
-        TI59__PrintCrd._IFuncIdx _source0 = TI59__PrintCrd.__default.FuncMatch((byte)(_5_code));
-        {
-          if (_source0.is_FNone) {
-            BigInteger _6_h0 = (p).dtor_head;
-            BigInteger _7_h1 = TI59__PrintCrd.__default.PrintHeadStep(_6_h0);
-            BigInteger _8_h2 = TI59__PrintCrd.__default.PrintHeadStep(_7_h1);
-            BigInteger _9_h3 = TI59__PrintCrd.__default.PrintHeadStep(_8_h2);
-            Dafny.ISequence<Dafny.Rune> _10_b3 = Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update((p).dtor_buffer, _6_h0, new Dafny.Rune('?')), _7_h1, new Dafny.Rune('?')), _8_h2, new Dafny.Rune('?'));
-            return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let191_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let191_0, _11_dt__update__tmp_h1 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_9_h3, _pat_let192_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_pat_let192_0, _12_dt__update_hhead_h1 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(_10_b3, _pat_let193_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(_pat_let193_0, _13_dt__update_hbuffer_h1 => TI59__PrintCrd.PrintState.create(_13_dt__update_hbuffer_h1, _12_dt__update_hhead_h1, (_11_dt__update__tmp_h1).dtor_tape))))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvPrintNotFound(_6_h0, _5_code), TI59__PrintCrd.Ti59Event.create_EvPrintFunc(_9_h3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("???"))));
-          }
-        }
-        {
-          BigInteger _14_idx = _source0.dtor_i;
-          Dafny.ISequence<Dafny.Rune> _15_s = ((TI59__PrintCrd.__default.PrintFuncTable()).Select(_14_idx)).dtor__1;
-          BigInteger _16_h0 = (p).dtor_head;
-          BigInteger _17_h1 = TI59__PrintCrd.__default.PrintHeadStep(_16_h0);
-          BigInteger _18_h2 = TI59__PrintCrd.__default.PrintHeadStep(_17_h1);
-          BigInteger _19_h3 = TI59__PrintCrd.__default.PrintHeadStep(_18_h2);
-          Dafny.ISequence<Dafny.Rune> _20_b3 = Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update((p).dtor_buffer, _16_h0, (_15_s).Select(new BigInteger(2))), _17_h1, (_15_s).Select(BigInteger.One)), _18_h2, (_15_s).Select(BigInteger.Zero));
-          return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let194_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let194_0, _21_dt__update__tmp_h2 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_19_h3, _pat_let195_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_pat_let195_0, _22_dt__update_hhead_h2 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(_20_b3, _pat_let196_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(_pat_let196_0, _23_dt__update_hbuffer_h2 => TI59__PrintCrd.PrintState.create(_23_dt__update_hbuffer_h2, _22_dt__update_hhead_h2, (_21_dt__update__tmp_h2).dtor_tape))))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvPrintFunc(_19_h3, _15_s)));
-        }
-      } else if (((bus).dtor_irg) == ((ushort)(2696))) {
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let197_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let197_0, _24_dt__update__tmp_h3 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(new BigInteger(19), _pat_let198_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_pat_let198_0, _25_dt__update_hhead_h3 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
-  BigInteger dim9 = new BigInteger(20);
-  var arr9 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim9, "array size exceeds memory limit")];
-  for (int i9 = 0; i9 < dim9; i9++) {
-    var _26___v1 = (BigInteger) i9;
-    arr9[(int)(_26___v1)] = new Dafny.Rune(' ');
-  }
-  return Dafny.Sequence<Dafny.Rune>.FromArray(arr9);
-}))(), _pat_let199_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__PrintCrd._IPrintState>(_pat_let199_0, _27_dt__update_hbuffer_h3 => TI59__PrintCrd.PrintState.create(_27_dt__update_hbuffer_h3, _25_dt__update_hhead_h3, (_24_dt__update__tmp_h3).dtor_tape))))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvPrintClear((p).dtor_head, TI59__PrintCrd.__default.BufStr20((p).dtor_buffer))));
-      } else if (((bus).dtor_irg) == ((ushort)(2712))) {
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let200_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let200_0, _28_dt__update__tmp_h4 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(TI59__PrintCrd.__default.PrintHeadStep((_pat_let_tv3).dtor_head), _pat_let201_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._IPrintState>(_pat_let201_0, _29_dt__update_hhead_h4 => TI59__PrintCrd.PrintState.create((_28_dt__update__tmp_h4).dtor_buffer, _29_dt__update_hhead_h4, (_28_dt__update__tmp_h4).dtor_tape))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-      } else if (((bus).dtor_irg) == ((ushort)(2728))) {
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let202_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let202_0, _30_dt__update__tmp_h5 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__PrintCrd._IPrintState>(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((_pat_let_tv4).dtor_tape, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(TI59__PrintCrd.__default.BufStr20((_pat_let_tv5).dtor_buffer))), _pat_let203_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__PrintCrd._IPrintState>(_pat_let203_0, _31_dt__update_htape_h0 => TI59__PrintCrd.PrintState.create((_30_dt__update__tmp_h5).dtor_buffer, (_30_dt__update__tmp_h5).dtor_head, _31_dt__update_htape_h0))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvPrint((p).dtor_head, TI59__PrintCrd.__default.BufStr20((p).dtor_buffer))));
-      } else if (((bus).dtor_irg) == ((ushort)(2744))) {
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(p, _pat_let204_0 => Dafny.Helpers.Let<TI59__PrintCrd._IPrintState, TI59__PrintCrd._IPrintState>(_pat_let204_0, _32_dt__update__tmp_h6 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__PrintCrd._IPrintState>(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((_pat_let_tv6).dtor_tape, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
-  BigInteger dim10 = BigInteger.Zero;
-  var arr10 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim10, "array size exceeds memory limit")];
-  for (int i10 = 0; i10 < dim10; i10++) {
-    var _33___v2 = (BigInteger) i10;
-    arr10[(int)(_33___v2)] = new Dafny.Rune(' ');
-  }
-  return Dafny.Sequence<Dafny.Rune>.FromArray(arr10);
-}))())), _pat_let205_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__PrintCrd._IPrintState>(_pat_let205_0, _34_dt__update_htape_h1 => TI59__PrintCrd.PrintState.create((_32_dt__update__tmp_h6).dtor_buffer, (_32_dt__update__tmp_h6).dtor_head, _34_dt__update_htape_h1))))), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-      } else {
-        return _System.Tuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(p, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-      }
-    }
-    public static bool CrdWF(TI59__PrintCrd._ICrdState c) {
-      return (((new BigInteger(((c).dtor_data).Count)) == (new BigInteger(300))) && ((((c).dtor_pc).Sign != -1) && (((c).dtor_pc) <= (new BigInteger(299))))) && (((System.Func<bool>)(() => {
-        TI59__PrintCrd._IOptCrd _source0 = (c).dtor_cardOut;
-        {
-          if (_source0.is_Card) {
-            Dafny.ISequence<byte> _0_img = _source0.dtor_img;
-            return (new BigInteger((_0_img).Count)) == (new BigInteger(300));
-          }
-        }
-        {
-          return true;
-        }
-      }))());
-    }
-    public static TI59__PrintCrd._ICrdState CrdInit(Dafny.ISequence<byte> card) {
-      return TI59__PrintCrd.CrdState.create(BigInteger.Zero, card, false, false, TI59__PrintCrd.OptCrd.create_CardNone());
-    }
-    public static _System._ITuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>> CrdStep(TI59__PrintCrd._ICrdState c, TI59__Chips._IKeyState k, TI59__Bus._IBus bus, BigInteger sstate, bool write)
-    {
-      var _pat_let_tv0 = bus;
-      var _pat_let_tv1 = c;
-      var _pat_let_tv2 = c;
-      var _pat_let_tv3 = c;
-      var _pat_let_tv4 = k;
-      if ((sstate) != (new BigInteger(15))) {
-        return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(c, k, bus, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-      } else if (write) {
-        if ((c).dtor_waitInDelay) {
-          byte _0_d = ((c).dtor_data).Select((c).dtor_pc);
-          TI59__Bus._IBus _1_bus1 = Dafny.Helpers.Let<TI59__Bus._IBus, TI59__Bus._IBus>(bus, _pat_let206_0 => Dafny.Helpers.Let<TI59__Bus._IBus, TI59__Bus._IBus>(_pat_let206_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<ushort, TI59__Bus._IBus>((ushort)(((_pat_let_tv0).dtor_ext) | (unchecked((ushort)(((ushort)(((ushort)(_0_d)) << ((int)((byte)(3))))))))), _pat_let207_0 => Dafny.Helpers.Let<ushort, TI59__Bus._IBus>(_pat_let207_0, _3_dt__update_hext_h0 => TI59__Bus.Bus.create(_3_dt__update_hext_h0, (_2_dt__update__tmp_h0).dtor_irg, (_2_dt__update__tmp_h0).dtor_io, (_2_dt__update__tmp_h0).dtor_displayDigit, (_2_dt__update__tmp_h0).dtor_displayDpt, (_2_dt__update__tmp_h0).dtor_displaySegH, (_2_dt__update__tmp_h0).dtor_keyLine, (_2_dt__update__tmp_h0).dtor_dstate, (_2_dt__update__tmp_h0).dtor_idle, (_2_dt__update__tmp_h0).dtor_addr, (_2_dt__update__tmp_h0).dtor_cycleCount)))));
-          TI59__PrintCrd._ICrdState _4_c1 = Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(c, _pat_let208_0 => Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_pat_let208_0, _5_dt__update__tmp_h1 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>((((((_pat_let_tv2).dtor_pc) + (BigInteger.One)) >= (new BigInteger(300))) ? (BigInteger.Zero) : (((_pat_let_tv1).dtor_pc) + (BigInteger.One))), _pat_let209_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>(_pat_let209_0, _6_dt__update_hpc_h0 => TI59__PrintCrd.CrdState.create(_6_dt__update_hpc_h0, (_5_dt__update__tmp_h1).dtor_data, (_5_dt__update__tmp_h1).dtor_waitIn, (_5_dt__update__tmp_h1).dtor_waitInDelay, (_5_dt__update__tmp_h1).dtor_cardOut)))));
-          return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(_4_c1, k, _1_bus1, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvCrdRd((c).dtor_pc, _0_d)));
-        } else {
-          return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(c, k, bus, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-        }
-      } else {
-        TI59__PrintCrd._ICrdState _7_c0 = Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(c, _pat_let210_0 => Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_pat_let210_0, _8_dt__update__tmp_h2 => Dafny.Helpers.Let<bool, TI59__PrintCrd._ICrdState>(false, _pat_let211_0 => Dafny.Helpers.Let<bool, TI59__PrintCrd._ICrdState>(_pat_let211_0, _9_dt__update_hwaitIn_h0 => Dafny.Helpers.Let<bool, TI59__PrintCrd._ICrdState>((_pat_let_tv3).dtor_waitIn, _pat_let212_0 => Dafny.Helpers.Let<bool, TI59__PrintCrd._ICrdState>(_pat_let212_0, _10_dt__update_hwaitInDelay_h0 => TI59__PrintCrd.CrdState.create((_8_dt__update__tmp_h2).dtor_pc, (_8_dt__update__tmp_h2).dtor_data, _9_dt__update_hwaitIn_h0, _10_dt__update_hwaitInDelay_h0, (_8_dt__update__tmp_h2).dtor_cardOut)))))));
-        if (((bus).dtor_irg) == ((ushort)(2600))) {
-          return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_7_c0, _pat_let213_0 => Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_pat_let213_0, _11_dt__update__tmp_h3 => Dafny.Helpers.Let<bool, TI59__PrintCrd._ICrdState>(true, _pat_let214_0 => Dafny.Helpers.Let<bool, TI59__PrintCrd._ICrdState>(_pat_let214_0, _12_dt__update_hwaitIn_h1 => TI59__PrintCrd.CrdState.create((_11_dt__update__tmp_h3).dtor_pc, (_11_dt__update__tmp_h3).dtor_data, _12_dt__update_hwaitIn_h1, (_11_dt__update__tmp_h3).dtor_waitInDelay, (_11_dt__update__tmp_h3).dtor_cardOut))))), k, bus, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-        } else if (((bus).dtor_irg) == ((ushort)(2616))) {
-          byte _13_d = (byte)((ushort)(((ushort)(((bus).dtor_ext) >> ((int)((byte)(3))))) & ((ushort)(255))));
-          TI59__PrintCrd._ICrdState _14_c1 = Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_7_c0, _pat_let215_0 => Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_pat_let215_0, _15_dt__update__tmp_h4 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>((((((_7_c0).dtor_pc) + (BigInteger.One)) >= (new BigInteger(300))) ? (BigInteger.Zero) : (((_7_c0).dtor_pc) + (BigInteger.One))), _pat_let216_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>(_pat_let216_0, _16_dt__update_hpc_h1 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__PrintCrd._ICrdState>(Dafny.Sequence<byte>.Update((_7_c0).dtor_data, (_7_c0).dtor_pc, _13_d), _pat_let217_0 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__PrintCrd._ICrdState>(_pat_let217_0, _17_dt__update_hdata_h0 => TI59__PrintCrd.CrdState.create(_16_dt__update_hpc_h1, _17_dt__update_hdata_h0, (_15_dt__update__tmp_h4).dtor_waitIn, (_15_dt__update__tmp_h4).dtor_waitInDelay, (_15_dt__update__tmp_h4).dtor_cardOut)))))));
-          return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(_14_c1, k, bus, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvCrdWr((_7_c0).dtor_pc, _13_d)));
-        } else if (((bus).dtor_irg) == ((ushort)(2632))) {
-          byte _18_pers1 = (byte)((((k).dtor_persKeys).Select(new BigInteger(10))) | (TI59__Nibbles.__default.Bit8(TI59__Chips.__default.KR__BIT)));
-          TI59__Chips._IKeyState _19_k1 = Dafny.Helpers.Let<TI59__Chips._IKeyState, TI59__Chips._IKeyState>(k, _pat_let218_0 => Dafny.Helpers.Let<TI59__Chips._IKeyState, TI59__Chips._IKeyState>(_pat_let218_0, _20_dt__update__tmp_h5 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__Chips._IKeyState>(Dafny.Sequence<byte>.Update((_pat_let_tv4).dtor_persKeys, new BigInteger(10), _18_pers1), _pat_let219_0 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__Chips._IKeyState>(_pat_let219_0, _21_dt__update_hpersKeys_h0 => TI59__Chips.KeyState.create(_21_dt__update_hpersKeys_h0, (_20_dt__update__tmp_h5).dtor_keyCode, (_20_dt__update__tmp_h5).dtor_keyCount, (_20_dt__update__tmp_h5).dtor_keyCodeHw, (_20_dt__update__tmp_h5).dtor_keyCountHw, (_20_dt__update__tmp_h5).dtor_pressCycle, (_20_dt__update__tmp_h5).dtor_unpressCycle, (_20_dt__update__tmp_h5).dtor_pressMask, (_20_dt__update__tmp_h5).dtor_unpressMask, (_20_dt__update__tmp_h5).dtor_script, (_20_dt__update__tmp_h5).dtor_scriptPos)))));
-          TI59__PrintCrd._ICrdState _22_c2 = ((((c).dtor_pc).Sign != 0) ? (Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_7_c0, _pat_let220_0 => Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_pat_let220_0, _23_dt__update__tmp_h6 => Dafny.Helpers.Let<TI59__PrintCrd._IOptCrd, TI59__PrintCrd._ICrdState>(TI59__PrintCrd.OptCrd.create_Card((_7_c0).dtor_data), _pat_let221_0 => Dafny.Helpers.Let<TI59__PrintCrd._IOptCrd, TI59__PrintCrd._ICrdState>(_pat_let221_0, _24_dt__update_hcardOut_h0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>(BigInteger.Zero, _pat_let222_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>(_pat_let222_0, _25_dt__update_hpc_h2 => TI59__PrintCrd.CrdState.create(_25_dt__update_hpc_h2, (_23_dt__update__tmp_h6).dtor_data, (_23_dt__update__tmp_h6).dtor_waitIn, (_23_dt__update__tmp_h6).dtor_waitInDelay, _24_dt__update_hcardOut_h0)))))))) : (Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_7_c0, _pat_let223_0 => Dafny.Helpers.Let<TI59__PrintCrd._ICrdState, TI59__PrintCrd._ICrdState>(_pat_let223_0, _26_dt__update__tmp_h7 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>(BigInteger.Zero, _pat_let224_0 => Dafny.Helpers.Let<BigInteger, TI59__PrintCrd._ICrdState>(_pat_let224_0, _27_dt__update_hpc_h3 => TI59__PrintCrd.CrdState.create(_27_dt__update_hpc_h3, (_26_dt__update__tmp_h7).dtor_data, (_26_dt__update__tmp_h7).dtor_waitIn, (_26_dt__update__tmp_h7).dtor_waitInDelay, (_26_dt__update__tmp_h7).dtor_cardOut)))))));
-          return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(_22_c2, _19_k1, bus, ((((c).dtor_pc).Sign != 0) ? (Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements(TI59__PrintCrd.Ti59Event.create_EvCrdOff((c).dtor_pc))) : (Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements())));
-        } else {
-          return _System.Tuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>>.create(_7_c0, k, bus, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
-        }
-      }
-    }
-    public static byte CARD__FILL { get {
-      return (byte)(146);
-    } }
-  }
 
   public interface _ITi59Event {
     bool is_EvPrintChar { get; }
@@ -10508,12 +10349,12 @@ namespace TI59__PrintCrd {
   public abstract class Ti59Event : _ITi59Event {
     public Ti59Event() {
     }
-    private static readonly TI59__PrintCrd._ITi59Event theDefault = create_EvPrintChar(BigInteger.Zero, new Dafny.Rune('D'));
-    public static TI59__PrintCrd._ITi59Event Default() {
+    private static readonly TI59__Events._ITi59Event theDefault = create_EvPrintChar(BigInteger.Zero, new Dafny.Rune('D'));
+    public static TI59__Events._ITi59Event Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<TI59__PrintCrd._ITi59Event> _TYPE = new Dafny.TypeDescriptor<TI59__PrintCrd._ITi59Event>(TI59__PrintCrd.Ti59Event.Default());
-    public static Dafny.TypeDescriptor<TI59__PrintCrd._ITi59Event> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<TI59__Events._ITi59Event> _TYPE = new Dafny.TypeDescriptor<TI59__Events._ITi59Event>(TI59__Events.Ti59Event.Default());
+    public static Dafny.TypeDescriptor<TI59__Events._ITi59Event> _TypeDescriptor() {
       return _TYPE;
     }
     public static _ITi59Event create_EvPrintChar(BigInteger head, Dafny.Rune ch) {
@@ -10612,7 +10453,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvPrintChar(_head, _ch);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvPrintChar;
+      var oth = other as TI59__Events.Ti59Event_EvPrintChar;
       return oth != null && this._head == oth._head && this._ch == oth._ch;
     }
     public override int GetHashCode() {
@@ -10623,7 +10464,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvPrintChar";
+      string s = "TI59_Events.Ti59Event.EvPrintChar";
       s += "(";
       s += Dafny.Helpers.ToString(this._head);
       s += ", ";
@@ -10644,7 +10485,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvPrintFunc(_head, _s);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvPrintFunc;
+      var oth = other as TI59__Events.Ti59Event_EvPrintFunc;
       return oth != null && this._head == oth._head && object.Equals(this._s, oth._s);
     }
     public override int GetHashCode() {
@@ -10655,7 +10496,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string ss = "TI59_PrintCrd.Ti59Event.EvPrintFunc";
+      string ss = "TI59_Events.Ti59Event.EvPrintFunc";
       ss += "(";
       ss += Dafny.Helpers.ToString(this._head);
       ss += ", ";
@@ -10676,7 +10517,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvPrintNotFound(_head, _code);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvPrintNotFound;
+      var oth = other as TI59__Events.Ti59Event_EvPrintNotFound;
       return oth != null && this._head == oth._head && this._code == oth._code;
     }
     public override int GetHashCode() {
@@ -10687,7 +10528,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvPrintNotFound";
+      string s = "TI59_Events.Ti59Event.EvPrintNotFound";
       s += "(";
       s += Dafny.Helpers.ToString(this._head);
       s += ", ";
@@ -10708,7 +10549,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvPrintClear(_head, _buf);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvPrintClear;
+      var oth = other as TI59__Events.Ti59Event_EvPrintClear;
       return oth != null && this._head == oth._head && object.Equals(this._buf, oth._buf);
     }
     public override int GetHashCode() {
@@ -10719,7 +10560,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvPrintClear";
+      string s = "TI59_Events.Ti59Event.EvPrintClear";
       s += "(";
       s += Dafny.Helpers.ToString(this._head);
       s += ", ";
@@ -10740,7 +10581,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvPrint(_head, _buf);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvPrint;
+      var oth = other as TI59__Events.Ti59Event_EvPrint;
       return oth != null && this._head == oth._head && object.Equals(this._buf, oth._buf);
     }
     public override int GetHashCode() {
@@ -10751,7 +10592,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvPrint";
+      string s = "TI59_Events.Ti59Event.EvPrint";
       s += "(";
       s += Dafny.Helpers.ToString(this._head);
       s += ", ";
@@ -10772,7 +10613,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvCrdRd(_pc, _data);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvCrdRd;
+      var oth = other as TI59__Events.Ti59Event_EvCrdRd;
       return oth != null && this._pc == oth._pc && this._data == oth._data;
     }
     public override int GetHashCode() {
@@ -10783,7 +10624,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvCrdRd";
+      string s = "TI59_Events.Ti59Event.EvCrdRd";
       s += "(";
       s += Dafny.Helpers.ToString(this._pc);
       s += ", ";
@@ -10804,7 +10645,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvCrdWr(_pc, _data);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvCrdWr;
+      var oth = other as TI59__Events.Ti59Event_EvCrdWr;
       return oth != null && this._pc == oth._pc && this._data == oth._data;
     }
     public override int GetHashCode() {
@@ -10815,7 +10656,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvCrdWr";
+      string s = "TI59_Events.Ti59Event.EvCrdWr";
       s += "(";
       s += Dafny.Helpers.ToString(this._pc);
       s += ", ";
@@ -10834,7 +10675,7 @@ namespace TI59__PrintCrd {
       return new Ti59Event_EvCrdOff(_pc);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.Ti59Event_EvCrdOff;
+      var oth = other as TI59__Events.Ti59Event_EvCrdOff;
       return oth != null && this._pc == oth._pc;
     }
     public override int GetHashCode() {
@@ -10844,11 +10685,135 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.Ti59Event.EvCrdOff";
+      string s = "TI59_Events.Ti59Event.EvCrdOff";
       s += "(";
       s += Dafny.Helpers.ToString(this._pc);
       s += ")";
       return s;
+    }
+  }
+} // end of namespace TI59__Events
+namespace TI59__Print {
+
+  public partial class __default {
+    public static bool PrintWF(TI59__Print._IPrintState p) {
+      return ((new BigInteger(((p).dtor_buffer).Count)) == (new BigInteger(20))) && ((((p).dtor_head).Sign != -1) && (((p).dtor_head) <= (new BigInteger(19))));
+    }
+    public static TI59__Print._IPrintState PrintInit() {
+      return TI59__Print.PrintState.create(((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
+  BigInteger dim8 = new BigInteger(20);
+  var arr8 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim8, "array size exceeds memory limit")];
+  for (int i8 = 0; i8 < dim8; i8++) {
+    var _0___v0 = (BigInteger) i8;
+    arr8[(int)(_0___v0)] = new Dafny.Rune('X');
+  }
+  return Dafny.Sequence<Dafny.Rune>.FromArray(arr8);
+}))(), new BigInteger(5), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
+    }
+    public static BigInteger PrintHeadStep(BigInteger head) {
+      if ((head).Sign == 0) {
+        return new BigInteger(19);
+      } else {
+        return (head) - (BigInteger.One);
+      }
+    }
+    public static Dafny.ISequence<Dafny.Rune> PrintFont() {
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" 0123456"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("789ABCDE")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-FGHIJKL")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("MNOPQRST")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".UVWXYZ+")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x*sp,e(),")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^%|/='#~")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("z?:!]\"][$"));
+    }
+    public static Dafny.ISequence<Dafny.Rune> PrintFontSr60() {
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" 0123456"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("789.z#!\"")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=-+:x'~)")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("s^$[/|e]")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("QRSTUVWX")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("YZ*p?,%(")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ABCDEFGH")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("IJKLMNOP"));
+    }
+    public static Dafny.ISequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>> PrintFuncTable() {
+      return Dafny.Sequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>>.FromElements(_System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(0), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("   ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(17), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(18), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" - ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(19), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" + ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(22), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" / ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(23), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" x ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(26), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("xsY")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(27), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Y^x")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(33), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("CLR")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(34), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("INV")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(35), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DPT")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(38), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("CE ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(39), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+/-")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(45), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("EE ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(49), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("e^x")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(51), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x^2")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(54), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("1/x")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(60), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("sX ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(61), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("X|Y")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(81), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("LNX")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(83), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("PRM")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(84), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" % ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(86), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("COS")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(87), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("SIN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(93), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("TAN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(97), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("SUM")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(102), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("STO")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(103), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pi ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(104), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("RCL")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(105), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("$+ ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(112), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ERR")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(113), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ( ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(114), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ) ")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(115), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("LRN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(116), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("RUN")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(118), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("HLT")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(120), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("STP")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(122), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("GTO")), _System.Tuple2<byte, Dafny.ISequence<Dafny.Rune>>.create((byte)(124), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("IF ")));
+    }
+    public static TI59__Print._IFuncIdx FuncLookup(Dafny.ISequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>> t, byte code, BigInteger k)
+    {
+    TAIL_CALL_START: ;
+      if ((k) >= (new BigInteger((t).Count))) {
+        return TI59__Print.FuncIdx.create_FNone();
+      } else if ((((t).Select(k)).dtor__0) == (code)) {
+        return TI59__Print.FuncIdx.create_FFound(k);
+      } else {
+        Dafny.ISequence<_System._ITuple2<byte, Dafny.ISequence<Dafny.Rune>>> _in0 = t;
+        byte _in1 = code;
+        BigInteger _in2 = (k) + (BigInteger.One);
+        t = _in0;
+        code = _in1;
+        k = _in2;
+        goto TAIL_CALL_START;
+      }
+    }
+    public static TI59__Print._IFuncIdx FuncMatch(byte code) {
+      return TI59__Print.__default.FuncLookup(TI59__Print.__default.PrintFuncTable(), code, BigInteger.Zero);
+    }
+    public static Dafny.ISequence<Dafny.Rune> BufStr20(Dafny.ISequence<Dafny.Rune> buffer) {
+      return (buffer).Subsequence(BigInteger.Zero, new BigInteger(20));
+    }
+    public static _System._ITuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>> PrintStep(TI59__Print._IPrintState p, TI59__Bus._IBus bus, BigInteger sstate, bool write)
+    {
+      var _pat_let_tv0 = p;
+      var _pat_let_tv1 = p;
+      var _pat_let_tv2 = p;
+      var _pat_let_tv3 = p;
+      var _pat_let_tv4 = p;
+      var _pat_let_tv5 = p;
+      var _pat_let_tv6 = p;
+      if ((((sstate) != (new BigInteger(15))) || (write)) || (((ushort)(((bus).dtor_irg) & ((ushort)(65295)))) != ((ushort)(2568)))) {
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(p, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+      } else if (((bus).dtor_irg) == ((ushort)(2664))) {
+        BigInteger _0_code = new BigInteger((ushort)(((ushort)(((bus).dtor_ext) >> ((int)((byte)(3))))) & ((ushort)(63))));
+        Dafny.Rune _1_ch = (TI59__Print.__default.PrintFont()).Select(_0_code);
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let188_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let188_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(TI59__Print.__default.PrintHeadStep((_pat_let_tv0).dtor_head), _pat_let189_0 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_pat_let189_0, _3_dt__update_hhead_h0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(Dafny.Sequence<Dafny.Rune>.Update((_pat_let_tv1).dtor_buffer, (_pat_let_tv2).dtor_head, _1_ch), _pat_let190_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(_pat_let190_0, _4_dt__update_hbuffer_h0 => TI59__Print.PrintState.create(_4_dt__update_hbuffer_h0, _3_dt__update_hhead_h0, (_2_dt__update__tmp_h0).dtor_tape))))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvPrintChar((p).dtor_head, _1_ch)));
+      } else if (((bus).dtor_irg) == ((ushort)(2680))) {
+        BigInteger _5_code = new BigInteger((ushort)(((ushort)(((bus).dtor_ext) >> ((int)((byte)(3))))) & ((ushort)(127))));
+        TI59__Print._IFuncIdx _source0 = TI59__Print.__default.FuncMatch((byte)(_5_code));
+        {
+          if (_source0.is_FNone) {
+            BigInteger _6_h0 = (p).dtor_head;
+            BigInteger _7_h1 = TI59__Print.__default.PrintHeadStep(_6_h0);
+            BigInteger _8_h2 = TI59__Print.__default.PrintHeadStep(_7_h1);
+            BigInteger _9_h3 = TI59__Print.__default.PrintHeadStep(_8_h2);
+            Dafny.ISequence<Dafny.Rune> _10_b3 = Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update((p).dtor_buffer, _6_h0, new Dafny.Rune('?')), _7_h1, new Dafny.Rune('?')), _8_h2, new Dafny.Rune('?'));
+            return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let191_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let191_0, _11_dt__update__tmp_h1 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_9_h3, _pat_let192_0 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_pat_let192_0, _12_dt__update_hhead_h1 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(_10_b3, _pat_let193_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(_pat_let193_0, _13_dt__update_hbuffer_h1 => TI59__Print.PrintState.create(_13_dt__update_hbuffer_h1, _12_dt__update_hhead_h1, (_11_dt__update__tmp_h1).dtor_tape))))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvPrintNotFound(_6_h0, _5_code), TI59__Events.Ti59Event.create_EvPrintFunc(_9_h3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("???"))));
+          }
+        }
+        {
+          BigInteger _14_idx = _source0.dtor_i;
+          Dafny.ISequence<Dafny.Rune> _15_s = ((TI59__Print.__default.PrintFuncTable()).Select(_14_idx)).dtor__1;
+          BigInteger _16_h0 = (p).dtor_head;
+          BigInteger _17_h1 = TI59__Print.__default.PrintHeadStep(_16_h0);
+          BigInteger _18_h2 = TI59__Print.__default.PrintHeadStep(_17_h1);
+          BigInteger _19_h3 = TI59__Print.__default.PrintHeadStep(_18_h2);
+          Dafny.ISequence<Dafny.Rune> _20_b3 = Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update(Dafny.Sequence<Dafny.Rune>.Update((p).dtor_buffer, _16_h0, (_15_s).Select(new BigInteger(2))), _17_h1, (_15_s).Select(BigInteger.One)), _18_h2, (_15_s).Select(BigInteger.Zero));
+          return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let194_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let194_0, _21_dt__update__tmp_h2 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_19_h3, _pat_let195_0 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_pat_let195_0, _22_dt__update_hhead_h2 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(_20_b3, _pat_let196_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(_pat_let196_0, _23_dt__update_hbuffer_h2 => TI59__Print.PrintState.create(_23_dt__update_hbuffer_h2, _22_dt__update_hhead_h2, (_21_dt__update__tmp_h2).dtor_tape))))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvPrintFunc(_19_h3, _15_s)));
+        }
+      } else if (((bus).dtor_irg) == ((ushort)(2696))) {
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let197_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let197_0, _24_dt__update__tmp_h3 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(new BigInteger(19), _pat_let198_0 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_pat_let198_0, _25_dt__update_hhead_h3 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
+  BigInteger dim9 = new BigInteger(20);
+  var arr9 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim9, "array size exceeds memory limit")];
+  for (int i9 = 0; i9 < dim9; i9++) {
+    var _26___v1 = (BigInteger) i9;
+    arr9[(int)(_26___v1)] = new Dafny.Rune(' ');
+  }
+  return Dafny.Sequence<Dafny.Rune>.FromArray(arr9);
+}))(), _pat_let199_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, TI59__Print._IPrintState>(_pat_let199_0, _27_dt__update_hbuffer_h3 => TI59__Print.PrintState.create(_27_dt__update_hbuffer_h3, _25_dt__update_hhead_h3, (_24_dt__update__tmp_h3).dtor_tape))))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvPrintClear((p).dtor_head, TI59__Print.__default.BufStr20((p).dtor_buffer))));
+      } else if (((bus).dtor_irg) == ((ushort)(2712))) {
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let200_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let200_0, _28_dt__update__tmp_h4 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(TI59__Print.__default.PrintHeadStep((_pat_let_tv3).dtor_head), _pat_let201_0 => Dafny.Helpers.Let<BigInteger, TI59__Print._IPrintState>(_pat_let201_0, _29_dt__update_hhead_h4 => TI59__Print.PrintState.create((_28_dt__update__tmp_h4).dtor_buffer, _29_dt__update_hhead_h4, (_28_dt__update__tmp_h4).dtor_tape))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+      } else if (((bus).dtor_irg) == ((ushort)(2728))) {
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let202_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let202_0, _30_dt__update__tmp_h5 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__Print._IPrintState>(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((_pat_let_tv4).dtor_tape, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(TI59__Print.__default.BufStr20((_pat_let_tv5).dtor_buffer))), _pat_let203_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__Print._IPrintState>(_pat_let203_0, _31_dt__update_htape_h0 => TI59__Print.PrintState.create((_30_dt__update__tmp_h5).dtor_buffer, (_30_dt__update__tmp_h5).dtor_head, _31_dt__update_htape_h0))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvPrint((p).dtor_head, TI59__Print.__default.BufStr20((p).dtor_buffer))));
+      } else if (((bus).dtor_irg) == ((ushort)(2744))) {
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(p, _pat_let204_0 => Dafny.Helpers.Let<TI59__Print._IPrintState, TI59__Print._IPrintState>(_pat_let204_0, _32_dt__update__tmp_h6 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__Print._IPrintState>(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((_pat_let_tv6).dtor_tape, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(((System.Func<Dafny.ISequence<Dafny.Rune>>) (() => {
+  BigInteger dim10 = BigInteger.Zero;
+  var arr10 = new Dafny.Rune[Dafny.Helpers.ToIntChecked(dim10, "array size exceeds memory limit")];
+  for (int i10 = 0; i10 < dim10; i10++) {
+    var _33___v2 = (BigInteger) i10;
+    arr10[(int)(_33___v2)] = new Dafny.Rune(' ');
+  }
+  return Dafny.Sequence<Dafny.Rune>.FromArray(arr10);
+}))())), _pat_let205_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, TI59__Print._IPrintState>(_pat_let205_0, _34_dt__update_htape_h1 => TI59__Print.PrintState.create((_32_dt__update__tmp_h6).dtor_buffer, (_32_dt__update__tmp_h6).dtor_head, _34_dt__update_htape_h1))))), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+      } else {
+        return _System.Tuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>>.create(p, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+      }
     }
   }
 
@@ -10873,7 +10838,7 @@ namespace TI59__PrintCrd {
       return new PrintState(_buffer, _head, _tape);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.PrintState;
+      var oth = other as TI59__Print.PrintState;
       return oth != null && object.Equals(this._buffer, oth._buffer) && this._head == oth._head && object.Equals(this._tape, oth._tape);
     }
     public override int GetHashCode() {
@@ -10885,7 +10850,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.PrintState.PrintState";
+      string s = "TI59_Print.PrintState.PrintState";
       s += "(";
       s += this._buffer.ToVerbatimString(true);
       s += ", ";
@@ -10895,12 +10860,12 @@ namespace TI59__PrintCrd {
       s += ")";
       return s;
     }
-    private static readonly TI59__PrintCrd._IPrintState theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, BigInteger.Zero, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty);
-    public static TI59__PrintCrd._IPrintState Default() {
+    private static readonly TI59__Print._IPrintState theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, BigInteger.Zero, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty);
+    public static TI59__Print._IPrintState Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<TI59__PrintCrd._IPrintState> _TYPE = new Dafny.TypeDescriptor<TI59__PrintCrd._IPrintState>(TI59__PrintCrd.PrintState.Default());
-    public static Dafny.TypeDescriptor<TI59__PrintCrd._IPrintState> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<TI59__Print._IPrintState> _TYPE = new Dafny.TypeDescriptor<TI59__Print._IPrintState>(TI59__Print.PrintState.Default());
+    public static Dafny.TypeDescriptor<TI59__Print._IPrintState> _TypeDescriptor() {
       return _TYPE;
     }
     public static _IPrintState create(Dafny.ISequence<Dafny.Rune> buffer, BigInteger head, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> tape) {
@@ -10936,12 +10901,12 @@ namespace TI59__PrintCrd {
   public abstract class FuncIdx : _IFuncIdx {
     public FuncIdx() {
     }
-    private static readonly TI59__PrintCrd._IFuncIdx theDefault = create_FNone();
-    public static TI59__PrintCrd._IFuncIdx Default() {
+    private static readonly TI59__Print._IFuncIdx theDefault = create_FNone();
+    public static TI59__Print._IFuncIdx Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<TI59__PrintCrd._IFuncIdx> _TYPE = new Dafny.TypeDescriptor<TI59__PrintCrd._IFuncIdx>(TI59__PrintCrd.FuncIdx.Default());
-    public static Dafny.TypeDescriptor<TI59__PrintCrd._IFuncIdx> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<TI59__Print._IFuncIdx> _TYPE = new Dafny.TypeDescriptor<TI59__Print._IFuncIdx>(TI59__Print.FuncIdx.Default());
+    public static Dafny.TypeDescriptor<TI59__Print._IFuncIdx> _TypeDescriptor() {
       return _TYPE;
     }
     public static _IFuncIdx create_FNone() {
@@ -10968,7 +10933,7 @@ namespace TI59__PrintCrd {
       return new FuncIdx_FNone();
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.FuncIdx_FNone;
+      var oth = other as TI59__Print.FuncIdx_FNone;
       return oth != null;
     }
     public override int GetHashCode() {
@@ -10977,7 +10942,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.FuncIdx.FNone";
+      string s = "TI59_Print.FuncIdx.FNone";
       return s;
     }
   }
@@ -10991,7 +10956,7 @@ namespace TI59__PrintCrd {
       return new FuncIdx_FFound(_i);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.FuncIdx_FFound;
+      var oth = other as TI59__Print.FuncIdx_FFound;
       return oth != null && this._i == oth._i;
     }
     public override int GetHashCode() {
@@ -11001,12 +10966,73 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.FuncIdx.FFound";
+      string s = "TI59_Print.FuncIdx.FFound";
       s += "(";
       s += Dafny.Helpers.ToString(this._i);
       s += ")";
       return s;
     }
+  }
+} // end of namespace TI59__Print
+namespace TI59__Crd {
+
+  public partial class __default {
+    public static bool CrdWF(TI59__Crd._ICrdState c) {
+      return (((new BigInteger(((c).dtor_data).Count)) == (new BigInteger(300))) && ((((c).dtor_pc).Sign != -1) && (((c).dtor_pc) <= (new BigInteger(299))))) && (((System.Func<bool>)(() => {
+        TI59__Crd._IOptCrd _source0 = (c).dtor_cardOut;
+        {
+          if (_source0.is_Card) {
+            Dafny.ISequence<byte> _0_img = _source0.dtor_img;
+            return (new BigInteger((_0_img).Count)) == (new BigInteger(300));
+          }
+        }
+        {
+          return true;
+        }
+      }))());
+    }
+    public static TI59__Crd._ICrdState CrdInit(Dafny.ISequence<byte> card) {
+      return TI59__Crd.CrdState.create(BigInteger.Zero, card, false, false, TI59__Crd.OptCrd.create_CardNone());
+    }
+    public static _System._ITuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>> CrdStep(TI59__Crd._ICrdState c, TI59__Chips._IKeyState k, TI59__Bus._IBus bus, BigInteger sstate, bool write)
+    {
+      var _pat_let_tv0 = bus;
+      var _pat_let_tv1 = c;
+      var _pat_let_tv2 = c;
+      var _pat_let_tv3 = c;
+      var _pat_let_tv4 = k;
+      if ((sstate) != (new BigInteger(15))) {
+        return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(c, k, bus, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+      } else if (write) {
+        if ((c).dtor_waitInDelay) {
+          byte _0_d = ((c).dtor_data).Select((c).dtor_pc);
+          TI59__Bus._IBus _1_bus1 = Dafny.Helpers.Let<TI59__Bus._IBus, TI59__Bus._IBus>(bus, _pat_let206_0 => Dafny.Helpers.Let<TI59__Bus._IBus, TI59__Bus._IBus>(_pat_let206_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<ushort, TI59__Bus._IBus>((ushort)(((_pat_let_tv0).dtor_ext) | (unchecked((ushort)(((ushort)(((ushort)(_0_d)) << ((int)((byte)(3))))))))), _pat_let207_0 => Dafny.Helpers.Let<ushort, TI59__Bus._IBus>(_pat_let207_0, _3_dt__update_hext_h0 => TI59__Bus.Bus.create(_3_dt__update_hext_h0, (_2_dt__update__tmp_h0).dtor_irg, (_2_dt__update__tmp_h0).dtor_io, (_2_dt__update__tmp_h0).dtor_displayDigit, (_2_dt__update__tmp_h0).dtor_displayDpt, (_2_dt__update__tmp_h0).dtor_displaySegH, (_2_dt__update__tmp_h0).dtor_keyLine, (_2_dt__update__tmp_h0).dtor_dstate, (_2_dt__update__tmp_h0).dtor_idle, (_2_dt__update__tmp_h0).dtor_addr, (_2_dt__update__tmp_h0).dtor_cycleCount)))));
+          TI59__Crd._ICrdState _4_c1 = Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(c, _pat_let208_0 => Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_pat_let208_0, _5_dt__update__tmp_h1 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>((((((_pat_let_tv2).dtor_pc) + (BigInteger.One)) >= (new BigInteger(300))) ? (BigInteger.Zero) : (((_pat_let_tv1).dtor_pc) + (BigInteger.One))), _pat_let209_0 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>(_pat_let209_0, _6_dt__update_hpc_h0 => TI59__Crd.CrdState.create(_6_dt__update_hpc_h0, (_5_dt__update__tmp_h1).dtor_data, (_5_dt__update__tmp_h1).dtor_waitIn, (_5_dt__update__tmp_h1).dtor_waitInDelay, (_5_dt__update__tmp_h1).dtor_cardOut)))));
+          return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(_4_c1, k, _1_bus1, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvCrdRd((c).dtor_pc, _0_d)));
+        } else {
+          return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(c, k, bus, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+        }
+      } else {
+        TI59__Crd._ICrdState _7_c0 = Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(c, _pat_let210_0 => Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_pat_let210_0, _8_dt__update__tmp_h2 => Dafny.Helpers.Let<bool, TI59__Crd._ICrdState>(false, _pat_let211_0 => Dafny.Helpers.Let<bool, TI59__Crd._ICrdState>(_pat_let211_0, _9_dt__update_hwaitIn_h0 => Dafny.Helpers.Let<bool, TI59__Crd._ICrdState>((_pat_let_tv3).dtor_waitIn, _pat_let212_0 => Dafny.Helpers.Let<bool, TI59__Crd._ICrdState>(_pat_let212_0, _10_dt__update_hwaitInDelay_h0 => TI59__Crd.CrdState.create((_8_dt__update__tmp_h2).dtor_pc, (_8_dt__update__tmp_h2).dtor_data, _9_dt__update_hwaitIn_h0, _10_dt__update_hwaitInDelay_h0, (_8_dt__update__tmp_h2).dtor_cardOut)))))));
+        if (((bus).dtor_irg) == ((ushort)(2600))) {
+          return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_7_c0, _pat_let213_0 => Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_pat_let213_0, _11_dt__update__tmp_h3 => Dafny.Helpers.Let<bool, TI59__Crd._ICrdState>(true, _pat_let214_0 => Dafny.Helpers.Let<bool, TI59__Crd._ICrdState>(_pat_let214_0, _12_dt__update_hwaitIn_h1 => TI59__Crd.CrdState.create((_11_dt__update__tmp_h3).dtor_pc, (_11_dt__update__tmp_h3).dtor_data, _12_dt__update_hwaitIn_h1, (_11_dt__update__tmp_h3).dtor_waitInDelay, (_11_dt__update__tmp_h3).dtor_cardOut))))), k, bus, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+        } else if (((bus).dtor_irg) == ((ushort)(2616))) {
+          byte _13_d = (byte)((ushort)(((ushort)(((bus).dtor_ext) >> ((int)((byte)(3))))) & ((ushort)(255))));
+          TI59__Crd._ICrdState _14_c1 = Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_7_c0, _pat_let215_0 => Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_pat_let215_0, _15_dt__update__tmp_h4 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>((((((_7_c0).dtor_pc) + (BigInteger.One)) >= (new BigInteger(300))) ? (BigInteger.Zero) : (((_7_c0).dtor_pc) + (BigInteger.One))), _pat_let216_0 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>(_pat_let216_0, _16_dt__update_hpc_h1 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__Crd._ICrdState>(Dafny.Sequence<byte>.Update((_7_c0).dtor_data, (_7_c0).dtor_pc, _13_d), _pat_let217_0 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__Crd._ICrdState>(_pat_let217_0, _17_dt__update_hdata_h0 => TI59__Crd.CrdState.create(_16_dt__update_hpc_h1, _17_dt__update_hdata_h0, (_15_dt__update__tmp_h4).dtor_waitIn, (_15_dt__update__tmp_h4).dtor_waitInDelay, (_15_dt__update__tmp_h4).dtor_cardOut)))))));
+          return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(_14_c1, k, bus, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvCrdWr((_7_c0).dtor_pc, _13_d)));
+        } else if (((bus).dtor_irg) == ((ushort)(2632))) {
+          byte _18_pers1 = (byte)((((k).dtor_persKeys).Select(new BigInteger(10))) | (TI59__Nibbles.__default.Bit8(TI59__Chips.__default.KR__BIT)));
+          TI59__Chips._IKeyState _19_k1 = Dafny.Helpers.Let<TI59__Chips._IKeyState, TI59__Chips._IKeyState>(k, _pat_let218_0 => Dafny.Helpers.Let<TI59__Chips._IKeyState, TI59__Chips._IKeyState>(_pat_let218_0, _20_dt__update__tmp_h5 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__Chips._IKeyState>(Dafny.Sequence<byte>.Update((_pat_let_tv4).dtor_persKeys, new BigInteger(10), _18_pers1), _pat_let219_0 => Dafny.Helpers.Let<Dafny.ISequence<byte>, TI59__Chips._IKeyState>(_pat_let219_0, _21_dt__update_hpersKeys_h0 => TI59__Chips.KeyState.create(_21_dt__update_hpersKeys_h0, (_20_dt__update__tmp_h5).dtor_keyCode, (_20_dt__update__tmp_h5).dtor_keyCount, (_20_dt__update__tmp_h5).dtor_keyCodeHw, (_20_dt__update__tmp_h5).dtor_keyCountHw, (_20_dt__update__tmp_h5).dtor_pressCycle, (_20_dt__update__tmp_h5).dtor_unpressCycle, (_20_dt__update__tmp_h5).dtor_pressMask, (_20_dt__update__tmp_h5).dtor_unpressMask, (_20_dt__update__tmp_h5).dtor_script, (_20_dt__update__tmp_h5).dtor_scriptPos)))));
+          TI59__Crd._ICrdState _22_c2 = ((((c).dtor_pc).Sign != 0) ? (Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_7_c0, _pat_let220_0 => Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_pat_let220_0, _23_dt__update__tmp_h6 => Dafny.Helpers.Let<TI59__Crd._IOptCrd, TI59__Crd._ICrdState>(TI59__Crd.OptCrd.create_Card((_7_c0).dtor_data), _pat_let221_0 => Dafny.Helpers.Let<TI59__Crd._IOptCrd, TI59__Crd._ICrdState>(_pat_let221_0, _24_dt__update_hcardOut_h0 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>(BigInteger.Zero, _pat_let222_0 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>(_pat_let222_0, _25_dt__update_hpc_h2 => TI59__Crd.CrdState.create(_25_dt__update_hpc_h2, (_23_dt__update__tmp_h6).dtor_data, (_23_dt__update__tmp_h6).dtor_waitIn, (_23_dt__update__tmp_h6).dtor_waitInDelay, _24_dt__update_hcardOut_h0)))))))) : (Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_7_c0, _pat_let223_0 => Dafny.Helpers.Let<TI59__Crd._ICrdState, TI59__Crd._ICrdState>(_pat_let223_0, _26_dt__update__tmp_h7 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>(BigInteger.Zero, _pat_let224_0 => Dafny.Helpers.Let<BigInteger, TI59__Crd._ICrdState>(_pat_let224_0, _27_dt__update_hpc_h3 => TI59__Crd.CrdState.create(_27_dt__update_hpc_h3, (_26_dt__update__tmp_h7).dtor_data, (_26_dt__update__tmp_h7).dtor_waitIn, (_26_dt__update__tmp_h7).dtor_waitInDelay, (_26_dt__update__tmp_h7).dtor_cardOut)))))));
+          return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(_22_c2, _19_k1, bus, ((((c).dtor_pc).Sign != 0) ? (Dafny.Sequence<TI59__Events._ITi59Event>.FromElements(TI59__Events.Ti59Event.create_EvCrdOff((c).dtor_pc))) : (Dafny.Sequence<TI59__Events._ITi59Event>.FromElements())));
+        } else {
+          return _System.Tuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>>.create(_7_c0, k, bus, Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
+        }
+      }
+    }
+    public static byte CARD__FILL { get {
+      return (byte)(146);
+    } }
   }
 
   public interface _IOptCrd {
@@ -11018,12 +11044,12 @@ namespace TI59__PrintCrd {
   public abstract class OptCrd : _IOptCrd {
     public OptCrd() {
     }
-    private static readonly TI59__PrintCrd._IOptCrd theDefault = create_CardNone();
-    public static TI59__PrintCrd._IOptCrd Default() {
+    private static readonly TI59__Crd._IOptCrd theDefault = create_CardNone();
+    public static TI59__Crd._IOptCrd Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<TI59__PrintCrd._IOptCrd> _TYPE = new Dafny.TypeDescriptor<TI59__PrintCrd._IOptCrd>(TI59__PrintCrd.OptCrd.Default());
-    public static Dafny.TypeDescriptor<TI59__PrintCrd._IOptCrd> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<TI59__Crd._IOptCrd> _TYPE = new Dafny.TypeDescriptor<TI59__Crd._IOptCrd>(TI59__Crd.OptCrd.Default());
+    public static Dafny.TypeDescriptor<TI59__Crd._IOptCrd> _TypeDescriptor() {
       return _TYPE;
     }
     public static _IOptCrd create_CardNone() {
@@ -11050,7 +11076,7 @@ namespace TI59__PrintCrd {
       return new OptCrd_CardNone();
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.OptCrd_CardNone;
+      var oth = other as TI59__Crd.OptCrd_CardNone;
       return oth != null;
     }
     public override int GetHashCode() {
@@ -11059,7 +11085,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.OptCrd.CardNone";
+      string s = "TI59_Crd.OptCrd.CardNone";
       return s;
     }
   }
@@ -11073,7 +11099,7 @@ namespace TI59__PrintCrd {
       return new OptCrd_Card(_img);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.OptCrd_Card;
+      var oth = other as TI59__Crd.OptCrd_Card;
       return oth != null && object.Equals(this._img, oth._img);
     }
     public override int GetHashCode() {
@@ -11083,7 +11109,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.OptCrd.Card";
+      string s = "TI59_Crd.OptCrd.Card";
       s += "(";
       s += Dafny.Helpers.ToString(this._img);
       s += ")";
@@ -11097,7 +11123,7 @@ namespace TI59__PrintCrd {
     Dafny.ISequence<byte> dtor_data { get; }
     bool dtor_waitIn { get; }
     bool dtor_waitInDelay { get; }
-    TI59__PrintCrd._IOptCrd dtor_cardOut { get; }
+    TI59__Crd._IOptCrd dtor_cardOut { get; }
     _ICrdState DowncastClone();
   }
   public class CrdState : _ICrdState {
@@ -11105,8 +11131,8 @@ namespace TI59__PrintCrd {
     public readonly Dafny.ISequence<byte> _data;
     public readonly bool _waitIn;
     public readonly bool _waitInDelay;
-    public readonly TI59__PrintCrd._IOptCrd _cardOut;
-    public CrdState(BigInteger pc, Dafny.ISequence<byte> data, bool waitIn, bool waitInDelay, TI59__PrintCrd._IOptCrd cardOut) {
+    public readonly TI59__Crd._IOptCrd _cardOut;
+    public CrdState(BigInteger pc, Dafny.ISequence<byte> data, bool waitIn, bool waitInDelay, TI59__Crd._IOptCrd cardOut) {
       this._pc = pc;
       this._data = data;
       this._waitIn = waitIn;
@@ -11118,7 +11144,7 @@ namespace TI59__PrintCrd {
       return new CrdState(_pc, _data, _waitIn, _waitInDelay, _cardOut);
     }
     public override bool Equals(object other) {
-      var oth = other as TI59__PrintCrd.CrdState;
+      var oth = other as TI59__Crd.CrdState;
       return oth != null && this._pc == oth._pc && object.Equals(this._data, oth._data) && this._waitIn == oth._waitIn && this._waitInDelay == oth._waitInDelay && object.Equals(this._cardOut, oth._cardOut);
     }
     public override int GetHashCode() {
@@ -11132,7 +11158,7 @@ namespace TI59__PrintCrd {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "TI59_PrintCrd.CrdState.CrdState";
+      string s = "TI59_Crd.CrdState.CrdState";
       s += "(";
       s += Dafny.Helpers.ToString(this._pc);
       s += ", ";
@@ -11146,18 +11172,18 @@ namespace TI59__PrintCrd {
       s += ")";
       return s;
     }
-    private static readonly TI59__PrintCrd._ICrdState theDefault = create(BigInteger.Zero, Dafny.Sequence<byte>.Empty, false, false, TI59__PrintCrd.OptCrd.Default());
-    public static TI59__PrintCrd._ICrdState Default() {
+    private static readonly TI59__Crd._ICrdState theDefault = create(BigInteger.Zero, Dafny.Sequence<byte>.Empty, false, false, TI59__Crd.OptCrd.Default());
+    public static TI59__Crd._ICrdState Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<TI59__PrintCrd._ICrdState> _TYPE = new Dafny.TypeDescriptor<TI59__PrintCrd._ICrdState>(TI59__PrintCrd.CrdState.Default());
-    public static Dafny.TypeDescriptor<TI59__PrintCrd._ICrdState> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<TI59__Crd._ICrdState> _TYPE = new Dafny.TypeDescriptor<TI59__Crd._ICrdState>(TI59__Crd.CrdState.Default());
+    public static Dafny.TypeDescriptor<TI59__Crd._ICrdState> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ICrdState create(BigInteger pc, Dafny.ISequence<byte> data, bool waitIn, bool waitInDelay, TI59__PrintCrd._IOptCrd cardOut) {
+    public static _ICrdState create(BigInteger pc, Dafny.ISequence<byte> data, bool waitIn, bool waitInDelay, TI59__Crd._IOptCrd cardOut) {
       return new CrdState(pc, data, waitIn, waitInDelay, cardOut);
     }
-    public static _ICrdState create_CrdState(BigInteger pc, Dafny.ISequence<byte> data, bool waitIn, bool waitInDelay, TI59__PrintCrd._IOptCrd cardOut) {
+    public static _ICrdState create_CrdState(BigInteger pc, Dafny.ISequence<byte> data, bool waitIn, bool waitInDelay, TI59__Crd._IOptCrd cardOut) {
       return create(pc, data, waitIn, waitInDelay, cardOut);
     }
     public bool is_CrdState { get { return true; } }
@@ -11181,13 +11207,13 @@ namespace TI59__PrintCrd {
         return this._waitInDelay;
       }
     }
-    public TI59__PrintCrd._IOptCrd dtor_cardOut {
+    public TI59__Crd._IOptCrd dtor_cardOut {
       get {
         return this._cardOut;
       }
     }
   }
-} // end of namespace TI59__PrintCrd
+} // end of namespace TI59__Crd
 namespace TI59__Machine {
 
   public partial class __default {
@@ -11209,8 +11235,8 @@ namespace TI59__Machine {
           }
         }
         {
-          TI59__PrintCrd._IPrintState _8_p = _source0.dtor_prn;
-          return TI59__PrintCrd.__default.PrintWF(_8_p);
+          TI59__Print._IPrintState _8_p = _source0.dtor_prn;
+          return TI59__Print.__default.PrintWF(_8_p);
         }
       }))())) && (((System.Func<bool>)(() => {
         TI59__Machine._ICrdOpt _source1 = (m).dtor_crdOpt;
@@ -11220,14 +11246,14 @@ namespace TI59__Machine {
           }
         }
         {
-          TI59__PrintCrd._ICrdState _9_c = _source1.dtor_crd;
-          return TI59__PrintCrd.__default.CrdWF(_9_c);
+          TI59__Crd._ICrdState _9_c = _source1.dtor_crd;
+          return TI59__Crd.__default.CrdWF(_9_c);
         }
       }))());
     }
     public static TI59__Machine._IMachine MachineInit(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus)
     {
-      return TI59__Machine.Machine.create(cpu, broms, scoms, rams, lib, keys, disp, bus, false, TI59__Machine.PrnOpt.create_PrnNone(), TI59__Machine.CrdOpt.create_CrdNone(), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromElements());
+      return TI59__Machine.Machine.create(cpu, broms, scoms, rams, lib, keys, disp, bus, false, TI59__Machine.PrnOpt.create_PrnNone(), TI59__Machine.CrdOpt.create_CrdNone(), Dafny.Sequence<TI59__Events._ITi59Event>.FromElements());
     }
     public static TI59__Machine._IMachine AluChip(TI59__Machine._IMachine m, BigInteger sstate, bool write)
     {
@@ -11388,12 +11414,12 @@ namespace TI59__Machine {
         }
       }
       {
-        TI59__PrintCrd._IPrintState _0_p = _source0.dtor_prn;
-        _System._ITuple2<TI59__PrintCrd._IPrintState, Dafny.ISequence<TI59__PrintCrd._ITi59Event>> _let_tmp_rhs0 = TI59__PrintCrd.__default.PrintStep(_0_p, (m).dtor_bus, sstate, write);
-        TI59__PrintCrd._IPrintState _1_p1 = _let_tmp_rhs0.dtor__0;
-        Dafny.ISequence<TI59__PrintCrd._ITi59Event> _2_evs = _let_tmp_rhs0.dtor__1;
+        TI59__Print._IPrintState _0_p = _source0.dtor_prn;
+        _System._ITuple2<TI59__Print._IPrintState, Dafny.ISequence<TI59__Events._ITi59Event>> _let_tmp_rhs0 = TI59__Print.__default.PrintStep(_0_p, (m).dtor_bus, sstate, write);
+        TI59__Print._IPrintState _1_p1 = _let_tmp_rhs0.dtor__0;
+        Dafny.ISequence<TI59__Events._ITi59Event> _2_evs = _let_tmp_rhs0.dtor__1;
         TI59__Machine._IMachine _3_dt__update__tmp_h0 = m;
-        Dafny.ISequence<TI59__PrintCrd._ITi59Event> _4_dt__update_hevs_h0 = Dafny.Sequence<TI59__PrintCrd._ITi59Event>.Concat((m).dtor_evs, _2_evs);
+        Dafny.ISequence<TI59__Events._ITi59Event> _4_dt__update_hevs_h0 = Dafny.Sequence<TI59__Events._ITi59Event>.Concat((m).dtor_evs, _2_evs);
         TI59__Machine._IPrnOpt _5_dt__update_hprintOpt_h0 = TI59__Machine.PrnOpt.create_Prn(_1_p1);
         return TI59__Machine.Machine.create((_3_dt__update__tmp_h0).dtor_cpu, (_3_dt__update__tmp_h0).dtor_broms, (_3_dt__update__tmp_h0).dtor_scoms, (_3_dt__update__tmp_h0).dtor_rams, (_3_dt__update__tmp_h0).dtor_lib, (_3_dt__update__tmp_h0).dtor_keys, (_3_dt__update__tmp_h0).dtor_disp, (_3_dt__update__tmp_h0).dtor_bus, (_3_dt__update__tmp_h0).dtor_halted, _5_dt__update_hprintOpt_h0, (_3_dt__update__tmp_h0).dtor_crdOpt, _4_dt__update_hevs_h0);
       }
@@ -11407,14 +11433,14 @@ namespace TI59__Machine {
         }
       }
       {
-        TI59__PrintCrd._ICrdState _0_c = _source0.dtor_crd;
-        _System._ITuple4<TI59__PrintCrd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__PrintCrd._ITi59Event>> _let_tmp_rhs0 = TI59__PrintCrd.__default.CrdStep(_0_c, (m).dtor_keys, (m).dtor_bus, sstate, write);
-        TI59__PrintCrd._ICrdState _1_c1 = _let_tmp_rhs0.dtor__0;
+        TI59__Crd._ICrdState _0_c = _source0.dtor_crd;
+        _System._ITuple4<TI59__Crd._ICrdState, TI59__Chips._IKeyState, TI59__Bus._IBus, Dafny.ISequence<TI59__Events._ITi59Event>> _let_tmp_rhs0 = TI59__Crd.__default.CrdStep(_0_c, (m).dtor_keys, (m).dtor_bus, sstate, write);
+        TI59__Crd._ICrdState _1_c1 = _let_tmp_rhs0.dtor__0;
         TI59__Chips._IKeyState _2_k1 = _let_tmp_rhs0.dtor__1;
         TI59__Bus._IBus _3_bus1 = _let_tmp_rhs0.dtor__2;
-        Dafny.ISequence<TI59__PrintCrd._ITi59Event> _4_evs = _let_tmp_rhs0.dtor__3;
+        Dafny.ISequence<TI59__Events._ITi59Event> _4_evs = _let_tmp_rhs0.dtor__3;
         TI59__Machine._IMachine _5_dt__update__tmp_h0 = m;
-        Dafny.ISequence<TI59__PrintCrd._ITi59Event> _6_dt__update_hevs_h0 = Dafny.Sequence<TI59__PrintCrd._ITi59Event>.Concat((m).dtor_evs, _4_evs);
+        Dafny.ISequence<TI59__Events._ITi59Event> _6_dt__update_hevs_h0 = Dafny.Sequence<TI59__Events._ITi59Event>.Concat((m).dtor_evs, _4_evs);
         TI59__Bus._IBus _7_dt__update_hbus_h0 = _3_bus1;
         TI59__Chips._IKeyState _8_dt__update_hkeys_h0 = _2_k1;
         TI59__Machine._ICrdOpt _9_dt__update_hcrdOpt_h0 = TI59__Machine.CrdOpt.create_Crd(_1_c1);
@@ -11592,7 +11618,7 @@ namespace TI59__Machine {
   public interface _IPrnOpt {
     bool is_PrnNone { get; }
     bool is_Prn { get; }
-    TI59__PrintCrd._IPrintState dtor_prn { get; }
+    TI59__Print._IPrintState dtor_prn { get; }
     _IPrnOpt DowncastClone();
   }
   public abstract class PrnOpt : _IPrnOpt {
@@ -11609,12 +11635,12 @@ namespace TI59__Machine {
     public static _IPrnOpt create_PrnNone() {
       return new PrnOpt_PrnNone();
     }
-    public static _IPrnOpt create_Prn(TI59__PrintCrd._IPrintState prn) {
+    public static _IPrnOpt create_Prn(TI59__Print._IPrintState prn) {
       return new PrnOpt_Prn(prn);
     }
     public bool is_PrnNone { get { return this is PrnOpt_PrnNone; } }
     public bool is_Prn { get { return this is PrnOpt_Prn; } }
-    public TI59__PrintCrd._IPrintState dtor_prn {
+    public TI59__Print._IPrintState dtor_prn {
       get {
         var d = this;
         return ((PrnOpt_Prn)d)._prn;
@@ -11644,8 +11670,8 @@ namespace TI59__Machine {
     }
   }
   public class PrnOpt_Prn : PrnOpt {
-    public readonly TI59__PrintCrd._IPrintState _prn;
-    public PrnOpt_Prn(TI59__PrintCrd._IPrintState prn) : base() {
+    public readonly TI59__Print._IPrintState _prn;
+    public PrnOpt_Prn(TI59__Print._IPrintState prn) : base() {
       this._prn = prn;
     }
     public override _IPrnOpt DowncastClone() {
@@ -11674,7 +11700,7 @@ namespace TI59__Machine {
   public interface _ICrdOpt {
     bool is_CrdNone { get; }
     bool is_Crd { get; }
-    TI59__PrintCrd._ICrdState dtor_crd { get; }
+    TI59__Crd._ICrdState dtor_crd { get; }
     _ICrdOpt DowncastClone();
   }
   public abstract class CrdOpt : _ICrdOpt {
@@ -11691,12 +11717,12 @@ namespace TI59__Machine {
     public static _ICrdOpt create_CrdNone() {
       return new CrdOpt_CrdNone();
     }
-    public static _ICrdOpt create_Crd(TI59__PrintCrd._ICrdState crd) {
+    public static _ICrdOpt create_Crd(TI59__Crd._ICrdState crd) {
       return new CrdOpt_Crd(crd);
     }
     public bool is_CrdNone { get { return this is CrdOpt_CrdNone; } }
     public bool is_Crd { get { return this is CrdOpt_Crd; } }
-    public TI59__PrintCrd._ICrdState dtor_crd {
+    public TI59__Crd._ICrdState dtor_crd {
       get {
         var d = this;
         return ((CrdOpt_Crd)d)._crd;
@@ -11726,8 +11752,8 @@ namespace TI59__Machine {
     }
   }
   public class CrdOpt_Crd : CrdOpt {
-    public readonly TI59__PrintCrd._ICrdState _crd;
-    public CrdOpt_Crd(TI59__PrintCrd._ICrdState crd) : base() {
+    public readonly TI59__Crd._ICrdState _crd;
+    public CrdOpt_Crd(TI59__Crd._ICrdState crd) : base() {
       this._crd = crd;
     }
     public override _ICrdOpt DowncastClone() {
@@ -11766,7 +11792,7 @@ namespace TI59__Machine {
     bool dtor_halted { get; }
     TI59__Machine._IPrnOpt dtor_printOpt { get; }
     TI59__Machine._ICrdOpt dtor_crdOpt { get; }
-    Dafny.ISequence<TI59__PrintCrd._ITi59Event> dtor_evs { get; }
+    Dafny.ISequence<TI59__Events._ITi59Event> dtor_evs { get; }
     _IMachine DowncastClone();
   }
   public class Machine : _IMachine {
@@ -11781,8 +11807,8 @@ namespace TI59__Machine {
     public readonly bool _halted;
     public readonly TI59__Machine._IPrnOpt _printOpt;
     public readonly TI59__Machine._ICrdOpt _crdOpt;
-    public readonly Dafny.ISequence<TI59__PrintCrd._ITi59Event> _evs;
-    public Machine(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus, bool halted, TI59__Machine._IPrnOpt printOpt, TI59__Machine._ICrdOpt crdOpt, Dafny.ISequence<TI59__PrintCrd._ITi59Event> evs) {
+    public readonly Dafny.ISequence<TI59__Events._ITi59Event> _evs;
+    public Machine(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus, bool halted, TI59__Machine._IPrnOpt printOpt, TI59__Machine._ICrdOpt crdOpt, Dafny.ISequence<TI59__Events._ITi59Event> evs) {
       this._cpu = cpu;
       this._broms = broms;
       this._scoms = scoms;
@@ -11850,7 +11876,7 @@ namespace TI59__Machine {
       s += ")";
       return s;
     }
-    private static readonly TI59__Machine._IMachine theDefault = create(TI59__Cpu.Cpu.Default(), Dafny.Sequence<TI59__Chips._IBrom>.Empty, Dafny.Sequence<TI59__Chips._IScom>.Empty, Dafny.Sequence<TI59__Chips._IRam>.Empty, TI59__Chips.Lib.Default(), TI59__Chips.KeyState.Default(), TI59__Chips.Disp.Default(), TI59__Bus.Bus.Default(), false, TI59__Machine.PrnOpt.Default(), TI59__Machine.CrdOpt.Default(), Dafny.Sequence<TI59__PrintCrd._ITi59Event>.Empty);
+    private static readonly TI59__Machine._IMachine theDefault = create(TI59__Cpu.Cpu.Default(), Dafny.Sequence<TI59__Chips._IBrom>.Empty, Dafny.Sequence<TI59__Chips._IScom>.Empty, Dafny.Sequence<TI59__Chips._IRam>.Empty, TI59__Chips.Lib.Default(), TI59__Chips.KeyState.Default(), TI59__Chips.Disp.Default(), TI59__Bus.Bus.Default(), false, TI59__Machine.PrnOpt.Default(), TI59__Machine.CrdOpt.Default(), Dafny.Sequence<TI59__Events._ITi59Event>.Empty);
     public static TI59__Machine._IMachine Default() {
       return theDefault;
     }
@@ -11858,10 +11884,10 @@ namespace TI59__Machine {
     public static Dafny.TypeDescriptor<TI59__Machine._IMachine> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IMachine create(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus, bool halted, TI59__Machine._IPrnOpt printOpt, TI59__Machine._ICrdOpt crdOpt, Dafny.ISequence<TI59__PrintCrd._ITi59Event> evs) {
+    public static _IMachine create(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus, bool halted, TI59__Machine._IPrnOpt printOpt, TI59__Machine._ICrdOpt crdOpt, Dafny.ISequence<TI59__Events._ITi59Event> evs) {
       return new Machine(cpu, broms, scoms, rams, lib, keys, disp, bus, halted, printOpt, crdOpt, evs);
     }
-    public static _IMachine create_Machine(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus, bool halted, TI59__Machine._IPrnOpt printOpt, TI59__Machine._ICrdOpt crdOpt, Dafny.ISequence<TI59__PrintCrd._ITi59Event> evs) {
+    public static _IMachine create_Machine(TI59__Cpu._ICpu cpu, Dafny.ISequence<TI59__Chips._IBrom> broms, Dafny.ISequence<TI59__Chips._IScom> scoms, Dafny.ISequence<TI59__Chips._IRam> rams, TI59__Chips._ILib lib, TI59__Chips._IKeyState keys, TI59__Chips._IDisp disp, TI59__Bus._IBus bus, bool halted, TI59__Machine._IPrnOpt printOpt, TI59__Machine._ICrdOpt crdOpt, Dafny.ISequence<TI59__Events._ITi59Event> evs) {
       return create(cpu, broms, scoms, rams, lib, keys, disp, bus, halted, printOpt, crdOpt, evs);
     }
     public bool is_Machine { get { return true; } }
@@ -11920,7 +11946,7 @@ namespace TI59__Machine {
         return this._crdOpt;
       }
     }
-    public Dafny.ISequence<TI59__PrintCrd._ITi59Event> dtor_evs {
+    public Dafny.ISequence<TI59__Events._ITi59Event> dtor_evs {
       get {
         return this._evs;
       }
