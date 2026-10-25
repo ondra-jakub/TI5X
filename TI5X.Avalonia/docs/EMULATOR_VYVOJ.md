@@ -321,19 +321,24 @@ Podrobnosti formátu jsou v [kapitole 6](#6-formáty-souborů).
 
 ### 3.8 PrinterEngine
 
-Model tiskárny PC-100A (`src/TI5X.Core/PrinterEngine.cs`):
+Model tiskárny PC-100A (`src/TI5X.Core/PrinterEngine.cs`) je veden přes **ověřený model TMC0251** (`src/TI5X.Core/Ti59PrintModel.cs` – ruční port `ti59-dafny/dfy/TI59/Print.dfy`; ten je důkazem věrný C orákulu `print.c` a v `ti59-dafny/scripts/corpus.sh` je bit-exaktně porovnán na celém korpusu včetně tisku ML-01). Všechny tiskové cesty aplikace (PRT, ADV, 2nd List, trasovací mód, Op 1–5) procházejí tímto portem: autentický 64znakový font, mnemoniky `print_func`, 20znakový buffer a hlava se sweepem zprava doleva (init 5, wrap).
 
 | Člen | Popis |
 |---|---|
 | `CharColumns = 20`, `CharWidth = 5`, `CharHeight = 7` | Rozměry řádku a znaku. |
-| `MaxLines = 500` | Po překročení se nejstarší řádky mažou. |
+| `MaxLines = 500` | Po překročení se nejstarší řádky mažou (model si pásku drží celou). |
 | `Chars` | Bitmapový font 5×7 pro 64 znaků. **Zatím se nepoužívá** – páska se ukládá a zobrazuje jako text. |
-| `TapeLines`, `TapeChanged` | Obsah pásky (seznam řetězců) a událost po každé změně. |
-| `PrintLine(text)`, `Advance()`, `Clear()` | Přidání řádku, prázdný řádek, smazání pásky. |
-| `Render(printRegister)` | Převede až 20 kódů tiskového registru na znaky přes `CodeToChar` a přidá řádek (`Op 5`). |
-| `CodeToChar(kód)` | Převod dvoumístného kódu znaku tiskárny na znak; neznámé kódy dávají mezeru. |
+| `TapeLines`, `TapeChanged` | Obsah pásky (seznam 20znakových řádků z modelu) a událost po každé změně. |
+| `PrintLine(text)`, `Advance()`, `Clear()` | Simulace autentického tisku (clear bufferu + znaky přes font + PRINT op), prázdný řádek (`0x0AB8`), smazání pásky (UI). |
+| `Render(printRegister)` | Převede až 20 dvouciferných kódů tiskového registru na znaky přes `PrintRegisterChar` a vytiskne přes model (`Op 5`). |
+| `PrintRegisterChar(kód)` | Převod dvouciferného kódu XY na znak dle tabulky TMC0251: `((X mod 8) << 3) | Y` – ověřeno proti orákulu na 14 párech, viz komentář ve zdroji. |
+| `ListMnemonic(uiKód)` | Mnemonika pro listing: autentická TMC0251 mnemonika z `print_func` u 28 mapovaných kódů (`÷` → `" / "`, `√X` → `"sX "`, `π` → `"pi "`, …), jinde fallback `KeyCodes.KeyCodeSym`. |
+| `CharToFontIndex(znak)` | Reverzní mapa znak → 6bitový index fontu + aliasy pro UI zkratky mimo sadu TMC0251 (`⇌`→`|`, `∑`→`$`, …); nezmapovaný znak se netiskne. |
+| `CodeToChar(kód)` | Stará veřejná API zbytečně zachovaná; deleguje na `PrintRegisterChar`. |
 
-Jádro tiskne přes `Printer?.…`: `Prt` a trasovací tisk (`PrintDisplay`, displej zarovnaný doprava na 20 znaků), `Adv`, `List` (`ExecuteList`), `Op 5` (`Render`), `Op 6`/`Op 7` (`Advance`) a `Op 8` (`ExecuteListLabels`).
+Vlastní `Ti59PrintMachine` (v `Ti59PrintModel.cs`) je čisté C# bez Dafny typů – `TI5X.Core` neodkazuje na `TI5X.Verified`; konzistence portu s ověřeným překladem (`Ti59PrintCore.cs` v `TI5X.Verified/generated`), s `ml01print` páskovou fixturou z C orákula a s experimenty overenými proti reálné ROM (mapování print registru) je podložena testy `Ti59PrintModelTests` (op sweep 408 ops, tabulky, fixtura). Generování i regen-diff v CI viz `ti59-dafny/scripts/gen-print.sh`.
+
+Jádro tiskne přes `Printer?.…`: `Prt` a trasovací tisk (`PrintDisplay`, displej zarovnaný doprava na 20 znaků), `Adv`, `List` (`ExecuteList`, mnemoniky přes `PrinterEngine.ListMnemonic`), `Op 5` (`Render`), `Op 6`/`Op 7` (`Advance`) a `Op 8` (`ExecuteListLabels`).
 
 ## 4. View modely
 

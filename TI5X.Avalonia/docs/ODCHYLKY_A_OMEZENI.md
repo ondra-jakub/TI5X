@@ -213,17 +213,20 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 
 ### 3.12 Tiskárna PC-100A
 
+Všechny tiskové cesty jsou vedeny přes **ověřený model TMC0251** (port `ti59-dafny/dfy/TI59/Print.dfy`, věrný C orákulu `print.c`; v aplikaci jako `src/TI5X.Core/Ti59PrintModel.cs`). Font, hlava (init 5, sweep zprava doleva), 20znakový buffer a mnemoniky `print_func` nyní odpovídají hardwaru; konzistence s orákulem je bit-exaktně doložena korpus 12/12 (`ti59-dafny/scripts/corpus.sh`) a testy `Ti59PrintModelTests`.
+
 | Funkce | Stav | Poznámka |
 |---|---|---|
 | `2nd Prt` | ✅ | Vytiskne obsah displeje zarovnaný doprava na 20 znaků. |
-| `2nd Adv` | ✅ | Prázdný řádek. |
-| `2nd List` | ⚠️ | *(ověřeno)* Vytiskne **všechny** kroky od 000 do konce rozdělení ve tvaru `PPP  KK MNE`, včetně prázdných. Páska pojme 500 řádků, takže začátek výpisu (prvních 460 kroků z 960) se ztratí. V originále výpis začíná od aktuálního kroku. |
+| `2nd Adv` | ✅ | Prázdný řádek (op `0x0AB8` = `display_print("")`, věrně modelu). |
+| `2nd List` | ⚠️ | *(ověřeno)* Vytiskne **všechny** kroky od 000 do konce rozdělení ve tvaru `PPP  KK MNE`, včetně prázdných. Mnemoniky: u 28 kódů autentická TMC0251 mnemonika z `print_func` (`÷`→` / `, `√X`→`sX `, `π`→`pi `, `∑+`→`$+ `, `EXC`→`X|Y`, …), jinde klávesní zkratka `KeyCodeSym`. Páska pojme 500 řádků, takže začátek výpisu (prvních 460 kroků z 960) se ztratí. V originále výpis začíná od aktuálního kroku. |
 | `INV 2nd List` a `INV 2nd Prt` | ❌ | INV se ignoruje. |
 | Trasovací tisk | ⚠️ | Přes příznak 7 / Op 0 se tisknou jen výsledky (hodnota displeje), ne kódy kláves s mnemonikami. |
-| Op 1–4, Op 5 (alfanumerický tisk) | ⚠️ | Funguje. Znaky s kódy 00–47 odpovídají sadě PC-100A. *(ověřeno)* Od kódu 50 výš se mapování liší: `50`=`*`, `51`=`/`, `52`=`(`, `53`=`)`, `54`=`,`, `55`=`=`, `56`=`'`, `57`=`"`, `60`=`#`, `62`=`?`, `66`=`π`, ostatní (`61`, `63`–`65`, `67`, `70`–`77`) jako mezera. Kódy s číslicí 8 nebo 9 dávají nedefinované znaky. |
+| Op 1–4, Op 5 (alfanumerický tisk) | ✅ | Mapování dvouciferných kódů XY na znaky overeno empiricky proti reálné ROM (Master Library ML-01, orákulum TMS0500-sim): `((X mod 8) << 3) | Y`, tj. desitky 8/9 se maskují a jednotky 8/9 ORují bit 3 — celá tabulka 00–99 popsána ve `PrinterEngine.PrintRegisterChar` (14 měřených bodů). Dříve dokládané odlišení „od kódu 50 výš / kódy s číslicí 8–9 nedefinované” se ukázalo jako chyba starší ruční mapy `CodeToChar`; správnou sadu udává ověřený font v `Ti59PrintMachine.FontTable` (= `print_font` z print.c, 64 znaků). |
 | Grafická znaková sada 5×7 | ⚠️ | Tabulka `PrinterEngine.Chars` existuje, ale nepoužívá se. Páska je obyčejný text. |
-| Délka pásky | ⚠️ | Max. 500 řádků, nejstarší se zahazují. |
+| Délka pásky | ⚠️ | Max. 500 řádků, nejstarší se zahazují (model si pásku drží celou; modelové řádky mají vždy 20 sloupců). |
 | Op 6, Op 7 (tisk s popisem, vykreslování grafu) | ⚠️ | Jen posunou papír o jeden řádek. |
+| Tisk řízený ROM (diagnostika ML-01 „MASTER/1.”) | ⚠️ | Model i orákulum jej reprodukují bit-exaktně (korpus `ml01print`), ale **aplikace jej netiskne** — nespouští reálnou ROM, takže autotisk z knihovních programů chybí. Odkládá se do fáze 4/5 (integrace jádra za feature flagu), viz `ti59-dafny/README.md`. |
 
 ### 3.13 Chybové stavy
 

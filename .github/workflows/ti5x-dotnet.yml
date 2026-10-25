@@ -35,12 +35,28 @@ jobs:
           dafny verify src/TI5X.Verified/partition.dfy --warn-contradictory-assumptions
           dafny audit src/TI5X.Verified/partition.dfy --report-format txt
 
+      - name: Verify and audit printer model (ti59-dafny)
+        run: |
+          dafny verify ../ti59-dafny/dfy/TI59/Nibbles.dfy \
+                       ../ti59-dafny/dfy/TI59/Bus.dfy \
+                       ../ti59-dafny/dfy/TI59/Ti59Events.dfy \
+                       ../ti59-dafny/dfy/TI59/Print.dfy --isolate-assertions
+          dafny audit ../ti59-dafny/dfy/TI59/Nibbles.dfy \
+                      ../ti59-dafny/dfy/TI59/Bus.dfy \
+                      ../ti59-dafny/dfy/TI59/Ti59Events.dfy \
+                      ../ti59-dafny/dfy/TI59/Print.dfy --report-format txt
+
       - name: Regenerate C# and diff against committed code
         run: |
           dafny translate cs --include-runtime src/TI5X.Verified/partition.dfy --output regen/partition
           grep -v '^// Command-line arguments:' regen/partition.cs > regen/partition.normalized.cs
           grep -v '^// Command-line arguments:' src/TI5X.Verified/generated/partition.cs > regen/committed.normalized.cs
           diff regen/partition.normalized.cs regen/committed.normalized.cs
+          # printer model: gen-print.sh je byte-deterministicky (filtruje
+          # hlavicku, DafnySourceAttribute a runtime-support duplikaty oproti
+          # partition.cs), takze staci cisty diff
+          TI59_PRINT_OUT="$PWD/regen/Ti59PrintCore.cs" ../ti59-dafny/scripts/gen-print.sh
+          diff regen/Ti59PrintCore.cs src/TI5X.Verified/generated/Ti59PrintCore.cs
 
   build-test:
     name: build-test (${{ matrix.os }})

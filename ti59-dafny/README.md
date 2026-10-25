@@ -73,6 +73,32 @@ harness/bin/Debug/net10.0/Ti59Runner \
 python3 scripts/compare-trace.py tests/traces/ml01.trace.txt.gz /tmp/ml01-dafny.txt
 ```
 
+## Integrace tiskového modelu do aplikace (fáze 3½)
+
+- **Generování**: `scripts/gen-print.sh` přeloží print moduly
+  (`Nibbles`, `Bus`, `Ti59Events`, `Print`) do
+  `TI5X.Avalonia/src/TI5X.Verified/generated/Ti59PrintCore.cs`
+  **bez `--include-runtime`** (Dafny runtime dodává partition.cs) a
+  odfiltruje duplikáty oproti `partition.cs` (assembly atribut
+  `DafnySourceAttribute` = CS0579, `Dafny.ArrayHelpers` a
+  `FuncExtensions` = CS0101). Vystup je **byte-deterministický** pro
+  dafny 4.11 + stejný seznam `.dfy` → regen-diff v CI (`verify-proofs`
+  job v `.github/workflows/ti5x-dotnet.yml`) stačí cisty `diff`.
+- **Aplikační cesta**: `TI5X.Core/Ti59PrintModel.cs` = ruční port bez
+  Dafny typů (`TI5X.Core` neodkazuje na `TI5X.Verified`); `PrinterEngine`
+  přes něj vede PRT/ADV/List/trace/Op 1–5. Konzistence port == překlad
+  == paska C orákula (`tests/traces/ml01print.tape.txt`) je dolozena
+  testy `Ti59PrintModelTests` v `TI5X.Core.Tests`.
+- **Mapování print registru (Op 1–5)**: dvouciferny kod `XY` → 6bitovy
+  index `((X mod 8) << 3) | Y` — ROM provede OR obou BCD cislic, desitky
+  8/9 se maskuji, jednotky zustavaji cela (bit 3 se prekryva). Overeno
+  14 empirickymi body proti orakulu; detail v
+  `PrinterEngine.PrintRegisterChar`.
+- **Pravidla**: `ti59-dafny/generated/*` a `TI5X.Verified/generated/*`
+  se nikdy needituji rucne; regenerace = `gen-core.sh` / `gen-print.sh`.
+  Zmena Dafny verze vyzaduje regeneraci OBECH generovanych souboru
+  najednou (partition i Ti59PrintCore).
+
 ## Verifikační hranice (co Dafny ručí a co ne)
 
 - **Dokázáno (z3/z3 axiomy, 1504 VC):**
@@ -141,6 +167,14 @@ Formát skriptu (řádky): `KEYHEX [not_before_cycle] [hold_scans] [toggle]`
       cardr s obrazem karty). `cardw` (op 0x0A38 zapisovacka) je ve
       modelu verifikovaný, ale mimo rozsah testovani (nema directni
       korpusovy test).
+- [x] fáze 3½ — integrace tiskárny do aplikace: `scripts/gen-print.sh`
+      → `TI5X.Avalonia/src/TI5X.Verified/generated/Ti59PrintCore.cs`
+      (bez `--include-runtime`, filtr proti duplicitám s partition.cs,
+      byte-deterministicky), ruční port `TI5X.Core/Ti59PrintModel.cs`
+      (bez Dafny typů; konsistence s překladem + `ml01print` fixturou
+      hlídana testy `Ti59PrintModelTests`), `PrinterEngine` celý přes
+      port (PRT/ADV/List/trace/Op 1–5), mapování print registru
+      overeno empiricky proti orákulu (`((X mod 8) << 3) | Y`).
 - [ ] fáze 4 — `src/TI5X.RomCore/` + integrace za feature flagu (A/B proti
       ručnímu jádru CalculatorEngine.cs; klávesy UI → matrix kódy dle
       key_table_ti58) — ODKLÁDÁNO (print integrace jde přímo do Core)
