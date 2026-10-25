@@ -18,9 +18,6 @@ jobs:
     name: Dafny proofs
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: TI5X.Avalonia
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -37,14 +34,14 @@ jobs:
 
       - name: Verify and audit printer model (ti59-dafny)
         run: |
-          dafny verify ../ti59-dafny/dfy/TI59/Nibbles.dfy \
-                       ../ti59-dafny/dfy/TI59/Bus.dfy \
-                       ../ti59-dafny/dfy/TI59/Ti59Events.dfy \
-                       ../ti59-dafny/dfy/TI59/Print.dfy --isolate-assertions
-          dafny audit ../ti59-dafny/dfy/TI59/Nibbles.dfy \
-                      ../ti59-dafny/dfy/TI59/Bus.dfy \
-                      ../ti59-dafny/dfy/TI59/Ti59Events.dfy \
-                      ../ti59-dafny/dfy/TI59/Print.dfy --report-format txt
+          dafny verify ti59-dafny/dfy/TI59/Nibbles.dfy \
+                       ti59-dafny/dfy/TI59/Bus.dfy \
+                       ti59-dafny/dfy/TI59/Ti59Events.dfy \
+                       ti59-dafny/dfy/TI59/Print.dfy --isolate-assertions
+          dafny audit ti59-dafny/dfy/TI59/Nibbles.dfy \
+                      ti59-dafny/dfy/TI59/Bus.dfy \
+                      ti59-dafny/dfy/TI59/Ti59Events.dfy \
+                      ti59-dafny/dfy/TI59/Print.dfy --report-format txt
 
       - name: Regenerate C# and diff against committed code
         run: |
@@ -55,7 +52,7 @@ jobs:
           # printer model: gen-print.sh je byte-deterministicky (filtruje
           # hlavicku, DafnySourceAttribute a runtime-support duplikaty oproti
           # partition.cs), takze staci cisty diff
-          TI59_PRINT_OUT="$PWD/regen/Ti59PrintCore.cs" ../ti59-dafny/scripts/gen-print.sh
+          TI59_PRINT_OUT="$PWD/regen/Ti59PrintCore.cs" ti59-dafny/scripts/gen-print.sh
           diff regen/Ti59PrintCore.cs src/TI5X.Verified/generated/Ti59PrintCore.cs
 
   build-test:
@@ -66,9 +63,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    defaults:
-      run:
-        working-directory: TI5X.Avalonia
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -107,7 +101,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ti5x-android-${{ matrix.os }}
-          path: TI5X.Avalonia/src/TI5X.Maui/bin/Release/net10.0-android/publish/*.apk
+          path: src/TI5X.Maui/bin/Release/net10.0-android/publish/*.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -118,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ti5x-android-avalonia-${{ matrix.os }}
-          path: TI5X.Avalonia/src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/*.apk
+          path: src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/*.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -134,7 +128,7 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}
           path: |
-            TI5X.Avalonia/tests/TI5X.Core.Tests/bin/Release/net10.0/TestResults/
-            TI5X.Avalonia/sbom/
+            tests/TI5X.Core.Tests/bin/Release/net10.0/TestResults/
+            sbom/
           if-no-files-found: ignore
           retention-days: 14

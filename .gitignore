@@ -1,21 +1,20 @@
 # macOS
 .DS_Store
+Snímek obrazovky*.png
 
 # IDE / AI nástroje
 .idea/
 .junie/
 .kilo/
 
-# Android (původní Java projekt)
-/bin/
-/gen/
+# Android – potenciální tajemství (local/keystore)
 /local.properties
 /keystore.properties
 
-# .NET (podstrom TI5X.Avalonia)
-TI5X.Avalonia/**/bin/
-TI5X.Avalonia/**/obj/
-TI5X.Avalonia/**/*.user
-TI5X.Avalonia/regen/
-TI5X.Avalonia/sbom/
+# .NET (bývalý podstrom TI5X.Avalonia, nyní v kořenu repozitáře)
+**/bin/
+**/obj/
+**/*.user
+/regen/
+/sbom/
 *.TestResults/
