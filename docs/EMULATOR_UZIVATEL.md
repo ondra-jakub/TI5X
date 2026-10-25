@@ -249,7 +249,7 @@ Při startu aplikace se automaticky načte `src/TI5X.Avalonia/Assets/ml.ti5l`, k
 
 ### Proužek karty (card strip)
 
-Proužek pod displejem zobrazí kartu aktuální banky, tedy přesně to, co má na líci magnetická karta knihovního programu: vlevo název programu, vpravo `ML-nn`, pod ním pět sloupců s tím, co program čeká na klávesách `A′`–`E′` (horní, rudá řada) a `A`–`E` (dolní, černá řada). Karty Master Library mají i plnořádkové popisy (např. ML-01: `DIAGNOSTIC: [SBR] [=]`, kde políčko znamená stisk klávesy). Data karet Master Library pocházejí z původních šablon projektu (`/mlsrc`), takže proužek ukazuje **tlačítka** programu, ne jen jeho název; u ostatních vestavěných modulů (`mod02`–`mod13`) zatím chybí transkripce ploch karet a uvidíte jen názvy programů.
+Proužek pod displejem zobrazí kartu aktuální banky, tedy přesně to, co má na líci magnetická karta knihovního programu: vlevo název programu, vpravo `ML-nn`, pod ním pět sloupců s tím, co program čeká na klávesách `A′`–`E′` (horní, rudá řada) a `A`–`E` (dolní, černá řada). Karty Master Library mají i plnořádkové popisy (např. ML-01: `DIAGNOSTIC: [SBR] [=]`, kde políčko znamená stisk klávesy). Data karet Master Library pocházejí z původních šablon projektu, takže proužek ukazuje **tlačítka** programu, ne jen jeho název; u ostatních vestavěných modulů (`mod02`–`mod13`) zatím chybí transkripce ploch karet a uvidíte jen názvy programů.
 
 ### Načtení vlastní knihovny
 

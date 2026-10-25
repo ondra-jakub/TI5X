@@ -733,7 +733,7 @@ Ke každému programu patří **karta** (magnetický pásek s názvem a popisem 
 
 ⚠️ **Emulátor:**
 - Vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje **všech 25 bank** Master Library, sestavených z dumpu originálního CROM TMC0541; programy byly ověřeny proti mikrokódu oracle (např. `2nd Pgm 24`, `6`, `A` → `15.24`; `2nd Pgm 25`, `41`, `A` → `5.`, viz testy `CeAndLibraryEntryTests`). Sloučené kódy emulátor provádí. ML-01 stále selhává na závěrečném kontrolním součtu (viz [Knihovní programy v přehledu odchylek](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
-- Karty Master Library v proužku nesou přesné štítky a tlačítka z originálních šablon projektu (`mlsrc`); u dalších vestavěných modulů (`mod02`–`mod13`) zatím chybí transkripce karet a zobrazí se jen názvy programů.
+- Karty Master Library v proužku nesou přesné štítky a tlačítka z originálních šablon projektu; u dalších vestavěných modulů (`mod02`–`mod13`) zatím chybí transkripce karet a zobrazí se jen názvy programů.
 - `Pgm nn` nechá banku nn vybranou i po návratu. Do banky 0 se vrátíte stiskem `RST`.
 - `Pgm` v programu skočí na krok 000 vybrané banky.
 - `Op 09` není implementován.

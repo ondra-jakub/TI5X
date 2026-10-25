@@ -4,12 +4,12 @@
   <img src="docs/ti-59.svg" alt="TI-59" width="360" />
 </p>
 
-Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace a dvě mobilní aplikace pro Android – stabilní varianta v .NET MAUI a experimentální varianta přímo v Avalonia 12.1.4. Projekt je portovaný z původního Android projektu TI5X v tomto repozitáři; původní Android zdroje zůstávají zachované. Emulační jádro, view modely i sdílené UI komponenty jsou společné pro všechny tři aplikace.
+Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace a dvě mobilní aplikace pro Android – stabilní varianta v .NET MAUI a experimentální varianta přímo v Avalonia 12.1.4.
 
 ## Spuštění
 
 Vyžaduje .NET 10 SDK a grafické prostředí macOS, Windows nebo Linux.
-Z adresáře `TI5X.Avalonia` (tj. adresáře s tímto souborem `README.md`; pozor — ne z kořene repozitáře, v něm leží původní Android projekt):
+Z kořene repozitáře (tj. adresáře s tímto souborem `README.md`):
 
 ```sh
 dotnet run --project src/TI5X.Avalonia/TI5X.Avalonia.csproj
@@ -57,7 +57,7 @@ Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/) (anglická v
 |---|---|
 | [Příručka kalkulačky TI-59](docs/PRIRUCKA_TI59.md) | Plná příručka: rychlý start, klávesnice, počítání, AOS, paměti, statistika, programování, knihovní programy s kartami, tabulka všech 100 kódů instrukcí, ukázkové programy, FAQ, slovníček. Anglická verze: [TI59_GUIDE_EN.md](docs/TI59_GUIDE_EN.md). |
 | [Uživatelská příručka emulátoru](docs/EMULATOR_UZIVATEL.md) | Spuštění aplikace, okno, menu (desktop i hamburger ☰ na Androidu), klávesové zkratky, soubory `.ti5p`/`.ti5l`, virtuální tiskárna, debugger, Lunar Lander. |
-| [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, projekt `TI5X.Core`, formáty souborů, testy, Dafny verifikace, postup rozšiřování. |
+| [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, projekt `TI5X.Core`, formáty souborů, testy, postup rozšiřování. |
 | [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md) | Jediný úplný seznam rozdílů oproti originálu TI-59 a chybějících funkcí. |
 | [Specifikace Lunar Lander](docs/LUNAR_LANDER_SPEC.md) | Ukázkový program: pravidla hry, fyzikální model, kompletní výpis 142 kroků. |
 | [Vyhodnocení Android spikey na Avalonii](docs/AVALONIA_ANDROID_VYHODNOCENI.md) | Experimentální head `TI5X.Avalonia.Android`: funkční protokol smoke testu, naměřená data, výhody/nevýhody oproti MAUI a doporučení. |
@@ -72,10 +72,12 @@ Testy (TUnit na Microsoft.Testing.Platform) pokrývají celé jádro bez grafick
 dotnet test --solution TI5X.slnx
 ```
 
-Testy nic nezapisují do repozitáře. Přehled testů a postup přidání nového popisuje [vývojářská dokumentace, kapitola 7](docs/EMULATOR_VYVOJ.md#7-testy). CI navíc spouští kontrolu formátování, pokrytí, SBOM, Dafny důkazy a sestavení Android APK.
+Testy nic nezapisují do repozitáře. Přehled testů a postup přidání nového popisuje [vývojářská dokumentace, kapitola 7](docs/EMULATOR_VYVOJ.md#7-testy). CI navíc spouští kontrolu formátování, pokrytí, SBOM a sestavení Android APK.
 
 ## Omezení
 
 Emulátor není ověřenou emulací všech detailů TI-59. Úplný seznam rozdílů oproti originálu (např. chování příznaku 8, `HIR`, přepočet Op 16/17, statistika, tiskárna) a známých omezení (`.ti5p` neukládá registry, omezená fyzická klávesnice, GUI bez automatizovaných testů, Android ověřený ručním smoke testem) vede [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md).
 
-Licenční podmínky původního projektu jsou v souboru `COPYING` v kořeni repozitáře.
+## Licence
+
+Projekt se šíří pod licencí [GNU General Public License, verze 3](COPYING) (soubor `COPYING` v kořeni repozitáře). Kalkulačkové programy přenesené z původního projektu jsou public domain.

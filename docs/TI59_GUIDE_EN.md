@@ -677,7 +677,7 @@ Each program has a **card** (a magnetic tape with the title and the inputs). The
 
 ⚠️ **Emulator:**
 - The built-in library `src/TI5X.Avalonia/Assets/ml.ti5l` contains **all 25 banks** of the Master Library, built from the original CROM TMC0541 dump; the programs were verified against the microcode oracle (e.g. `2nd Pgm 24`, `6`, `A` → `15.24`; `2nd Pgm 25`, `41`, `A` → `5.`, see the `CeAndLibraryEntryTests` tests). Merged codes execute. ML-01 still fails its final checksum (see [Library programs in the deviations overview](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
-- The Master Library cards in the strip carry the exact labels and buttons from the original project's templates (`mlsrc`); the other built-in modules (`mod02`–`mod13`) lack card transcriptions so far and show just the program titles.
+- The Master Library cards in the strip carry the exact labels and buttons from the original project's templates; the other built-in modules (`mod02`–`mod13`) lack card transcriptions so far and show just the program titles.
 - `Pgm nn` leaves bank nn selected after the return. Press `RST` to return to bank 0.
 - `Pgm` inside a program jumps to step 000 of the selected bank.
 - `Op 09` is not implemented.
