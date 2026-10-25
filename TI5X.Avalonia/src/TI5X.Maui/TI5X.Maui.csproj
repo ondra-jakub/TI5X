@@ -13,7 +13,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#181615" />
+    <!-- Pre-rendered from docs/ti-59.svg by util/makeicons-ti59 (rsvg-convert);
+         MAUI's resizetizer cannot parse the SVG (text/filters) so a PNG is
+         used as the single icon source for all densities and adaptive icons. -->
+    <MauiIcon Include="Resources\AppIcon\appicon.png" Color="#181615" />
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#181615" BaseSize="128,128" />
     <MauiAsset Include="Resources\Raw\**"
                LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />

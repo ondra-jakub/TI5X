@@ -1,0 +1,308 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1220" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </linearGradient>
+    <linearGradient id="btn-dark-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4a4a4a"/>
+      <stop offset="100%" stop-color="#2a2a2a"/>
+    </linearGradient>
+    <linearGradient id="btn-yellow-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f2c84b"/>
+      <stop offset="100%" stop-color="#d4a11d"/>
+    </linearGradient>
+    <linearGradient id="btn-white-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e0e0e0"/>
+    </linearGradient>
+    <linearGradient id="display-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#200000"/>
+      <stop offset="100%" stop-color="#0a0000"/>
+    </linearGradient>
+    <linearGradient id="card-slot-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f0e8d5"/>
+      <stop offset="100%" stop-color="#dcd0b8"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="drop-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="1" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="inner-shadow">
+      <feOffset dx="0" dy="0"/>
+      <feGaussianBlur stdDeviation="8" result="offset-blur"/>
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"/>
+      <feFlood flood-color="black" flood-opacity="0.9" result="color"/>
+      <feComposite operator="in" in="color" in2="inverse" result="shadow"/>
+      <feComposite operator="over" in="shadow" in2="SourceGraphic"/>
+    </filter>
+
+    <!-- 7-Segment Display Components -->
+    <g id="seg-off">
+      <!-- a, b, c, d, e, f, g -->
+      <path d="M 10,5 L 30,5 L 25,10 L 15,10 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+      <path d="M 35,10 L 30,15 L 30,45 L 35,50 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+      <path d="M 35,55 L 30,60 L 30,90 L 35,95 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+      <path d="M 10,95 L 30,95 L 25,90 L 15,90 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+      <path d="M 5,55 L 10,60 L 10,90 L 5,95 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+      <path d="M 5,10 L 10,15 L 10,45 L 5,50 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+      <path d="M 10,50 L 30,50 L 25,55 L 15,55 Z" fill="#330000" stroke="#550000" stroke-width="1"/>
+    </g>
+    
+    <g id="seg-on">
+      <!-- 0 (no middle segment) -->
+      <path d="M 10,5 L 30,5 L 25,10 L 15,10 Z" fill="none" stroke="#ff2222" stroke-width="2"/>
+      <path d="M 35,10 L 30,15 L 30,45 L 35,50 Z" fill="none" stroke="#ff2222" stroke-width="2"/>
+      <path d="M 35,55 L 30,60 L 30,90 L 35,95 Z" fill="none" stroke="#ff2222" stroke-width="2"/>
+      <path d="M 10,95 L 30,95 L 25,90 L 15,90 Z" fill="none" stroke="#ff2222" stroke-width="2"/>
+      <path d="M 5,55 L 10,60 L 10,90 L 5,95 Z" fill="none" stroke="#ff2222" stroke-width="2"/>
+      <path d="M 5,10 L 10,15 L 10,45 L 5,50 Z" fill="none" stroke="#ff2222" stroke-width="2"/>
+      <!-- Decimal Point -->
+      <rect x="38" y="85" width="5" height="5" fill="none" stroke="#ff2222" stroke-width="2"/>
+    </g>
+  </defs>
+
+  <!-- Main Casing -->
+  <rect x="10" y="10" width="780" height="1200" rx="20" fill="url(#bg-grad)" stroke="#111" stroke-width="4" filter="url(#drop-shadow)"/>
+  <rect x="14" y="14" width="772" height="1192" rx="16" fill="none" stroke="#555" stroke-width="1" opacity="0.4"/>
+
+  <!-- Top Header -->
+  <text x="40" y="50" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="#e0e0e0" letter-spacing="1">TEXAS INSTRUMENTS</text>
+  <text x="315" y="50" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#e5b533">TI-59</text>
+  
+  <!-- DEG Indicator -->
+  <rect x="710" y="32" width="50" height="22" rx="3" fill="#222" stroke="#444" stroke-width="1"/>
+  <text x="735" y="48" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#e5b533" text-anchor="middle">DEG</text>
+
+  <!-- Display Area -->
+  <rect x="40" y="70" width="720" height="160" rx="10" fill="url(#display-bg)" stroke="#ff2222" stroke-width="4" filter="url(#inner-shadow)"/>
+  
+  <!-- Digits -->
+  <use href="#seg-off" x="70" y="110" />
+  <use href="#seg-off" x="138" y="110" />
+  <use href="#seg-off" x="206" y="110" />
+  <use href="#seg-off" x="274" y="110" />
+  <use href="#seg-off" x="342" y="110" />
+  <use href="#seg-off" x="410" y="110" />
+  <use href="#seg-off" x="478" y="110" />
+  <use href="#seg-off" x="546" y="110" />
+  <use href="#seg-off" x="614" y="110" />
+  <use href="#seg-on" x="682" y="110" />
+
+  <!-- Card Slot Area -->
+  <rect x="40" y="250" width="720" height="100" rx="5" fill="url(#card-slot-grad)" filter="url(#drop-shadow)"/>
+  <rect x="44" y="254" width="712" height="92" rx="3" fill="none" stroke="#c0b090" stroke-width="2"/>
+  <text x="400" y="306" font-family="Courier, monospace" font-weight="bold" font-size="16" fill="#888" text-anchor="middle" letter-spacing="2">USER PROGRAM / CARD SLOT</text>
+
+  <!-- Keyboard Area -->
+  <!-- Function to generate a button group -->
+
+  <!-- ROW 1 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="395" font-weight="bold" font-size="15" fill="#e5b533">A'</text>
+    <rect x="40" y="405" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="432" font-weight="bold" font-size="20" fill="#fff">A</text>
+
+    <text x="255" y="395" font-weight="bold" font-size="15" fill="#e5b533">B'</text>
+    <rect x="190" y="405" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="432" font-weight="bold" font-size="20" fill="#fff">B</text>
+
+    <text x="405" y="395" font-weight="bold" font-size="15" fill="#e5b533">C'</text>
+    <rect x="340" y="405" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="432" font-weight="bold" font-size="20" fill="#fff">C</text>
+
+    <text x="555" y="395" font-weight="bold" font-size="15" fill="#e5b533">D'</text>
+    <rect x="490" y="405" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="432" font-weight="bold" font-size="20" fill="#fff">D</text>
+
+    <text x="705" y="395" font-weight="bold" font-size="15" fill="#e5b533">E'</text>
+    <rect x="640" y="405" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="432" font-weight="bold" font-size="20" fill="#fff">E</text>
+  </g>
+
+  <!-- ROW 2 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="40" y="485" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="512" font-weight="bold" font-size="20" fill="#000">2nd</text>
+
+    <rect x="190" y="485" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="512" font-weight="bold" font-size="20" fill="#fff">INV</text>
+
+    <text x="405" y="475" font-weight="bold" font-size="15" fill="#e5b533">log</text>
+    <rect x="340" y="485" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="512" font-weight="bold" font-size="20" fill="#fff">lnx</text>
+
+    <text x="555" y="475" font-weight="bold" font-size="15" fill="#e5b533">CP</text>
+    <rect x="490" y="485" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="512" font-weight="bold" font-size="20" fill="#fff">CE</text>
+
+    <rect x="640" y="485" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="512" font-weight="bold" font-size="20" fill="#000">CLR</text>
+  </g>
+
+  <!-- ROW 3 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="555" font-weight="bold" font-size="15" fill="#e5b533">Pgm</text>
+    <rect x="40" y="565" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="592" font-weight="bold" font-size="20" fill="#fff">LRN</text>
+
+    <text x="255" y="555" font-weight="bold" font-size="15" fill="#e5b533">P→R</text>
+    <rect x="190" y="565" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="592" font-weight="bold" font-size="20" fill="#fff">x↔t</text>
+
+    <text x="405" y="555" font-weight="bold" font-size="15" fill="#e5b533">sin</text>
+    <rect x="340" y="565" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="592" font-weight="bold" font-size="20" fill="#fff">x²</text>
+
+    <text x="555" y="555" font-weight="bold" font-size="15" fill="#e5b533">cos</text>
+    <rect x="490" y="565" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="592" font-weight="bold" font-size="20" fill="#fff">√x</text>
+
+    <text x="705" y="555" font-weight="bold" font-size="15" fill="#e5b533">tan</text>
+    <rect x="640" y="565" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="592" font-weight="bold" font-size="20" fill="#fff">1/x</text>
+  </g>
+
+  <!-- ROW 4 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="635" font-weight="bold" font-size="15" fill="#e5b533">Ins</text>
+    <rect x="40" y="645" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="672" font-weight="bold" font-size="20" fill="#fff">SST</text>
+
+    <text x="255" y="635" font-weight="bold" font-size="15" fill="#e5b533">CMs</text>
+    <rect x="190" y="645" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="672" font-weight="bold" font-size="20" fill="#fff">STO</text>
+
+    <text x="405" y="635" font-weight="bold" font-size="15" fill="#e5b533">Exc</text>
+    <rect x="340" y="645" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="672" font-weight="bold" font-size="20" fill="#fff">RCL</text>
+
+    <text x="555" y="635" font-weight="bold" font-size="15" fill="#e5b533">Prd</text>
+    <rect x="490" y="645" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="672" font-weight="bold" font-size="20" fill="#fff">SUM</text>
+
+    <text x="705" y="635" font-weight="bold" font-size="15" fill="#e5b533">Ind</text>
+    <rect x="640" y="645" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="672" font-weight="bold" font-size="20" fill="#fff">y^x</text>
+  </g>
+
+  <!-- ROW 5 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="715" font-weight="bold" font-size="15" fill="#e5b533">Del</text>
+    <rect x="40" y="725" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="752" font-weight="bold" font-size="20" fill="#fff">BST</text>
+
+    <text x="255" y="715" font-weight="bold" font-size="15" fill="#e5b533">Eng</text>
+    <rect x="190" y="725" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="752" font-weight="bold" font-size="20" fill="#fff">EE</text>
+
+    <text x="405" y="715" font-weight="bold" font-size="15" fill="#e5b533">Fix</text>
+    <rect x="340" y="725" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="752" font-weight="bold" font-size="20" fill="#fff">(</text>
+
+    <text x="555" y="715" font-weight="bold" font-size="15" fill="#e5b533">Int</text>
+    <rect x="490" y="725" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="752" font-weight="bold" font-size="20" fill="#fff">)</text>
+
+    <text x="705" y="715" font-weight="bold" font-size="15" fill="#e5b533">|x|</text>
+    <rect x="640" y="725" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="752" font-weight="bold" font-size="20" fill="#000">÷</text>
+  </g>
+
+  <!-- ROW 6 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="795" font-weight="bold" font-size="15" fill="#e5b533">Pause</text>
+    <rect x="40" y="805" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="832" font-weight="bold" font-size="20" fill="#fff">GTO</text>
+
+    <text x="255" y="795" font-weight="bold" font-size="15" fill="#e5b533">x=t</text>
+    <rect x="190" y="805" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="832" font-weight="bold" font-size="20" fill="#000">7</text>
+
+    <text x="405" y="795" font-weight="bold" font-size="15" fill="#e5b533">Nop</text>
+    <rect x="340" y="805" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="832" font-weight="bold" font-size="20" fill="#000">8</text>
+
+    <text x="555" y="795" font-weight="bold" font-size="15" fill="#e5b533">Op</text>
+    <rect x="490" y="805" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="832" font-weight="bold" font-size="20" fill="#000">9</text>
+
+    <text x="705" y="795" font-weight="bold" font-size="15" fill="#e5b533">Deg</text>
+    <rect x="640" y="805" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="832" font-weight="bold" font-size="20" fill="#000">x</text>
+  </g>
+
+  <!-- ROW 7 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="875" font-weight="bold" font-size="15" fill="#e5b533">Lbl</text>
+    <rect x="40" y="885" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="912" font-weight="bold" font-size="20" fill="#fff">SBR</text>
+
+    <text x="255" y="875" font-weight="bold" font-size="15" fill="#e5b533">x≥t</text>
+    <rect x="190" y="885" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="912" font-weight="bold" font-size="20" fill="#000">4</text>
+
+    <text x="405" y="875" font-weight="bold" font-size="15" fill="#e5b533">Σ+</text>
+    <rect x="340" y="885" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="912" font-weight="bold" font-size="20" fill="#000">5</text>
+
+    <text x="555" y="875" font-weight="bold" font-size="15" fill="#e5b533">x̄</text>
+    <rect x="490" y="885" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="912" font-weight="bold" font-size="20" fill="#000">6</text>
+
+    <text x="705" y="875" font-weight="bold" font-size="15" fill="#e5b533">Rad</text>
+    <rect x="640" y="885" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="912" font-weight="bold" font-size="20" fill="#000">-</text>
+  </g>
+
+  <!-- ROW 8 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="105" y="955" font-weight="bold" font-size="15" fill="#e5b533">St flg</text>
+    <rect x="40" y="965" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="992" font-weight="bold" font-size="20" fill="#fff">RST</text>
+
+    <text x="255" y="955" font-weight="bold" font-size="15" fill="#e5b533">If flg</text>
+    <rect x="190" y="965" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="992" font-weight="bold" font-size="20" fill="#000">1</text>
+
+    <text x="405" y="955" font-weight="bold" font-size="15" fill="#e5b533">D.MS</text>
+    <rect x="340" y="965" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="992" font-weight="bold" font-size="20" fill="#000">2</text>
+
+    <text x="555" y="955" font-weight="bold" font-size="15" fill="#e5b533">π</text>
+    <rect x="490" y="965" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="992" font-weight="bold" font-size="20" fill="#000">3</text>
+
+    <text x="705" y="955" font-weight="bold" font-size="15" fill="#e5b533">Grad</text>
+    <rect x="640" y="965" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="992" font-weight="bold" font-size="20" fill="#000">+</text>
+  </g>
+
+  <!-- ROW 9 -->
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="40" y="1045" width="130" height="44" rx="6" fill="url(#btn-dark-grad)" stroke="#111" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="105" y="1072" font-weight="bold" font-size="20" fill="#fff">R/S</text>
+
+    <text x="255" y="1035" font-weight="bold" font-size="15" fill="#e5b533">Dsz</text>
+    <rect x="190" y="1045" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="255" y="1072" font-weight="bold" font-size="20" fill="#000">0</text>
+
+    <text x="405" y="1035" font-weight="bold" font-size="15" fill="#e5b533">Adv</text>
+    <rect x="340" y="1045" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="405" y="1072" font-weight="bold" font-size="20" fill="#000">.</text>
+
+    <text x="555" y="1035" font-weight="bold" font-size="15" fill="#e5b533">Prt</text>
+    <rect x="490" y="1045" width="130" height="44" rx="6" fill="url(#btn-white-grad)" stroke="#999" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="555" y="1072" font-weight="bold" font-size="20" fill="#000">+/-</text>
+
+    <text x="705" y="1035" font-weight="bold" font-size="15" fill="#e5b533">List</text>
+    <rect x="640" y="1045" width="130" height="44" rx="6" fill="url(#btn-yellow-grad)" stroke="#a07010" stroke-width="2" filter="url(#drop-shadow)"/>
+    <text x="705" y="1072" font-weight="bold" font-size="20" fill="#000">=</text>
+  </g>
+
+  <!-- Bottom Status Text -->
+  <text x="400" y="1152" font-family="Arial, sans-serif" font-size="16" fill="#888" text-anchor="middle">User Bank 00 | PC: 000 | Regs: 52</text>
+
+</svg>

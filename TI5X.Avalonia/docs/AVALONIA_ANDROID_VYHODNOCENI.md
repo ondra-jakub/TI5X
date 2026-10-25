@@ -59,7 +59,7 @@ Poznámky k pozorovanému chování:
 | `sv.MainView` přes `ISingleViewApplicationLifetime` | funguje, ale Avalonia.Android doporučuje (a bez varování vyžaduje) `IActivityApplicationLifetime.MainViewFactory`; bez `PageNavigationHost` navíc nefunguje systémové zpět | větev v `App` napřed použije `MainViewFactory`, root je `PageNavigationHost` |
 | odkaz head → desktop WinExe | `NETSDK1150` (executable reference) a `NETSDK1047` (RID-specific obnova odkazovaného projektu) | `ValidateExecutableReferencesMatchSelfContained=false` + `GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"` na `ProjectReference` (detaily v [EMULATOR_VYVOJ, 5.4](EMULATOR_VYVOJ.md#54-technická-úskalí-android-head-avalonia)) |
 | aktivita z plánu `Theme = Maui.SplashTheme` | nepřenosné; AvaloniaActivity = `AppCompatActivity` | vlastní `MyTheme.NoActionBar` (Theme.AppCompat.DayNight.NoActionBar) + barva pozadí, žádná splash obrazovka |
-| ikona aplikace „volitelně mipmap z legacy res" | původně výchozí robot Androidu; **doplňky 24. 10. 2026: hotovo** — mipmap + adaptivní ikona z `util/makeicons` (viz oddíl 8) | neomezení |
+| ikona aplikace „volitelně mipmap z legacy res" | původně výchozí robot Androidu; **doplňky 24. 10. 2026: hotovo** — mipmap + adaptivní ikona z `util/makeicons` (viz oddíl 8); **25. 10. 2026: překreslena z `docs/ti-59.svg`** přes `util/makeicons-ti59` | neomezení |
 
 ## 5. Srovnání s MAUI variantou
 

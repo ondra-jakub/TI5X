@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 #+
 # Renders the TI5X Android launcher icons (legacy mipmaps, round mipmaps and
-# adaptive-icon foregrounds) from the same flat design as the MAUI app icon
-# (src/TI5X.Maui/Resources/AppIcon/appicon.svg): a dark rounded tile with a
-# TI-59 calculator mock-up, red LED display and gold key rows.
+# adaptive-icon foregrounds) from the same flat design as the former MAUI app
+# icon: a dark rounded tile with a TI-59 calculator mock-up, red LED display
+# and gold key rows.
+#
+# NOTE: this flat design has been superseded - the shipped icons are now
+# rendered from docs/ti-59.svg by util/makeicons-ti59. Running this script
+# would overwrite them.
 #
 # The drawing is done in pure Python (3x supersampled rectangles, box-filter
 # downsampling, hand-rolled PNG encoder) so the output is deterministic and
