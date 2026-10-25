@@ -17,7 +17,7 @@ $HERE/rom/rom-ti59/TMC0571B.txt $HERE/rom/module-lib/TMC0541.txt"
 declare -a ALL=(
   boot 3000 add23 4000 mul57 4000 prconv 5000 invpr 5000
   stats 8000 ops 8000 dms 5000 lrn 8000 ml01 215000
-  ml01print 40000 cardr 40000
+  ml01print 220000 cardr 40000
 )
 NAMES=("$@")
 [ ${#NAMES[@]} -eq 0 ] && NAMES=("${ALL[@]}")
@@ -35,8 +35,9 @@ while [ $i -lt ${#ALL[@]} ]; do
     ml01print) printer="1"; tapeout="/tmp/trace-$name-tape.txt" ;;
     cardr) cardin="$HERE/tests/cards/card92.bin"; cardout="/tmp/trace-$name-card.bin" ;;
   esac
+  # [11]=cardOut vdycky (i kdyz je to "-"), jinak by tapeOut spadl do 11
   "$RUNNER" $ROMS "$cardin" "$printer" "$HERE/tests/scripts/$name.keys" \
-    "$cycles" "$out" ${cardout:+"$cardout"} ${tapeout:+"$tapeout"} > /dev/null 2>&1 \
+    "$cycles" "$out" "${cardout:--}" ${tapeout:+"$tapeout"} > /dev/null 2>&1 \
     || { echo "$name: RUNNER FAILED"; fail=$((fail+1)); i=$((i+2)); continue; }
   evargs=""
   [ -f "$HERE/tests/traces/$name.events.txt.gz" ] && \

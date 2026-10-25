@@ -58,16 +58,17 @@ module TI59_PrintCrd {
     if head == 0 then 19 else head - 1
   }
 
-  // [print.c:36-45] print_font - TMC0251 (TI-59), 64 znaku.
+  // [print.c:36-45] print_font - TMC0251 (TI-59), 64 znaku (8 radku x 8,
+  // index = 6bitovy kod z ext; font[0]=' ', vsechny znaky unikatni).
   function PrintFont(): seq<char>
   {
-    " 01234567" +
+    " 0123456" +
     "789ABCDE" +
-    "-FGHIJKLM" +
+    "-FGHIJKL" +
     "MNOPQRST" +
     ".UVWXYZ+" +
     "x*sp,e()," +
-    "^%|/='#'~" +
+    "^%|/='#~" +
     "z?:!]\"][$"   // z=^2, ]=2nd, "=delta, [=product, $=sum
   }
 
@@ -75,7 +76,7 @@ module TI59_PrintCrd {
   // uklada se pro uplnost (jedna by maska odmitla ops TMC0251).
   function PrintFontSr60(): seq<char>
   {
-    " 01234567" +
+    " 0123456" +
     "789.z#!\"" +
     "=-+:x'~)" +
     "s^$[/|e]" +

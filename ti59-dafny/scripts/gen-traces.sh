@@ -11,6 +11,7 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 SIM="${1:-${TI59_SIM:-$HERE/oracle/build/TMS0500-simulator}}"
 [ -x "$SIM/ti59d" ] || { echo "ti59d nenalezen v $SIM — spusť ./scripts/build-oracle.sh nebo nastav TI59_SIM"; exit 1; }
 OUT="$HERE/tests/traces"
+export OUT
 mkdir -p "$OUT"
 
 # presne poradi chipu jako bin/ti59.sh (+ -l Master Library jako bin/ti59.sh -l)
@@ -47,7 +48,7 @@ run_trace3() {
     gzip -9 -nc "$SIM/log.txt" > "$OUT/$name.events.txt.gz"
     printf '%-10s %8d cycles, %4d events, gz=%s\n' \
         "$name" "$cycles" \
-        "$(grep -ac 'PRINT_\|CRD\.' "$OUT/$name.events.txt.gz")" \
+        "$(gunzip -c "$OUT/$name.events.txt.gz" | grep -ac 'PRINT_\|CRD\.')" \
         "$(du -h "$OUT/$name.trace.txt.gz" | cut -f1)"
 }
 
@@ -63,11 +64,14 @@ run_trace lrn      8000   lrn.keys
 run_trace ml01   215000   ml01.keys
 
 # --- faze 3 -----------------------------------------------
-# ml01print: ML-01 diagnostika s tiskárnou (-p); paska = display_print radky
-run_trace3 ml01print 40000 ml01print.keys "-p"
+# ml01print: ML-01 diagnostika s tiskárnou (-p); paska = display_print radky.
+# PRINT (2C) se stiskne az pri 215000 (ML-01 bezi ~215 000 cyklu) => beh musi
+# trvat 220 000 cyklu (kratsi beh nezachyti tisk: v 40 000 vznal jediny event).
+run_trace3 ml01print 220000 ml01print.keys "-p"
 python3 - <<'PYEOF'
-import re
-out, dst = "tests/traces/ml01print.stdout.tmp", "tests/traces/ml01print.tape.txt"
+import re, os
+out, dst = os.path.join(os.environ["OUT"], "ml01print.stdout.tmp"), \
+           os.path.join(os.environ["OUT"], "ml01print.tape.txt")
 data = open(out, "rb").read()
 lines = re.findall(rb"\|      (.*)\n", data)
 open(dst, "wb").write(b"".join(b"|      " + l + b"\n" for l in lines))

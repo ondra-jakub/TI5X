@@ -30,17 +30,22 @@ dfy/TI59/Cpu.dfy       Cpu, tabulky ALU_OP/ALU_DST, run_early, Execute(),
                        alu_gen_digit (celý execute() z alu.c)
 dfy/TI59/Bus.dfy       sbernice + start cyklu/reset D-linky (vbus.c)
 dfy/TI59/Chips.dfy     brom, scom (v2), ram, lib (CROM), key (-K skript), display
+dfy/TI59/PrintCrd.dfy  tiskárna TMC0251 (print.c: fonty, mnemoniky, buffer/head),
+                       čtečka karet (crd.c), Ti59Event události
 dfy/TI59/Machine.dfy   alu_process port, fold 16 stavů × W/R, StepInstruction,
                        TraceRec (LOG_HRAST pole), MachineWF invarianty
 dfy/Smoke.dfy          mini-ROM smoke test (dafny run)
 generated/Ti59RomCore.cs   vygenerovaný C# (dafny translate cs --include-runtime)
-harness/Ti59Runner.cs       runner: parse dumpů, běh, HRAST výstup
+harness/Ti59Runner.cs       runner: parse dumpů, běh, HRAST výstup, tape/card
 scripts/gen-traces.sh       regenerace orákulum-tras z ti59d
 scripts/corpus.sh           diferenciální test celého korpusu
 scripts/compare-trace.py    diff tras (první divergence + kontext ±50)
 scripts/gen-core.sh         verify + translate + build (CI vstupní bod)
 tests/scripts/*.keys        klávesové skripty korpusu (matrix kódy z key.c)
+tests/cards/*.bin           obrazy karet pro cardr
 tests/traces/*.trace.txt.gz C orákulum-trasy (LOG_HRAST, gzip)
+tests/traces/*.events.txt.gz  -v 5 LOG události (PRINT_/CRD. subsekvence)
+tests/traces/*.tape.txt     páska tiskárny (display_print řádky)
 patches/0001-*.patch        additive opt-in patch C simulátoru (-K, -n, ti59d)
 ```
 
@@ -54,15 +59,17 @@ patches/0001-*.patch        additive opt-in patch C simulátoru (-K, -n, ti59d)
 ./scripts/gen-traces.sh          # ~30 s, deterministické
 
 # 3) diferenciální test celého korpusu
-./scripts/corpus.sh              # 10/10 PASS, ~40 s
+./scripts/corpus.sh              # 12/12 PASS (ml01print ~45 s, ml01 ~40 s)
 ./scripts/corpus.sh ml01         # jen jeden vstup
 
 # 4) ruční běh (HRAST kompatibilní výstup)
-harness/bin/Debug/net8.0/Ti59Runner \
+#   CLI: rom0582 const0582 rom0583 const0583 rom0571B libdump|- card|- \
+#        printer:0/1 script maxCycles traceOut [cardOut] [tapeOut]
+harness/bin/Debug/net10.0/Ti59Runner \
   $SIM/rom/rom-ti59/TMC0582.txt $SIM/rom/rom-ti59/TMC0582-CONST-K.txt \
   $SIM/rom/rom-ti59/TMC0583.txt $SIM/rom/rom-ti59/TMC0583-CONST-K.txt \
   $SIM/rom/rom-ti59/TMC0571B.txt $SIM/rom/module-lib/TMC0541.txt \
-  tests/scripts/ml01.keys 215000 /tmp/ml01-dafny.txt
+  - 1 tests/scripts/ml01print.keys 220000 /tmp/ml01print-dafny.txt - /tmp/tape.txt
 python3 scripts/compare-trace.py tests/traces/ml01.trace.txt.gz /tmp/ml01-dafny.txt
 ```
 
@@ -129,11 +136,15 @@ Formát skriptu (řádky): `KEYHEX [not_before_cycle] [hold_scans] [toggle]`
 - [x] fáze 0 — toolchain, patch, orákulum-trasy (tests/traces, gzip)
 - [x] fáze 1 — Dafny model, ALU důkazy, verify zelený
 - [x] fáze 2 — replay harness, korpus 10/10 bit-shodný, ML-01 displej „1."
-- [ ] fáze 3 — tiskárna (print.c) + čtečka karet (crd.c) do modelu + korpus
+- [x] fáze 3 — tiskárna (print.c) + čtečka karet (crd.c) do modelu;
+      korpus 12/12 (ml01print 220k cyklů s tiskem pasky „MASTER"/„1.",
+      cardr s obrazem karty). `cardw` (op 0x0A38 zapisovacka) je ve
+      modelu verifikovaný, ale mimo rozsah testovani (nema directni
+      korpusovy test).
 - [ ] fáze 4 — `src/TI5X.RomCore/` + integrace za feature flagu (A/B proti
       ručnímu jádru CalculatorEngine.cs; klávesy UI → matrix kódy dle
-      key_table_ti58)
-- [ ] fáze 5 — cut-over a přepojení testů
+      key_table_ti58) — ODKLÁDÁNO (print integrace jde přímo do Core)
+- [ ] fáze 5 — cut-over a přepojení testů — ODKLÁDÁNO
 
 ## Poznámky k výkonu
 
