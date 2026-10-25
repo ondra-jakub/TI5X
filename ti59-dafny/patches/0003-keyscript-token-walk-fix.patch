@@ -1,0 +1,43 @@
+--- /Users/ondra/TI5X/ti59-dafny/patches/originals/key.c
++++ key.c
+@@ -130,13 +130,23 @@
+             continue;
+         if (sscanf(p, "%x", &code) != 1)
+             continue;
+-        while (*p && !isspace((unsigned char)*p)) p++;
++        /* token walk: mezi sscanfem posun rucne (skip ws + skip token),
++         * jinak se tokent 2/3/4 v "code at hold toggle" neoparsuji
++         * (scanf preskoci vedeni ws sam, ale pozice p zustava na ws */
++        while (isspace((unsigned char)*p)) p++;
++        while (*p && !isspace((unsigned char)*p)) p++;  /* past code */
+         if (sscanf(p, "%llu", &at) < 1)
+             at = 0;
+-        while (*p && !isspace((unsigned char)*p)) p++;
++        else {
++            while (isspace((unsigned char)*p)) p++;
++            while (*p && !isspace((unsigned char)*p)) p++;  /* past at */
++        }
+         if (sscanf(p, "%d", &hold) < 1)
+             hold = 0;
+-        while (*p && !isspace((unsigned char)*p)) p++;
++        else {
++            while (isspace((unsigned char)*p)) p++;
++            while (*p && !isspace((unsigned char)*p)) p++;  /* past hold */
++        }
+         if (sscanf(p, "%15s", word) == 1 && !strcmp(word, "toggle"))
+             toggle = 1;
+         if (n == cap) {
+@@ -420,9 +430,10 @@
+      * "read new key" site (scan==1), gated by instruction cycle.
+      * Scan-row reads (!scan) see no key; no stdin, no EOF exit. */
+     if (script_mode) {
+-        if (!scan)
+-            return 0;
+-        /* apply due toggle entries first */
++        /* apply due toggle entries first. MUSI bezet pred scan-gate:
++         * v modu zapisu/cteni karty ROM nedela "read new" skeny a
++         * toggle (4A) by uzly nikdy nevyhovel; key_read2 je volana na
++         * vsech scan i !scan stredach (D1..14, hw prazdny). */
+         while (script_pos < script_nevents && script_events[script_pos].toggle &&
+                bus->cycle_count >= script_events[script_pos].at) {
+             unsigned char code = script_events[script_pos].code;

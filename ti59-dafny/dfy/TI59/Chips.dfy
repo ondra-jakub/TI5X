@@ -329,16 +329,27 @@ module TI59_Chips {
                                pressMask: u8, unpressMask: u8,
                                script: seq<KeyEvent>, scriptPos: nat)
 
-  function KeyInit(script: seq<KeyEvent>): KeyState
+  // [bus.h:55] KP_BIT = 2 (detekce tiskarny pri bootu)
+  const KP_BIT: nat := 2
+
+  // [bus.h:55] KR_BIT = 4 (card reader, crd_clear_switch zapisuje bit 4)
+  const KR_BIT: nat := 4
+
+  function KeyInit(script: seq<KeyEvent>, hasPrinter: bool): KeyState
     requires |script| >= 0
   {
     // [key.c:576-584] ti59: card reader closed (key[10] |= KR_BIT=bit4),
-    // key_count=1, key_code=1 (fantom - verno!), masky 0x20, cykly 2/3
-    KeyState(seq(16, i => if i == 10 then (0x10 as u8) else 0 as u8),
+    // key_count=1, key_code=1 (fantom - verno!), masky 0x20, cykly 2/3.
+    // [key.c:582-583] ti59 + HW_PRINTER: key[0] |= (1 << KP_BIT=2) - meni
+    // boot sekvenci (detekce tiskarny); default false = chovani beze zmeny.
+    KeyState(seq(16, i => if i == 10 then (0x10 as u8)
+                          else if i == 0 && hasPrinter then (0x04 as u8)
+                          else 0 as u8),
              (1) as u8, 1, 0, 0, 2, 3, 0x20, 0x20, script, 0)
   }
 
-  // key_read2 v script modu [key.c -K patch]: toggles + pripadny press
+  // key_read2 v script modu [key.c -K patch 0003]: toggles (du, vsichni
+  // key_read2 call site) + pripadny press (jen scan-all read-new)
   function KeyReadNew(k: KeyState, cycle: nat): KeyState
     requires |k.persKeys| == 16
     ensures |KeyReadNew(k, cycle).persKeys| == 16
@@ -386,9 +397,11 @@ module TI59_Chips {
             && (bus.irg & (0xFF00 as u16)) == (0x0800 as u16) then
           var scan := (bus.irg & (0x0008 as u16)) == 0;
           if !scan then
-            // scan-row [key.c:430-440]: script mod neinjektuje (no-op read)
+            // scan-row [key.c:540-551]: script mod - key_read2(0,0) site
+            // = konzumace due TOGGLE entry [patch 0003], hw countdown
             (if bus.dstate < 15 && bus.dstate > 0 then
-               (if k.keyCountHw <= 0 then k
+               (if k.keyCountHw <= 0 then
+                  KeyApplyToggles(k, bus.cycleCount)
                 else k.(keyCountHw := k.keyCountHw - 1))
              else k)
           else

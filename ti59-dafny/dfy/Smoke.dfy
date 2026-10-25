@@ -3,6 +3,7 @@ include "TI59/AluOps.dfy"
 include "TI59/Cpu.dfy"
 include "TI59/Bus.dfy"
 include "TI59/Chips.dfy"
+include "TI59/PrintCrd.dfy"
 include "TI59/Machine.dfy"
 
 module Smoke {
@@ -23,10 +24,10 @@ module Smoke {
       [ScomInit(seq(32, _ => ZeroReg()), 0)],
       [RamInit(seq(30, _ => ZeroReg()), 0)],
       LibInit(seq(5000, _ => (0x92) as u8)),
-      KeyInit([]),
+      KeyInit([], false),
       DispInit(),
       BusInit(),
-      false);
+      false, PrnNone, CrdNone, []);
     var m1 := m.(broms := [m.broms[0], m.broms[0], m.broms[0]]);
     var m2 := m1.(scoms := [m1.scoms[0], m1.scoms[0]]);
     var m3 := m2.(rams := [m2.rams[0], m2.rams[0], m2.rams[0], m2.rams[0]]);

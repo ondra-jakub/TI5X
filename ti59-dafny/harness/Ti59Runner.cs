@@ -95,9 +95,23 @@ public static class Ti59Runner {
       var parts = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
       if (parts.Length < 1) continue;
       byte code = Convert.ToByte(parts[0], 16);
-      BigInteger at = parts.Length > 1 ? BigInteger.Parse(parts[1]) : BigInteger.Zero;
-      BigInteger hold = parts.Length > 2 ? BigInteger.Parse(parts[2]) : BigInteger.Zero;
-      bool toggle = parts.Length > 3 && parts[3] == "toggle";
+      // format "code [at] [hold] [toggle]" - "4A 3000 toggle" = 3 tokeny:
+      // hold-slot neslovo "toggle" = key_script_load (patch 0003)
+      BigInteger at = BigInteger.Zero, hold = BigInteger.Zero;
+      bool toggle = false;
+      if (parts.Length > 1) {
+        if (parts[1] == "toggle") { toggle = true; }
+        else {
+          at = BigInteger.Parse(parts[1]);
+          if (parts.Length > 2) {
+            if (parts[2] == "toggle") { toggle = true; }
+            else {
+              hold = BigInteger.Parse(parts[2]);
+              if (parts.Length > 3 && parts[3] == "toggle") { toggle = true; }
+            }
+          }
+        }
+      }
       events.Add(new TI59__Chips.KeyEvent(code, at, hold, toggle));
     }
     return events;
@@ -132,8 +146,14 @@ public static class Ti59Runner {
   }
 
   static int Main(string[] args) {
-    if (args.Length != 9) {
-      Console.Error.WriteLine("usage: Ti59Runner rom0582 const0582 rom0583 const0583 rom0571B libdump|- script maxCycles traceOut");
+    // Pouziti (faze 3):
+    //   Ti59Runner <rom0582> <const0582> <rom0583> <const0583> <rom0571B>
+    //              <libdump|-> <card|-|file(300B)> <printer:0|1>
+    //              <script> <maxCycles> <traceOut> [cardOut] [tapeOut]
+    // Poradi chipu = argv orakula (vbus.c main()): alu, brom x3, scom x2,
+    // ram x4, print (-p), lib (-l), crd (-c), display, key.
+    if (args.Length < 11 || args.Length > 13) {
+      Console.Error.WriteLine("usage: Ti59Runner rom0582 const0582 rom0583 const0583 rom0571B libdump|- card|- printer:0/1 script maxCycles traceOut [cardOut] [tapeOut]");
       return 2;
     }
     var (rom1, base1) = LoadDumpRom(args[0]);
@@ -143,11 +163,21 @@ public static class Ti59Runner {
     var (rom3, base3) = LoadDumpRom(args[4]);
     byte[] libData = args[5] == "-" ? new byte[5000] : LoadDump8(args[5], 5000);
     if (libData.Length < 5000) { Console.Error.WriteLine("lib dump must be 5000 bytes"); return 2; }
-    var script = LoadKeyScript(args[6]);
-    long maxCycles = long.Parse(args[7]);
-    var outPath = args[8];
+    bool hasPrinter = args[7] == "1";
+    var script = LoadKeyScript(args[8]);
+    long maxCycles = long.Parse(args[9]);
+    var outPath = args[10];
+    string cardOutPath = args.Length > 11 ? args[11] : null;
+    string tapeOutPath = args.Length > 12 && args[12] != "-" ? args[12] : null;
 
-    // postav stroj (poradi chipu jako bin/ti59.sh)
+    // card reader: obraz karty 300 B (crd.c: default 0x92 + fread overlay)
+    byte[] cardData = null;
+    if (args[6] != "-") {
+      cardData = LoadCard(args[6]);
+      Console.Error.WriteLine("card support");
+    }
+
+    // postav stroj (poradi chipu jako ti59d)
     var cpu = TI59__Cpu.__default.CpuInit();
     var broms = Dafny.Sequence<TI59__Chips._IBrom>.FromArray(new TI59__Chips._IBrom[] {
       TI59__Chips.__default.BromInit(Dafny.Sequence<ushort>.FromArray(rom1), new BigInteger(base1), new BigInteger(base1 + rom1.Length)),
@@ -158,26 +188,36 @@ public static class Ti59Runner {
       TI59__Chips.__default.ScomInit(SeqReg(const1), new BigInteger(0)),
       TI59__Chips.__default.ScomInit(SeqReg(const2), new BigInteger(32)),
     });
-    var ramData = Dafny.Sequence<Dafny.ISequence<byte>>.FromArray(new Dafny.ISequence<byte>[30]);
     var ramsList = new TI59__Chips._IRam[4];
     for (int i = 0; i < 4; i++)
       ramsList[i] = TI59__Chips.__default.RamInit(EmptyRegs(), new BigInteger(30 * i));
     var rams = Dafny.Sequence<TI59__Chips._IRam>.FromArray(ramsList);
     var lib = TI59__Chips.__default.LibInit(SeqB(libData));
     var keys = TI59__Chips.__default.KeyInit(
-      Dafny.Sequence<TI59__Chips._IKeyEvent>.FromArray(script.ToArray()));
+      Dafny.Sequence<TI59__Chips._IKeyEvent>.FromArray(script.ToArray()), hasPrinter);
     var disp = TI59__Chips.__default.DispInit();
     var bus = TI59__Bus.__default.BusInit();
-    TI59__Machine._IMachine m = new TI59__Machine.Machine(cpu, broms, scoms, rams, lib, keys, disp, bus, false);
+    var prnOpt = hasPrinter
+      ? (TI59__Machine._IPrnOpt)new TI59__Machine.PrnOpt_Prn(TI59__PrintCrd.__default.PrintInit())
+      : new TI59__Machine.PrnOpt_PrnNone();
+    var crdOpt = cardData != null
+      ? (TI59__Machine._ICrdOpt)new TI59__Machine.CrdOpt_Crd(TI59__PrintCrd.__default.CrdInit(SeqB(cardData)))
+      : new TI59__Machine.CrdOpt_CrdNone();
+    TI59__Machine._IMachine m = new TI59__Machine.Machine(cpu, broms, scoms, rams, lib, keys, disp, bus, false,
+      prnOpt, crdOpt, Dafny.Sequence<TI59__PrintCrd._ITi59Event>.FromArray(new TI59__PrintCrd._ITi59Event[0]));
 
     if (!TI59__Machine.__default.MachineWF(m)) {
       Console.Error.WriteLine("MachineWF failed at init!");
       return 3;
     }
 
-    using (var trace = new StreamWriter(outPath, false, new UTF8Encoding(false))) {
+    using (var trace = new StreamWriter(outPath, false, new UTF8Encoding(false)))
+    using (var tape = tapeOutPath != null
+            ? new StreamWriter(tapeOutPath, false, new UTF8Encoding(false)) : null) {
       long cycles = 0;
       long records = 0;
+      long prevEvents = 0;
+      var sbEv = new StringBuilder();
       var sw = System.Diagnostics.Stopwatch.StartNew();
       // C -n semantika: count++ na zacatku cyklu; count >= max zastavi
       // PRED provedenim cyklu -> probehne max-1 cyklu.
@@ -207,14 +247,101 @@ public static class Ti59Runner {
         }
         m = r.dtor__0;
         cycles++;
-        if (((TI59__Machine.Machine)r.dtor__0).dtor_halted) break;
+        // udalosti (LOG volani C): delta od minuleho cyklu, format C logu
+        var evs = ((TI59__Machine.Machine)m).dtor_evs;
+        long eventCount = evs.Count;
+        sbEv.Clear();
+        for (long i = prevEvents; i < eventCount; i++) {
+          EventLogString(evs.Select(i), sbEv);
+        }
+        prevEvents = eventCount;
+        if (sbEv.Length > 0) {
+          trace.Write(sbEv.ToString());
+          trace.WriteLine();
+        }
+        if (((TI59__Machine.Machine)m).dtor_halted) break;
       }
       sw.Stop();
       trace.WriteLine("# cycles=" + cycles + " records=" + records + " halted=" + m.dtor_halted);
       trace.WriteLine("# display='" + RuneStr(m.dtor_disp.dtor_out1) + "'");
       trace.WriteLine("# secs=" + sw.Elapsed.TotalSeconds.ToString("0.00"));
+
+      // paska (tiskarna "|      %.20s" radky jako display_print v C)
+      if (tape != null && m.dtor_printOpt.is_Prn) {
+        var prnState = ((TI59__Machine.PrnOpt_Prn)m.dtor_printOpt)._prn;
+        var tapeSeq = prnState.dtor_tape;
+        for (long i = 0; i < tapeSeq.Count; i++) {
+          tape.Write("|      ");
+          foreach (var ch in tapeSeq.Select(i)) tape.Write((char)ch.Value);
+          tape.WriteLine();
+        }
+      }
+    }
+
+    // obraz karty po 0x0A48 (fwrite crd->data, 300 B)
+    if (cardOutPath != null && m.dtor_crdOpt.is_Crd) {
+      var crdState = ((TI59__Machine.CrdOpt_Crd)m.dtor_crdOpt)._crd;
+      var cardOpt = crdState.dtor_cardOut;
+      if (cardOpt.is_Card) {
+        var img = ((TI59__PrintCrd.OptCrd_Card)cardOpt)._img;
+        var bytes = new byte[img.Count];
+        for (long i = 0; i < img.Count; i++) bytes[i] = img.Select(i);
+        File.WriteAllBytes(cardOutPath, bytes);
+        Console.Error.WriteLine("open crd " + cardOutPath);
+      }
+    }
+    else if (cardOutPath != null) {
+      Console.Error.WriteLine("no card image (crd off never reached data)");
     }
     return 0;
+  }
+
+  // printf-vjerne formaty LOG volani C simulatoru (print.c/crd.c).
+  // Vsechny LOG tvaru "PRINT_xxx[...]='...' " / "CRD.xxx[...]=.. " konci
+  // mezerou; C je koncatenuje do radku, runner tiskne run cyklu na radku.
+  static void EventLogString(TI59__PrintCrd._ITi59Event ev, StringBuilder sb) {
+    if (ev.is_EvPrintChar) {
+      var e = (TI59__PrintCrd.Ti59Event_EvPrintChar)ev;
+      sb.Append("PRINT_CHAR[").Append(e._head).Append("]='").Append((char)e._ch.Value).Append("' ");
+    } else if (ev.is_EvPrintFunc) {
+      var e = (TI59__PrintCrd.Ti59Event_EvPrintFunc)ev;
+      sb.Append("PRINT_FUNC[").Append(e._head).Append("]='").Append(RuneStr(e._s)).Append("' ");
+    } else if (ev.is_EvPrintNotFound) {
+      var e = (TI59__PrintCrd.Ti59Event_EvPrintNotFound)ev;
+      sb.Append("PRINT[").Append(e._head).Append("]='").Append(e._code).Append(" not fund' ");
+    } else if (ev.is_EvPrintClear) {
+      var e = (TI59__PrintCrd.Ti59Event_EvPrintClear)ev;
+      sb.Append("PRINT_CLEAR[").Append(e._head).Append("]='").Append(ParseStr(e._buf)).Append("' ");
+    } else if (ev.is_EvPrint) {
+      var e = (TI59__PrintCrd.Ti59Event_EvPrint)ev;
+      sb.Append("PRINT[").Append(e._head).Append("]='").Append(ParseStr(e._buf)).Append("' ");
+    } else if (ev.is_EvCrdRd) {
+      var e = (TI59__PrintCrd.Ti59Event_EvCrdRd)ev;
+      sb.Append("CRD.rd[").Append(e._pc.ToString("0000")).Append("]=").Append(e._data.ToString("x2")).Append(" ");
+    } else if (ev.is_EvCrdWr) {
+      var e = (TI59__PrintCrd.Ti59Event_EvCrdWr)ev;
+      sb.Append("CRD.wr[").Append(e._pc.ToString("0000")).Append("]=").Append(e._data.ToString("x2")).Append(" ");
+    } else if (ev.is_EvCrdOff) {
+      // [crd.c:71] printf na stdout (ne do logu)
+      var e = (TI59__PrintCrd.Ti59Event_EvCrdOff)ev;
+      Console.Write("crd read/write " + e._pc + "\n");
+    }
+  }
+
+  // %.20s - presne 20 znaku (buffer bez NUL)
+  static string ParseStr(Dafny.ISequence<Dafny.Rune> s) {
+    sb.Clear();
+    foreach (var r in s) sb.Append((char)r.Value);
+    return sb.ToString();
+  }
+
+  // [crd.c:102-108] fread obrazek karty (300 B; zbytek = 0x92 vypln)
+  static byte[] LoadCard(string file) {
+    var data = new byte[300];
+    for (int i = 0; i < 300; i++) data[i] = 0x92;
+    var bytes = File.ReadAllBytes(file);
+    for (int i = 0; i < bytes.Length && i < 300; i++) data[i] = bytes[i];
+    return data;
   }
 
   static Dafny.ISequence<Dafny.ISequence<byte>> EmptyRegs() {

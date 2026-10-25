@@ -1,0 +1,2 @@
+# card read: open reader at boot+ (4A toggle), card = 0x92 fill
+4A 3000 toggle

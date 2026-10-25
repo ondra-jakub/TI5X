@@ -4,19 +4,31 @@ module TI59_Machine {
   import opened TI59_Cpu
   import opened TI59_Bus
   import opened TI59_Chips
+  import opened TI59_PrintCrd
 
   // ============================================================
-  // Celny stroj: CPU + 3x brom + 2x scom + 4x ram + lib + key +
-  // display + sbernice. Fold pres 16 sstavu S0..S15 x faze W/R
-  // [vbus.c run()] v presnem poradi chipu [vbus.c main()].
+  // Celny stroj: CPU + 3x brom + 2x scom + 4x ram + [print] + lib +
+  // [crd] + key + display + sbernice. Fold pres 16 sstavu S0..S15 x
+  // faze W/R [vbus.c run()] v presnem poradi chipu [vbus.c main()].
+  // Poradi s tiskarnou/kartou (= argv orakula, plan faze 3):
+  //   alu, 3x brom, 2x scom, 4x ram, print (-p), lib (-l), crd (-c),
+  //   aux (no-op), display, key.
+  // print/crd jsou OPcionalne (nepovinny hardware; stary korpus bez
+  // -p/-c musi zustat bitove shodny). evs = log udalosti (bit-stabilni,
+  // porovnatelne s LOG() radky C simulátoru).
   // ============================================================
 
     // Option type for the trace record (Dafny does not have a built-in one)
   datatype OptRec = NoRec | YesRec(rec: TraceRec)
 
+  datatype PrnOpt = PrnNone | Prn(prn: PrintState)
+  datatype CrdOpt = CrdNone | Crd(crd: CrdState)
+
   datatype Machine = Machine(cpu: Cpu, broms: seq<Brom>, scoms: seq<Scom>,
                              rams: seq<Ram>, lib: Lib, keys: KeyState,
-                             disp: Disp, bus: Bus, halted: bool)
+                             disp: Disp, bus: Bus, halted: bool,
+                             printOpt: PrnOpt, crdOpt: CrdOpt,
+                             evs: seq<Ti59Event>)
 
   // Strukturalni invarianty (data chipu se meni jen uvnitr, rozsahy ne)
   predicate MachineWF(m: Machine) {
@@ -33,7 +45,22 @@ module TI59_Machine {
     |m.lib.data| == 5000 &&
     |m.keys.persKeys| == 16 &&
     |m.disp.out| == 30 && |m.disp.out1| == 30 &&
-    m.bus.dstate <= 15
+    m.bus.dstate <= 15 &&
+    (match m.printOpt
+      case PrnNone => true
+      case Prn(p) => PrintWF(p)) &&
+    (match m.crdOpt
+      case CrdNone => true
+      case Crd(c) => CrdWF(c))
+  }
+
+  // Vstupni stroj (poradi chipu viz vyse; print/crd default vypnuty).
+  function MachineInit(cpu: Cpu, broms: seq<Brom>, scoms: seq<Scom>,
+                       rams: seq<Ram>, lib: Lib, keys: KeyState,
+                       disp: Disp, bus: Bus): Machine
+  {
+    Machine(cpu, broms, scoms, rams, lib, keys, disp, bus, false,
+            PrnNone, CrdNone, [])
   }
 
   // ------------------------------------------------------------
@@ -187,6 +214,32 @@ module TI59_Machine {
     m.(lib := l, bus := bus1)
   }
 
+  // print.c - tiskarna; v C v poradi PRED lib ("-p" pred "-l").
+  // Nepovinny hardware: PrnNone = pruchod beze zmeny (stary korpus).
+  function PrintChip(m: Machine, sstate: nat, write: bool): Machine
+    requires MachineWF(m) && sstate <= 15
+    ensures MachineWF(PrintChip(m, sstate, write))
+  {
+    match m.printOpt
+    case PrnNone => m
+    case Prn(p) =>
+      var (p1, evs) := PrintStep(p, m.bus, sstate, write);
+      m.(printOpt := Prn(p1), evs := m.evs + evs)
+  }
+
+  // crd.c - ctecka karet; v C po lib ("-c" za "-l"), PRED display/key.
+  // Nepovinny hardware: CrdNone = pruchod beze zmeny (stary korpus).
+  function CrdChip(m: Machine, sstate: nat, write: bool): Machine
+    requires MachineWF(m) && sstate <= 15
+    ensures MachineWF(CrdChip(m, sstate, write))
+  {
+    match m.crdOpt
+    case CrdNone => m
+    case Crd(c) =>
+      var (c1, k1, bus1, evs) := CrdStep(c, m.keys, m.bus, sstate, write);
+      m.(crdOpt := Crd(c1), keys := k1, bus := bus1, evs := m.evs + evs)
+  }
+
   function DispChip(m: Machine, sstate: nat, write: bool): Machine
     requires MachineWF(m) && sstate <= 15
     ensures MachineWF(DispChip(m, sstate, write))
@@ -203,7 +256,8 @@ module TI59_Machine {
     m.(keys := k, bus := bus1)
   }
 
-  // Jedna faze (write nebo read) - vsechny chipy v poradi [vbus.c:53-67]
+  // Jedna faze (write nebo read) - vsechny chipy v poradi [vbus.c:53-67]:
+  // alu, brom x3, scom x2, ram x4, [print], lib, [crd], display, key.
   function PhaseFold(m: Machine, sstate: nat, write: bool): Machine
     requires MachineWF(m) && sstate <= 15
     ensures MachineWF(PhaseFold(m, sstate, write))
@@ -212,9 +266,11 @@ module TI59_Machine {
     var m2 := BromsFold(m1, 0, sstate, write);
     var m3 := ScomsFold(m2, 0, sstate, write);
     var m4 := RamsFold(m3, 0, sstate, write);
-    var m5 := LibChip(m4, sstate, write);
-    var m6 := DispChip(m5, sstate, write);
-    KeyChip(m6, sstate, write)
+    var m5 := PrintChip(m4, sstate, write);
+    var m6 := LibChip(m5, sstate, write);
+    var m7 := CrdChip(m6, sstate, write);
+    var m8 := DispChip(m7, sstate, write);
+    KeyChip(m8, sstate, write)
   }
 
   // Jeden sstav = write faze + read faze; po S14 update dstate/key_line
