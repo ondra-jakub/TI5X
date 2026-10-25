@@ -8,8 +8,9 @@ namespace TI5X.Avalonia.Views;
 
 /// <summary>
 /// Shared calculator body. In the Android single-view head (hosted in a NavigationPage)
-/// a hamburger button under the display opens the app menu; on desktop the window menu
-/// bar is used instead and the menu row stays hidden.
+/// a hamburger button above the display — left of the "TEXAS INSTRUMENTS" label — opens
+/// the app menu; on desktop the window menu bar is used instead and the button stays
+/// hidden.
 /// </summary>
 public partial class CalculatorView : UserControl
 {
@@ -22,7 +23,7 @@ public partial class CalculatorView : UserControl
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         bool isSingleView = NavigationHelper.FindNavigationPage(this) != null;
-        MenuRow.IsVisible = isSingleView;
+        MenuButton.IsVisible = isSingleView;
         if (isSingleView && BuiltInLibrariesItem.ItemCount == 0)
         {
             PopulateBuiltInLibraries();

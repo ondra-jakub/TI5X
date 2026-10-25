@@ -6,7 +6,7 @@
     <UseMaui>true</UseMaui>
     <SingleProject>true</SingleProject>
     <ApplicationTitle>TI5X</ApplicationTitle>
-    <ApplicationId>nz.gen.geek_central.ti5x.maui</ApplicationId>
+    <ApplicationId>jakub.cloud.ti5x.maui</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>

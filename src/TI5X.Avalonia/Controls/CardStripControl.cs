@@ -5,6 +5,12 @@ using TI5X.Avalonia.Core;
 
 namespace TI5X.Avalonia.Controls;
 
+/// <summary>
+/// Renders a library program card (magnetic card face) in the slip window: title row,
+/// then the A′–E′ and A–E label cells decoded from the light card markup
+/// (<see cref="CardLabelMarkup"/>) — real TI library cards list which keys start the
+/// program, so those button labels must be visible.
+/// </summary>
 public class CardStripControl : Control
 {
     public static readonly StyledProperty<CardDef?> CardProperty =
@@ -65,33 +71,146 @@ public class CardStripControl : Control
         // Horizontal divider under title
         context.DrawLine(dividerPen, new Point(0, headerH), new Point(bounds.Width, headerH));
 
-        // 5 Columns for A, B, C, D, E
-        string?[] primeLabels = { card.APrime, card.BPrime, card.CPrime, card.DPrime, card.EPrime };
-        string?[] baseLabels = { card.A, card.B, card.C, card.D, card.E };
+        // Upper prime row: five cells (A′..E′), or one full-width row
+        DrawRow(context, dividerPen, headerH, headerH + 2, headerH + (bounds.Height - headerH) / 2.0,
+            colW, primeBrush, bold: false, size: 9,
+            cells: new[] { card.APrime, card.BPrime, card.CPrime, card.DPrime, card.EPrime },
+            fullLeft: null, fullCenter: card.PrimeCenter, fullRight: null,
+            verticalCenter: false);
 
-        for (int i = 0; i < 5; ++i)
+        // Lower base row: five cells (A..E), or full-width left/center/right labels
+        DrawRow(context, dividerPen, headerH, headerH + (bounds.Height - headerH) / 2.0, bounds.Height,
+            colW, textBrush, bold: true, size: 10,
+            cells: new[] { card.A, card.B, card.C, card.D, card.E },
+            fullLeft: card.BaseLeft, fullCenter: card.BaseCenter, fullRight: card.BaseRight,
+            verticalCenter: true);
+    }
+
+    private void DrawRow(
+        DrawingContext context,
+        IPen dividerPen,
+        double top,
+        double cellTop,
+        double bottom,
+        double colW,
+        IBrush brush,
+        bool bold,
+        double size,
+        string?[] cells,
+        string? fullLeft,
+        string? fullCenter,
+        string? fullRight,
+        bool verticalCenter)
+    {
+        bool hasCells = cells.Any(c => !string.IsNullOrEmpty(c));
+        if (hasCells)
         {
-            double colX = i * colW;
-            if (i > 0)
+            for (int i = 0; i < 5; ++i)
             {
-                context.DrawLine(dividerPen, new Point(colX, headerH), new Point(colX, bounds.Height));
-            }
+                double colX = i * colW;
+                if (i > 0)
+                {
+                    context.DrawLine(dividerPen, new Point(colX, top), new Point(colX, bottom));
+                }
 
-            // Upper prime label
-            string primeText = primeLabels[i] ?? "";
-            if (!string.IsNullOrEmpty(primeText))
-            {
-                var tfPrime = new FormattedText(primeText, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(Typeface.Default.FontFamily, FontStyle.Normal, FontWeight.Normal), 9, primeBrush);
-                context.DrawText(tfPrime, new Point(colX + (colW - tfPrime.Width) / 2, headerH + 2));
+                DrawRuns(context, cells[i], colX + colW / 2.0, cellTop, bottom, size, brush, bold, verticalCenter);
             }
-
-            // Lower base label
-            string baseText = baseLabels[i] ?? "";
-            if (!string.IsNullOrEmpty(baseText))
+        }
+        else
+        {
+            double left = 6, width = Bounds.Width - 12;
+            if (!string.IsNullOrEmpty(fullCenter))
             {
-                var tfBase = new FormattedText(baseText, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(Typeface.Default.FontFamily, FontStyle.Normal, FontWeight.Bold), 10, textBrush);
-                context.DrawText(tfBase, new Point(colX + (colW - tfBase.Width) / 2, headerH + (bounds.Height - headerH) / 2.0));
+                DrawRuns(context, fullCenter, Bounds.Width / 2.0, cellTop, bottom, size, brush, bold, verticalCenter);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(fullLeft))
+                {
+                    DrawRuns(context, fullLeft, left, cellTop, bottom, size, brush, bold, verticalCenter, centerHorizontally: false);
+                }
+                if (!string.IsNullOrEmpty(fullRight))
+                {
+                    DrawRuns(context, fullRight, left + width, cellTop, bottom, size, brush, bold, verticalCenter, centerHorizontally: false, alignRight: true);
+                }
             }
         }
     }
+
+    private void DrawRuns(
+        DrawingContext context,
+        string? markup,
+        double centerX,
+        double top,
+        double bottom,
+        double size,
+        IBrush brush,
+        bool bold,
+        bool verticalCenter,
+        bool centerHorizontally = true,
+        bool alignRight = false)
+    {
+        if (string.IsNullOrEmpty(markup)) return;
+        var runs = CardLabelMarkup.Decode(markup);
+
+        var typeface = new Typeface(Typeface.Default.FontFamily, FontStyle.Normal, bold ? FontWeight.Bold : FontWeight.Normal);
+        var penBrush = new Pen(brush, 0.8);
+        double boxPad = 1.5;
+
+        // Pass 1: measure to find total width and per-run metrics
+        var metrics = new (double Width, double Height, CardLabelRun Run)[runs.Count];
+        double total = 0;
+        for (int i = 0; i < runs.Count; ++i)
+        {
+            double runSize = RunFontSize(size, runs[i].Style);
+            var tf = new FormattedText(runs[i].Text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, runSize, brush);
+            metrics[i] = (tf.Width + (runs[i].Style == CardLabelRunStyle.Button ? 2 * boxPad : 0), tf.Height, runs[i]);
+            total += tf.Width + (runs[i].Style == CardLabelRunStyle.Button ? 2 * boxPad : 0);
+        }
+
+        double x = centerHorizontally
+            ? centerX - total / 2.0
+            : alignRight ? centerX - total : centerX;
+        double lineH = size;
+        double baseY = verticalCenter ? top + Math.Max(0, (bottom - top) - lineH) / 2.0 : top;
+
+        // Pass 2: draw
+        for (int i = 0; i < runs.Count; ++i)
+        {
+            var (width, height, run) = metrics[i];
+            double runSize = RunFontSize(size, run.Style);
+            var tf = new FormattedText(run.Text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, runSize, brush);
+            double drawX = run.Style == CardLabelRunStyle.Button ? x + boxPad : x;
+            double drawY = run.Style switch
+            {
+                CardLabelRunStyle.Subscript => baseY + height / 2.0 + 0.28 * lineH,
+                CardLabelRunStyle.Superscript => baseY + height / 2.0 - 0.55 * lineH,
+                _ => baseY + height / 2.0 - 0.45 * lineH,
+            };
+
+            if (run.Style == CardLabelRunStyle.Button)
+            {
+                context.DrawRectangle(null, penBrush, new Rect(x, baseY + height / 2.0 - 0.42 * lineH, width, lineH * 0.78), 2, 2);
+                context.DrawText(tf, new Point(drawX, baseY + height / 2.0 - 0.42 * lineH));
+            }
+            else
+            {
+                context.DrawText(tf, new Point(drawX, drawY));
+                if (run.Style == CardLabelRunStyle.Overline)
+                {
+                    context.DrawLine(penBrush, new Point(drawX, drawY - 1), new Point(drawX + tf.Width, drawY - 1));
+                }
+            }
+
+            x += width;
+        }
+    }
+
+    private static double RunFontSize(double size, CardLabelRunStyle style) => style switch
+    {
+        CardLabelRunStyle.Subscript => size * 0.8,
+        CardLabelRunStyle.Superscript => size * 0.8,
+        CardLabelRunStyle.Button => size * 0.85,
+        _ => size,
+    };
 }

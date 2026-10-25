@@ -5,17 +5,43 @@ using TI5X.ViewModels;
 
 namespace TI5X.Maui;
 
+/// <summary>
+/// One of the standard TI Solid State Software modules shipped in Resources/Raw
+/// (mirrors EmbeddedAssets of the Avalonia head). Module 1 (Master Library) is loaded
+/// at startup; the others are available from the "Built-in Libraries" menu entry.
+/// </summary>
+public sealed record BuiltInLibrary(string FileName, string DisplayName);
+
 public partial class MainPage : ContentPage
 {
     private const string MenuNewProgram = "New Program";
     private const string MenuOpenProgram = "Open Program (.ti5p)";
     private const string MenuSaveProgram = "Save Program (.ti5p)";
     private const string MenuLoadLibrary = "Load Library Module (.ti5l)";
+    private const string MenuBuiltInLibraries = "Built-in Libraries";
     private const string MenuPrinter = "Virtual Printer";
     private const string MenuDebugger = "Program Debugger";
     private const string MenuHelp = "Help";
     private const string MenuAbout = "About";
     private const string MenuExit = "Exit";
+
+    /// <summary>The standard Solid State Software modules built into the app.</summary>
+    private static readonly BuiltInLibrary[] LibraryCatalog =
+    [
+        new("ml.ti5l", "1 Master Library"),
+        new("mod02.ti5l", "2 Applied Statistics"),
+        new("mod03.ti5l", "3 Real Estate/Investment"),
+        new("mod04.ti5l", "4 Surveying"),
+        new("mod05.ti5l", "5 Marine Navigation"),
+        new("mod06.ti5l", "6 Aviation"),
+        new("mod07.ti5l", "7 Leisure Library"),
+        new("mod08.ti5l", "8 Securities Analysis"),
+        new("mod09.ti5l", "9 Business Decisions"),
+        new("mod10.ti5l", "10 Math/Utilities"),
+        new("mod11.ti5l", "11 Electrical Engineering"),
+        new("mod12.ti5l", "12 Agriculture"),
+        new("mod13.ti5l", "13 RPN Simulator"),
+    ];
 
     private readonly MainViewModel _viewModel;
     private bool _masterLibraryLoaded;
@@ -63,7 +89,7 @@ public partial class MainPage : ContentPage
     {
         string? action = await DisplayActionSheetAsync("TI5X", "Cancel", null,
             MenuNewProgram, MenuOpenProgram, MenuSaveProgram, MenuLoadLibrary,
-            MenuPrinter, MenuDebugger, MenuHelp, MenuAbout, MenuExit);
+            MenuBuiltInLibraries, MenuPrinter, MenuDebugger, MenuHelp, MenuAbout, MenuExit);
 
         switch (action)
         {
@@ -78,6 +104,9 @@ public partial class MainPage : ContentPage
                 break;
             case MenuLoadLibrary:
                 await LoadLibraryAsync();
+                break;
+            case MenuBuiltInLibraries:
+                await SelectBuiltInLibraryAsync();
                 break;
             case MenuPrinter:
                 await Navigation.PushAsync(new PrinterPage(App.PrinterViewModel));
@@ -97,6 +126,30 @@ public partial class MainPage : ContentPage
                 Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.FinishAffinity();
                 break;
         }
+    }
+
+    private async Task SelectBuiltInLibraryAsync()
+    {
+        string? cancel = "Cancel";
+        string[] choices = [.. LibraryCatalog.Select(l => l.DisplayName)];
+        string? picked = await DisplayActionSheetAsync("Built-in Libraries", cancel, null, choices);
+        if (picked == null || picked == cancel || choices.Contains(picked) == false)
+        {
+            return;
+        }
+
+        var library = LibraryCatalog.First(l => l.DisplayName == picked);
+        using Stream? raw = await FileSystem.OpenAppPackageFileAsync(library.FileName);
+        if (raw == null)
+        {
+            _viewModel.StatusInfo = $"Module {library.DisplayName} is not built into the app";
+            return;
+        }
+
+        using var buffer = new MemoryStream();
+        await raw.CopyToAsync(buffer);
+        buffer.Position = 0;
+        _viewModel.LoadBuiltInLibrary(buffer, library.DisplayName);
     }
 
     private void NewProgram()

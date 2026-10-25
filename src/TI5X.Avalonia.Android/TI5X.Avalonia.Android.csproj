@@ -5,14 +5,17 @@
     <RootNamespace>TI5X.Avalonia.Android</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Avalonia.Android 12.0.4 (AndroidX lifecycle runtime) requires minSdk >= 23;
+    <!-- Avalonia.Android 12.x (AndroidX lifecycle runtime) requires minSdk >= 23;
          the official Avalonia Android template uses 23 as well (plan assumed 21). -->
     <SupportedOSPlatformVersion>23.0</SupportedOSPlatformVersion>
-    <ApplicationId>nz.gen.geek_central.ti5x.avalonia</ApplicationId>
+    <ApplicationId>jakub.cloud.ti5x.avalonia</ApplicationId>
     <ApplicationTitle>TI5X (Avalonia)</ApplicationTitle>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Debug builds embed the assemblies too, so `dotnet build -c Debug` + adb install
+         runs without the IDE fast-deployment step (which crashes with no override dir). -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <!-- The head references the desktop WinExe (shared UI/pages); the Android output
          is self-contained, so the executable-reference check must be disabled. -->
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>

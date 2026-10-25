@@ -10,14 +10,49 @@
 
     <!-- Main Calculator Body -->
     <Border Background="#221E1C" Margin="10" CornerRadius="12" BorderBrush="#3D3530" BorderThickness="2" Padding="12">
-        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
-            <!-- Top Badge / Brand Header -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,0,4,8">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+            <!-- Top Badge / Brand Header. On the Android single-view head the hamburger
+                 menu button sits here too — above the display, left of the "TEXAS
+                 INSTRUMENTS" label. Hidden on desktop, where the window menu bar
+                 provides the same actions. -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="4,0,4,8">
+                <Button x:Name="MenuButton"
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Width="30" Height="22"
+                        Margin="0,0,6,0"
+                        Padding="0"
+                        Background="#332B25"
+                        BorderBrush="#4A423D"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Content="☰" FontSize="13"
+                        Foreground="#E0D8D0">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="Bottom">
+                            <MenuItem Header="New Program" Click="OnMenuNewProgram" />
+                            <MenuItem Header="Open Program (.ti5p)" Click="OnMenuOpenProgram" />
+                            <MenuItem Header="Save Program (.ti5p)" Click="OnMenuSaveProgram" />
+                            <Separator />
+                            <MenuItem Header="Load Library Module (.ti5l)" Click="OnMenuLoadLibrary" />
+                            <MenuItem Header="Built-in Libraries" x:Name="BuiltInLibrariesItem" />
+                            <Separator />
+                            <MenuItem Header="Virtual Printer" Click="OnMenuShowPrinter" />
+                            <MenuItem Header="Program Debugger" Click="OnMenuShowDebugger" />
+                            <MenuItem Header="Help" Click="OnMenuShowHelp" />
+                            <MenuItem Header="About" Click="OnMenuShowAbout" />
+                            <Separator />
+                            <MenuItem Header="Exit" Click="OnMenuExit" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="TEXAS INSTRUMENTS" FontSize="11" FontWeight="Bold" Foreground="#C8BFB5" LetterSpacing="1" />
                     <TextBlock Text=" TI-59" FontSize="11" FontWeight="Heavy" Foreground="#E6B432" Margin="6,0,0,0" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <!-- Mode status pills -->
                     <Border Background="#332B25" CornerRadius="3" Padding="4,1">
                         <TextBlock Text="{Binding AngleModeText}" FontSize="9" FontWeight="Bold" Foreground="#E6B432" />
@@ -49,43 +84,8 @@
                                        Margin="6,4" />
             </Border>
 
-            <!-- Slim menu row right under the display: the Android single-view head has
-                 no menu bar, so the app menu (hamburger) lives here. Hidden on desktop,
-                 where the window menu bar provides the same actions. -->
-            <Panel Grid.Row="2" x:Name="MenuRow" Height="26">
-                <Button x:Name="MenuButton"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Width="34" Height="22"
-                        Padding="0"
-                        Background="#332B25"
-                        BorderBrush="#4A423D"
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Content="☰" FontSize="13"
-                        Foreground="#E0D8D0">
-                    <Button.Flyout>
-                        <MenuFlyout Placement="Bottom">
-                            <MenuItem Header="New Program" Click="OnMenuNewProgram" />
-                            <MenuItem Header="Open Program (.ti5p)" Click="OnMenuOpenProgram" />
-                            <MenuItem Header="Save Program (.ti5p)" Click="OnMenuSaveProgram" />
-                            <Separator />
-                            <MenuItem Header="Load Library Module (.ti5l)" Click="OnMenuLoadLibrary" />
-                            <MenuItem Header="Built-in Libraries" x:Name="BuiltInLibrariesItem" />
-                            <Separator />
-                            <MenuItem Header="Virtual Printer" Click="OnMenuShowPrinter" />
-                            <MenuItem Header="Program Debugger" Click="OnMenuShowDebugger" />
-                            <MenuItem Header="Help" Click="OnMenuShowHelp" />
-                            <MenuItem Header="About" Click="OnMenuShowAbout" />
-                            <Separator />
-                            <MenuItem Header="Exit" Click="OnMenuExit" />
-                        </MenuFlyout>
-                    </Button.Flyout>
-                </Button>
-            </Panel>
-
             <!-- Program Label Card Slip Window -->
-            <Border Grid.Row="3"
+            <Border Grid.Row="2"
                     Background="#2B2623"
                     BorderBrush="#4A423D"
                     BorderThickness="1"
@@ -98,7 +98,7 @@
 
             <!-- Keypad 9x5 Grid (star row: fills the space between the card strip and
                  the status line, so the keys are distributed over the full height) -->
-            <Grid Grid.Row="4" Margin="0,4,0,4"
+            <Grid Grid.Row="3" Margin="0,4,0,4"
                   RowDefinitions="*,*,*,*,*,*,*,*,*"
                   ColumnDefinitions="*,*,*,*,*">
 
@@ -167,7 +167,7 @@
             </Grid>
 
             <!-- Bottom Status Line -->
-            <TextBlock Grid.Row="5"
+            <TextBlock Grid.Row="4"
                        Text="{Binding StatusInfo}"
                        FontSize="10"
                        Foreground="#8A8078"

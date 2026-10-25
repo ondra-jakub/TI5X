@@ -22,6 +22,9 @@
             <views:PrinterView x:Name="PrinterViewControl" />
         </Border>
 
-        <views:CalculatorView x:Name="Calculator" MaxHeight="900" VerticalAlignment="Center" />
+        <views:CalculatorView x:Name="Calculator"
+                              MaxHeight="900"
+                              MaxWidth="520"
+                              VerticalAlignment="Center" />
     </Grid>
 </UserControl>

@@ -98,7 +98,7 @@ Tyto odchylky mají na běžné používání největší dopad:
 | `(` `)` | ⚠️ | Odložené operace a závorky sdílejí jeden zásobník s 10 položkami. *(ověřeno)* 11. `(` vede k chybě. |
 | Přebytečná `)` | ⚠️ | *(ověřeno)* Vede k chybě. |
 | `=` uzavře otevřené závorky | ✅ | |
-| `CE` | ✅ | Smaže celé zadávané číslo (ne jen poslední číslici). |
+| `CE` | ✅ | Smaže celé zadávané číslo (ne jen poslední číslici). Když nic nebylo zadáváno, je `CE` bez účinku (zachová výsledek — ověřeno proti mikrokódu oracle: `2 + 3 = CE + 1 =` dává `6.`), v chybovém stavu jen zruší blikání. Přesně na tom stojí úvodní `( ce × …` rutiny ML-24/ML-25, které tak zpracují už zadaný operand. |
 | `CLR` | ✅ | Zruší odložené operace a vynuluje displej. Paměti a program nemění. |
 
 ### 3.4 Matematické funkce
@@ -205,10 +205,10 @@ Registry pro statistiku: R01 Σy, R02 Σy², R03 n, R04 Σx, R05 Σx², R06 Σxy
 | `Pgm IND nn` | ✅ | Neexistující banka vede k chybě. |
 | Op 9 (stažení knihovního programu) | ❌ | |
 | Diagnostika ML-01 (`2nd Pgm 01`, `SBR =`) | ⚠️ | Inicializace, statistická řada, přesahy mezi bankami (`Pgm 15` a volání `SBR DMS`) i `P/R`/`Σ+` konvence nyní odpovídají originálu; selže jen závěrečný kontrolní součet — porovnání `x=t` (banka 01, PC 70) nedá shodu, vznikne záměrná instrukční chyba (`0`, `1/x`) místo tisku `MASTER` a `1`. Rutina DMS vrací `-0,50242` místo očekávaných `377,2580954`: originální mikrokód konverze `P/R` a statistických Op používá skryté pracovní registry R8/R9 (viz `doc/memory-map.txt` v TMS0500-simulátoru), které emulátor nemá napodobené. |
-| Magnetické karty (čtení, zápis, `2nd Write`) | ❌ | Kartu nahrazují soubory `.ti5p` a `.ti5l`. Karta se zobrazuje jen jako popisný proužek (štítky A–E'). |
-| Master Library | ⚠️ | Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` je sestavena z dumpu originálního CROM TMC0541 (celkem 25 programů) nástrojem `util/mklibfromdump`. Návěští libovolných kláves a přesahy mezi bankami se nyní provádějí správně; celá ML-01 diagnostika ale stále selhává na závěrečném kontrolním součtu (viz další řádek). |
+| Magnetické karty (čtení, zápis, `2nd Write`) | ❌ | Kartu nahrazují soubory `.ti5p` a `.ti5l`. Karta se zobrazuje jako popisný proužek (názvy + štítky `A′`–`E′` a `A`–`E`, viz [příručku](EMULATOR_UZIVATEL.md#6-knihovny-ti5l-a-vestavěná-master-library)). |
+| Master Library | ⚠️ | Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` je sestavena z dumpu originálního CROM TMC0541 (celkem 25 programů) nástrojem `util/mklibfromdump` a karet originálního projektu z `mlsrc` (sloučí `util/mergemlcards.py`) — karty tedy nesou **tlačítka** programu (`A`–`E`, `A′`–`E′` a plnořádkové popisy), ne jen názvy. Návěští libovolných kláves a přesahy mezi bankami se nyní provádějí správně; celá ML-01 diagnostika ale stále selhává na závěrečném kontrolním součtu (viz další řádek). |
 | Nápověda v knihovnách (`help`, `helpNN`) | ❌ | Načte se, ale aplikace ji nikde nezobrazuje. |
-| `.ti5p` – uložení | ⚠️ | Uloží jen program banky 0 (všech 960 kroků) a kartu/nápovědu **aktuální** banky. Neukládá registry, příznaky, režimy ani rozdělení. Ze štítků karty uloží jen `titleleft`, `titleright` a `a`–`eprime` (ztratí se `subtitle*`, `primecenter`, `base*`). Texty štítků se neescapují pro XML. |
+| `.ti5p` – uložení | ⚠️ | Uloží jen program banky 0 (všech 960 kroků) a kartu/nápovědu **aktuální** banky. Neukládá registry, příznaky, režimy ani rozdělení. Ze štítků karty uloží `titleleft`, `titleright`, `subtitle*`, `a`–`eprime`, `primecenter` i `base*` (od přidání `basecenter` kompletní); štítky zapisuje přes XML API, takže znaky `&`/`<` se escapují a lehká značka (`<sub>`, `<lambda/>`, `<button>`, …) přenáší bez ztráty. |
 | `.ti5p` – načtení | ✅ | Nahradí program banky 0 a nastaví PC = 0 a banku 0. Registry nemění. |
 
 ### 3.12 Tiskárna PC-100A

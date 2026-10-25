@@ -1,6 +1,6 @@
 # Vyhodnocení experimentálního Android headu na Avalonii
 
-Spike `src/TI5X.Avalonia.Android` (ID `nz.gen.geek_central.ti5x.avalonia`) ověřuje, zda lze mobilní varianta TI5X postavit přímo na **Avalonia 12.0.4** bez .NET MAUI. MAUI aplikace (`src/TI5X.Maui`) zůstává zachovaná jako stabilní varianta; obě APK jsou sestavovaná v CI a instalují se vedle sebe.
+Spike `src/TI5X.Avalonia.Android` (ID `jakub.cloud.ti5x.avalonia`) ověřuje, zda lze mobilní varianta TI5X postavit přímo na **Avalonia 12.0.4** bez .NET MAUI. MAUI aplikace (`src/TI5X.Maui`) zůstává zachovaná jako stabilní varianta; obě APK jsou sestavovaná v CI a instalují se vedle sebe.
 
 ## 1. Výchozí podmínky a architektura
 
@@ -19,7 +19,7 @@ Spike `src/TI5X.Avalonia.Android` (ID `nz.gen.geek_central.ti5x.avalonia`) ově�
 | head build net10.0-android `-warnaserror` | 0 chyb, 0 upozornění, bez `NoWarn` |
 | `dotnet test --solution TI5X.slnx -c Release` | 64/64 úspěšných |
 | `dotnet format TI5X.slnx --verify-no-changes --exclude src/TI5X.Verified/generated` | beze změn |
-| `dotnet publish … -p:AndroidPackageFormats=apk` | `nz.gen.geek_central.ti5x.avalonia-Signed.apk` ≈ 31,4 MB |
+| `dotnet publish … -p:AndroidPackageFormats=apk` | `jakub.cloud.ti5x.avalonia-Signed.apk` ≈ 31,4 MB |
 | `aapt2 dump badging` | `targetSdkVersion:'36'`, minSdk 23, jediné `uses-permission` = `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (podpisové, generované Xamarinem; žádné úložiště/INTERNET) |
 
 ## 3. Smoke test na emulátoru (API 33, `Medium_Tablet_API_33`, 1600×2560)
@@ -85,10 +85,10 @@ Poznámky k pozorovanému chování:
 ```sh
 cd TI5X.Avalonia
 dotnet publish src/TI5X.Avalonia.Android/TI5X.Avalonia.Android.csproj -c Release -f net10.0-android -p:AndroidPackageFormats=apk
-~/Library/Android/sdk/platform-tools/adb install -r src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/nz.gen.geek_central.ti5x.avalonia-Signed.apk
+~/Library/Android/sdk/platform-tools/adb install -r src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/jakub.cloud.ti5x.avalonia-Signed.apk
 ~/Library/Android/sdk/platform-tools/adb push src/TI5X.Avalonia/Assets/lunar_lander.ti5p /sdcard/Download/
 ~/Library/Android/sdk/platform-tools/adb push src/TI5X.Avalonia/Assets/ml.ti5l /sdcard/Download/
-~/Library/Android/sdk/platform-tools/adb shell am start -W -n nz.gen.geek_central.ti5x.avalonia/crc64e31de4a059778544.MainActivity
+~/Library/Android/sdk/platform-tools/adb shell am start -W -n jakub.cloud.ti5x.avalonia/crc64e31de4a059778544.MainActivity
 ```
 
 V emulátoru Medium_Tablet_API_33 (1600×2560) pak: dotyk klávesnice, tlačítko **Menu** vlevo nahoře, položky open/save/load, podstránky Printer/Debugger/Help/About, zpět systémovým tlačítkem, ukončení přes **Exit**. Kontrola: `adb exec-out screencap -p > shot.png`, `adb shell uiautomator` nelze použít (Jedno nativní okno Avalonia), `logcat -d | grep -c "FATAL EXCEPTION"` = 0.
@@ -109,10 +109,10 @@ V emulátoru Medium_Tablet_API_33 (1600×2560) pak: dotyk klávesnice, tlačítk
 |---|---|
 | Ikona aplikace | `util/makeicons` (Python, bez externích rasterizérů) generuje mipmap sety `ic_launcher*` + adaptivní foreground z designu MAUI ikony (tmavá dlaždice, červený LED, zlaté klávesy); manifest `android:icon`/`android:roundIcon` |
 | Odezva kláves | `AppServices.KeyPressFeedback` (desktop null) → `MainActivity.ProvideKeyFeedback`: 25ms haptický tik přes `Vibrator`/`VibrationEffect` (API 26+, legacy větev pro 23–25), `VIBRATE` permission |
-| Tiskárna vedle kalkulačky | Nový `Views/CalculatorShell` (desktop + Android): od ~900 DIP šířky se vlevo zobrazí panel virtuální tiskárny (jako TI-59 v kolébce PC-100C), kalkulačka vpravo fixně 460 DIP; pod prahem chování beze změny. Tablety (sw ≥ 600dp) mohou otáčet (`RequestedOrientation = Unspecified`), telefony zůstávají portrait |
+| Tiskárna vedle kalkulačky | Nový `Views/CalculatorShell` (desktop + Android): od **680 DIP** šířky se vlevo zobrazí panel virtuální tiskárny (jako TI-59 v kolébce PC-100C), kalkulačka vpravo fixně 460 DIP; pod prahem kalkulačka plochu zaplní, ale širší než 520 DIP se neroztáhne (vycentruje se). Tablety (sw ≥ 600dp) mohou otáčet (`RequestedOrientation = Unspecified`), telefony zůstávají portrait |
 | Tlačítka „moc nahoře“ | Chyba definic řádků v `CalculatorView` (keypad měl `Auto`, status hvězdičku) → prohozeno; klávesnice nyní vyplňuje prostor mezi proužkem karty a statusem. Rozestup kláves zvětšen (`Margin 2→3` v `KeyButton`) |
 | LED segmenty | `LedDisplayControl`: tenčí tah (7,5 % výšky číslice) + explicitní mezery na napojení (≈45 % tahu) — segmenty se nepřekrývají, vypadají jako diskrétní LED čárky |
-| Menu pod displayem | Světlá `TopCommandBar` lišta odstraněna; ☰ tlačítko v úzkém řádku pod displejem (viditelné jen v Android single-view = uvnitř `NavigationPage`) otevírá stejný `MenuFlyout` jako dřív, handlery přesunuty do `CalculatorView` |
+| Menu (hamburger) | Světlá `TopCommandBar` lišta odstraněna; ☰ tlačítko **nad displejem vlevo před nápisem `TEXAS INSTRUMENTS`** (ve značkové hlavičce, viditelné jen v Android single-view = uvnitř `NavigationPage`) otevírá stejný `MenuFlyout` jako dřív, handlery v `CalculatorView` |
 | About + zdrojové kódy | `HyperlinkButton` s `NavigateUri="https://github.com/ondra-jakub/TI5X"` v `AboutPage` (Android) i `AboutWindow` (desktop) |
 
 ### 8.3 Verifikace
@@ -120,3 +120,18 @@ V emulátoru Medium_Tablet_API_33 (1600×2560) pak: dotyk klávesnice, tlačítk
 - `dotnet build TI5X.slnx -c Release -warnaserror`: 0 chyb/varování; `dotnet test`: **67/67**; `dotnet format --verify-no-changes --exclude src/TI5X.Verified/generated`: beze změn; `aapt2 dump badging`: `android.permission.VIBRATE` + ikony v manifestu.
 - Emulátor Pixel_Tablet_API_33 (landscape 1280×800 DIP): aplikace startuje bez FATÁL; dotyk klávesy → záznam ve `dumpsys vibrator_manager` (`durationMs≈25`, opPkg = aplikace ⇒ haptika + hit-test klávesnice); dotyky v levé polovině (panel tiskárny) vibraci nevyvolávají (⇒ široké rozložení aktivní); ☰ → menu → **Exit** aplikaci korektně ukončí.
 - Provedeno A/B s baseline (starý kód): shodné výsledky ⇒ žádná regrese. Pozn.: `screencap` na emulátoru i fill-render desktop okna na daném Macu v době testu nebyly použitelné pro vizuální kontrolu (environmentální — zachytí jen text/LED, ne výplně; projevuje se i u starého buildu); vizuální kontrola vzhledu doporučena ručně v emulátoru/desktopu.
+
+---
+
+## 9. Doplňky z 25. 10. 2026 (skládací telefon, hamburger, karty, MAUI knihovny)
+
+Ověřováno na emulátoru `DotOffice_Fold_API36` (7.6" Foldable, API 36, přechod FOLDED 443×995 DIP → OPEN 852×883 DIP přes `cmd device_state state 0/2`).
+
+| Bod | Zjištění a řešení |
+|---|---|
+| Roztažení na otevřeném skládacím telefonu | Prahový rozložení byl 900 DIP: uvnitř rozloženého displeje (852 DIP) se sice aktivoval široký layout, ale pod prahem (Pixel-Fold-like ~812 DIP a nižší pokryté jen s 900) zůstávala kalkulačka roztahovaná přes celou plochu nebo sbalená na minimální obsah. Řešení: prah **680 DIP**; kalkulačka má `MaxWidth=520` a `Stretch` — pod prahem plochu zaplní (443 → 423 DIP tělo), nad ní se vycentruje; v širokém layoutu fixní sloupec 460 DIP. Ověřeno na AVD: FOLDED (443) → kalkulačka vyplněná; OPEN (852) → tiskárna vlevo + kalkulačka 440. Desktop: 440/500 → kalkulačka zaplní; 1000 → tiskárna vlevo |
+| Hamburger nad displejem | **☰** tlačítko ve značkové hlavičce vlevo před `TEXAS INSTRUMENTS`, nad displejem (Avalonia: `MenuFlyout` v `CalculatorView`, viditelné jen v NavigationPage; MAUI: `Button` v `MainPage.xaml` otevírající též action sheet). Na MAUI odstraněn `ToolbarItem "Menu"`; na desktopu zůstává klasická menu lišta |
+| Knihovní moduly v MAUI | MAUI má nově položku menu **Built-in Libraries**: dvojkrok (seznam 13 modulů → načtení modulu), soubory `mod02.ti5l`–`mod13.ti5l` přidány do `Resources/Raw` (zdroj: sdílené s Avalonia headem, licenční poznámka viz 8.1) — ověřeno: `10 Math/Utilities: 21 programs loaded` |
+| Karty v knihovně (tlačítka) | Karty Master Library nyní nesou **plné plochy karet** z originálních šablon `mlsrc` (slučuje `util/mergemlcards.py`): proužek pod displejem ukazuje `A′`–`E′`, `A`–`E`, plnořádkové popisy (ML-01 `DIAGNOSTIC: [SBR] [=]`) a horní/dolní indexy s malými znaky. `CardStripControl` (Avalonia) a `CardStripView` (MAUI) kreslí stylizované běžky (sub/sup/overline/button). Nový dekodér `CardLabelMarkup` v `TI5X.Core` + testy karet v `LibraryModuleTests` |
+| Oprava chování `CE` (vedlejší produkt) | Ověření karet odhalilo, že `CE` mazalo dokončený výsledek, čímž se rozbíjely `( ce × …` rutiny ML-24/25. `CE` nyní (jako originál, ověřeno proti mikrokódu oracle) maže jen probíhající zadávání, jinak se netýká displeje a v chybě zruší blikání. `2nd Pgm 24`, `6`, `A` → `15.24`, `2nd Pgm 25`, `41`, `A` → `5.` — nové testy v `CeAndLibraryEntryTests`; celkem **98/98** |
+| Debug build Android | `EmbedAssembliesIntoApk=true` v `TI5X.Avalonia.Android.csproj` (debug sestavení lze po adb install rovnou spustit; fast-deploy bez IDE dřív padal SIGABRT) |

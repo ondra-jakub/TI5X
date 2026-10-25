@@ -114,7 +114,9 @@ public class LibraryModule
             AssertEntrySize(entry);
             using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
             string xml = reader.ReadToEnd();
-            var doc = XDocument.Parse(xml);
+            // PreserveWhitespace keeps label-internal spacing ("SBR</button> <button>")
+            // that LINQ to XML would otherwise drop as insignificant
+            var doc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
             var root = doc.Root;
             if (root == null) return null;
 
@@ -126,7 +128,9 @@ public class LibraryModule
             foreach (var el in root.Elements("label"))
             {
                 string slot = el.Attribute("slot")?.Value ?? "";
-                string val = el.Value; // simple text extract
+                // keep the light inner markup (<sub>, <lambda/>, <button>, …) intact —
+                // the card-strip renderers decode it into styled unicode runs
+                string val = ReadLabelContent(el);
 
                 switch (slot.ToLowerInvariant())
                 {
@@ -145,6 +149,7 @@ public class LibraryModule
                     case "dprime": card.DPrime = val; break;
                     case "eprime": card.EPrime = val; break;
                     case "primecenter": card.PrimeCenter = val; break;
+                    case "basecenter": card.BaseCenter = val; break;
                     case "baseleft": card.BaseLeft = val; break;
                     case "baseright": card.BaseRight = val; break;
                 }
@@ -156,5 +161,61 @@ public class LibraryModule
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Reads the inner content of a &lt;label&gt; element keeping the light markup
+    /// (&lt;sub&gt;ij&lt;/sub&gt; etc.) instead of flattening to text.
+    /// </summary>
+    private static string ReadLabelContent(XElement el)
+    {
+        var sb = new StringBuilder();
+        foreach (var node in el.Nodes())
+        {
+            switch (node)
+            {
+                case XText text:
+                    sb.Append(text.Value);
+                    break;
+                case XElement child:
+                    sb.Append(ToCanonicalMarkup(child));
+                    break;
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Serializes an inline label element back to the light markup form
+    /// (&lt;lambda/&gt;, &lt;sub&gt;ij&lt;/sub&gt;, nested children included) without
+    /// whitespace reformatting.
+    /// </summary>
+    private static string ToCanonicalMarkup(XElement el)
+    {
+        var sb = new StringBuilder();
+        sb.Append('<').Append(el.Name.LocalName);
+        if (el.IsEmpty)
+        {
+            sb.Append("/>");
+            return sb.ToString();
+        }
+
+        sb.Append('>');
+        foreach (var node in el.Nodes())
+        {
+            switch (node)
+            {
+                case XText text:
+                    sb.Append(text.Value);
+                    break;
+                case XElement child:
+                    sb.Append(ToCanonicalMarkup(child));
+                    break;
+            }
+        }
+
+        sb.Append("</").Append(el.Name.LocalName).Append('>');
+        return sb.ToString();
     }
 }

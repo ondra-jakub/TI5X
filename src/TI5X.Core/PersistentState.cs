@@ -120,6 +120,7 @@ public static class PersistentState
         AddCardLabel(root, "eprime", card.EPrime);
         AddCardLabel(root, "primecenter", card.PrimeCenter);
         AddCardLabel(root, "baseleft", card.BaseLeft);
+        AddCardLabel(root, "basecenter", card.BaseCenter);
         AddCardLabel(root, "baseright", card.BaseRight);
         return root.ToString();
     }

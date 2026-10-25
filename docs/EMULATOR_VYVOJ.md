@@ -61,11 +61,11 @@ Související dokumenty:
 |---|---|
 | Řešení | `TI5X.slnx` – desktopová aplikace, Android aplikace, sdílené view modely, jádro, testy a verifikované komponenty (centrální správa verzí balíčků v `Directory.Packages.props`, SDK i MTP připnuto v `global.json`). |
 | Hlavní projekt | `src/TI5X.Avalonia/TI5X.Avalonia.csproj` – `WinExe`, `net10.0`, `Nullable` a `ImplicitUsings` zapnuté. |
-| Android projekt | `src/TI5X.Maui/TI5X.Maui.csproj` – `Exe`, `net10.0-android`, `UseMaui`, `SingleProject`; `ApplicationId` `nz.gen.geek_central.ti5x.maui`, minSdk 21, targetSdk 36. |
+| Android projekt | `src/TI5X.Maui/TI5X.Maui.csproj` – `Exe`, `net10.0-android`, `UseMaui`, `SingleProject`; `ApplicationId` `jakub.cloud.ti5x.maui`, minSdk 21, targetSdk 36. |
 | Sdílené view modely | `src/TI5X.ViewModels/TI5X.ViewModels.csproj` – `net10.0` knihovna s `MainViewModel`, `PrinterViewModel`, `ProgramDebuggerViewModel` a rozhraním `IUiDispatcher`; neobsahuje typy Avalonie ani MAUI. |
 | Jádro | `src/TI5X.Core/TI5X.Core.csproj` – knihovna bez závislosti na UI (`namespace TI5X.Avalonia.Core`). |
 | Verifikace | `src/TI5X.Verified/TI5X.Verified.csproj` – C# kód generovaný z Dafny modelů (`generated/`, zdroje `*.dfy`); regeneruje se přes `dafny translate cs`, CI hlídá shodu. |
-| UI framework | Avalonia 12.0.4 pro desktop a .NET MAUI 10.0.110 (Android) pro mobil. V Debug konfiguraci Avalonie navíc `AvaloniaUI.DiagnosticsSupport`. |
+| UI framework | Avalonia 12.1.4 pro desktop a .NET MAUI 10.0.110 (Android) pro mobil. V Debug konfiguraci Avalonie navíc `AvaloniaUI.DiagnosticsSupport`. |
 | Bindingy | Avalonia: `AvaloniaUseCompiledBindingsByDefault = true` (každé XAML okno musí mít `x:DataType`). MAUI: `x:DataType` u stránek a šablon; `KeyButtonView` používá vlastní `BindingContext`. |
 | Prostředky | `src/TI5X.Avalonia/Assets/` je `EmbeddedResource` desktopové aplikace; `src/TI5X.Maui/Resources/Raw/` je `MauiAsset` Android aplikace (`ml.ti5l`, `lunar_lander.ti5p`), ikona a splash jsou v `Resources/AppIcon` a `Resources/Splash`. |
 | Testy | `tests/TI5X.Core.Tests/TI5X.Core.Tests.csproj` – TUnit na Microsoft.Testing.Platform; běžící přes `dotnet test` (viz kap. 7). |
@@ -404,7 +404,7 @@ Aby head pro Android mohl stavebnice desktopu znovu použít, jsou prezentační
 
 ### 5.3 Android aplikace (Avalonia, experimentální)
 
-`src/TI5X.Avalonia.Android` (net10.0-android, ID `nz.gen.geek_central.ti5x.avalonia`) odkazuje přímo na desktopový `TI5X.Avalonia` (WinExe) – žádný samostatný UI projekt neexistuje; proto csproj nastavuje `ValidateExecutableReferencesMatchSelfContained=false` a na `ProjectReference` `GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"` (jinak obnovovací graf selže – viz [5.4](#54-technická-úskalí-android-head-avalonia)). Struktura:
+`src/TI5X.Avalonia.Android` (net10.0-android, ID `jakub.cloud.ti5x.avalonia`) odkazuje přímo na desktopový `TI5X.Avalonia` (WinExe) – žádný samostatný UI projekt neexistuje; proto csproj nastavuje `ValidateExecutableReferencesMatchSelfContained=false` a na `ProjectReference` `GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"` (jinak obnovovací graf selže – viz [5.4](#54-technická-úskalí-android-head-avalonia)). Struktura:
 
 | Třída | Typ | Popis |
 |---|---|---|

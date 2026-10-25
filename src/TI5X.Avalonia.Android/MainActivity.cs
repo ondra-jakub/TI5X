@@ -2,6 +2,7 @@ using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
+using Android.Util;
 using Android.Views;
 using Avalonia.Android;
 using TI5X.Avalonia.Core;
@@ -28,6 +29,7 @@ public class MainActivity : AvaloniaMainActivity
         AppServices.FileService = _fileService;
         AppServices.Exit = FinishAffinity;
         AppServices.KeyPressFeedback = ProvideKeyFeedback;
+        AppServices.DiagnosticLog = message => Log.Info("TI5X", message);
         ActivityResult = HandleActivityResult;
 
         // Phones stay portrait (the Activity attribute); large tablets may rotate so the

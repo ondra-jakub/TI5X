@@ -16,12 +16,14 @@ Značení v textu:
 
 ## Obsah
 
+0. [Rychlý start – pět minut s kalkulačkou](#0-rychlý-start-–-pět-minut-s-kalkulačkou)
 1. [Úvod a technické parametry](#1-úvod-a-technické-parametry)
 2. [Klávesnice](#2-klávesnice)
    - [2.1 Rozložení kláves](#21-rozložení-kláves)
    - [2.2 Klávesa 2nd](#22-klávesa-2nd)
    - [2.3 Klávesa INV](#23-klávesa-inv)
    - [2.4 Kódy kláves a kódy instrukcí](#24-kódy-kláves-a-kódy-instrukcí)
+   - [2.5 Přehledová karta klávesnice](#25-přehledová-karta-klávesnice)
 3. [Zadávání čísel a formáty zobrazení](#3-zadávání-čísel-a-formáty-zobrazení)
    - [3.1 Zadání čísla](#31-zadání-čísla)
    - [3.2 Exponent EE](#32-exponent-ee)
@@ -71,6 +73,53 @@ Značení v textu:
    - [16.4 Součet řady se smyčkou](#164-součet-řady-se-smyčkou)
    - [16.5 Zastavení programu pro vstup](#165-zastavení-programu-pro-vstup)
    - [16.6 Lunar Lander](#166-lunar-lander)
+17. [Slovníček](#17-slovníček)
+
+---
+
+## 0. Rychlý start – pět minut s kalkulačkou
+
+Tato kapitola je pro úplný první kontakt: co udělat hned po spuštění, abyste něco vypočítali, uložili a spustili knihovní program. Všechny příklady v této kapitole jsou **ověřené** – displej zobrazuje přesně to, co je uvedeno.
+
+### Spočítáme výraz
+
+Kalkulačka počítá v systému **AOS** (viz [kapitola 4](#4-aritmetika-aos-a-závorky)): stisknete číslo, operaci, číslo, operaci … a na konci `=`. Přednost má `yˣ`, pak `×` a `÷`, pak `+` a `−`.
+
+| Klávesy | Displej |
+|---|---|
+| `2` `+` `3` `=` | `5.` |
+| `7` `+` `5` `×` `4` `=` | `27.` *(ověřeno)* – nejdřív `5 × 4`, potom `+ 7` |
+| `(` `7` `+` `5` `)` `×` `4` `=` | `48.` *(ověřeno)* |
+| `8` `÷` `(` `3` `+` `1` `)` `=` | `2.` *(ověřeno)* |
+| `2` `√x` | `1.414213562` *(ověřeno)* |
+| `2nd π` | `3.141592654` *(ověřeno)* |
+
+Mezivýsledky na displeji mezitím ukazují průběžný součet/přiřazení; nezáleží na nich, poslední `=` = hotový výsledek.
+
+### Uložíme a znovu použijeme číslo
+
+| Klávesy | Displej | Vysvětlení |
+|---|---|---|
+| `25` `STO 0 1` | `25.` | uloží 25 do registru 01 *(ověřeno)* |
+| `10` `SUM 0 1` | `10.` | přidá 10 k registru 01 (nyní 35) |
+| `RCL 0 1` | `35.` | vytáhne obsah registru *(ověřeno)* |
+
+Adresa registru je **dvoumístná** (`STO 0 1` = registr 01). Víc o paměti v [kapitole 6](#6-paměti).
+
+### Spustíme program z knihovny
+
+Vemte si Master Library program **ML-25 UNIT CONVERSIONS (2)** (převod temperatur) — převod 41 °F na °C. Klávesy: `2nd Pgm 25` (vybrat knihovní program, banka 25), pak `41` a `2nd C'` (teplota °F → °C):
+
+| Klávesy | Displej |
+|---|---|
+| `2nd Pgm 2 5` | `25.` |
+| `41` `2nd C'` | `5.` |
+
+*(ověřeno)* — 41 °F odpovídá 5 °C. Podrobně tuto knihovnu popisuje [kapitola 11](#11-knihovní-programy-a-pgm) a karta programu se zobrazí v proužku pod displejem.
+
+### Uložíme program do souboru
+
+Kalkulačka emuluje magnetické karty soubory: `.ti5p` (program) a `.ti5l` (knihovna). Desktop: menu `File > Save Program (.ti5p)...` — Android: hamburger **☰** nad displejem `Save Program (.ti5p)`. Načtení: `File > Open Program (.ti5p)...`. Kompletní postupy: [uživatelská příručka](EMULATOR_UZIVATEL.md) a [kapitola 15.3](#153-vytvoření-souboru-ti5p).
 
 ---
 
@@ -170,6 +219,33 @@ Je potřeba rozlišovat dva druhy kódů:
 Kódy 62–64, 72–74, 82–84 a 92 tedy znamenají něco jiného jako kód klávesy (číslice) a jako kód instrukce (sloučená instrukce).
 
 ✅ **Emulátor:** v režimu `LRN` se ukládají kódy instrukcí standardu TI-59 (včetně sloučených kódů) a při běhu se sloučené kódy provádějí správně. Podrobnosti viz [9.2](#92-režim-lrn) a [Sloučené kódy instrukcí](ODCHYLKY_A_OMEZENI.md#5-sloučené-kódy-instrukcí).
+
+### 2.5 Přehledová karta: typické klávesové sekvence
+
+Kapesní tahák nejčastějších sekvencí (vše popsáno podrobně v odkazovaných kapitolách):
+
+| Chcu … | Klávesy | Detail |
+|---|---|---|
+| spočítat výraz | čísla a operace, nakonec `=` | [4](#4-aritmetika-aos-a-závorky) |
+| zadat mocninu/odmocninu | `yˣ` a `INV yˣ` | [5.1](#51-mocniny-odmocniny-a-logaritmy) |
+| goniometrická funkce | `2nd sin` / `cos` / `tan`, inverze přidáním `INV` | [5.2](#52-úhlové-režimy-a-goniometrické-funkce) |
+| přepnout Deg/Rad/Grad | `2nd Deg` / `2nd Rad` / `2nd Grad` | [5.2](#52-úhlové-režimy-a-goniometrické-funkce) |
+| převod DD.MMSS ↔ desetinné stupně | `2nd D.MS` / `INV 2nd D.MS` | [5.4](#54-stupně-minuty-a-vteřiny) |
+| polární ↔ pravoúhlé souřadnice | r `x⇌t` θ `2nd P→R` | [5.3](#53-polární-a-pravoúhlé-souřadnice) |
+| uložit / vytáhnout číslo | `STO nn` / `RCL nn` (nn = dvě číslice!) | [6.2](#62-ukládání-a-paměťová-aritmetika) |
+| přičíst/odečíst/umocnit v paměti | `SUM nn`, `INV SUM nn`, `2nd Prd nn`, `INV 2nd Prd nn`, `2nd Exc nn` | [6.2](#62-ukládání-a-paměťová-aritmetika) |
+| pracovat s registrem přes proměnnou | `STO 2nd Ind nn` / sloučené kódy | [6.3](#63-nepřímé-adresování-ind) |
+| srovnat displej s registrem t | `x⇌t`, `2nd x=t nn`, `2nd x≥t nn` (a `INV`) | [7](#7-registr-t-a-porovnání) |
+| statistická data | y `2nd Σ+` (y na displeji, x v t), průměr `2nd x̄` | [8](#8-statistika) |
+| přepnout do zápisu programu | `LRN` (zase `LRN`) | [9.2](#92-režim-lrn) |
+| spustit program | `RST` `R/S` | [9.4](#94-spuštění-zastavení-a-krokování) |
+| skok/volání | `GTO nnn` / `SBR nnn` nebo návěští `A`–`E'` | [9.6](#96-nepodmíněné-skoky), [9.7](#97-podprogramy) |
+| smyčka | `2nd Dsz nn nnn` (registrem nn) | [9.10](#910-smyčky-s-dsz) |
+| rozdělit paměť | `2nd Op 17 mm.f` | [10](#10-rozdělení-paměti) |
+| zavolat knihovní program | `2nd Pgm nn` a pak `A`–`E'` | [11](#11-knihovní-programy-a-pgm) |
+| tisknout | `2nd Prt`, `2nd List`, `2nd Op nn` | [12](#12-tisk) |
+| zadat číslo exponentem | `mantisa EE exponent` | [3.2](#32-exponent-ee) |
+| formát zobrazení | `2nd Fix n`, `EE`, `2nd Eng` (zruší je `INV`) | [3](#3-zadávání-čísel-a-formáty-zobrazení) |
 
 ---
 
@@ -292,14 +368,14 @@ Aktuální režim ukazuje emulátor štítkem `DEG`/`RAD`/`GRAD` nad displejem. 
 
 ### 5.3 Polární a pravoúhlé souřadnice
 
-**Originál TI-59:** zadejte poloměr r, stiskněte `x⇌t`, zadejte úhel θ a stiskněte `2nd P→R`. Na displeji je souřadnice y, po `x⇌t` souřadnice x. Opačný převod: x `x⇌t` y `INV 2nd P→R` → θ na displeji, r v registru t.
+**Originál TI-59:** zadejte poloměr r, stiskněte `x⇌t` (r do registru t), zadejte úhel θ a stiskněte `2nd P→R`. Na displeji je souřadnice y, po `x⇌t` souřadnice x. Opačný převod: x `x⇌t` y `INV 2nd P→R` → θ na displeji, po `x⇌t` r.
 
-⚠️ **Emulátor:** pořadí je obrácené. Emulátor bere **r z displeje a θ z registru t** a vrací **x na displeji a y v registru t**. *(ověřeno)*
-
-| Postup v emulátoru | Výsledek |
+| Postup | Výsledek |
 |---|---|
-| `30 x⇌t 2 2nd P→R` (Deg, θ = 30°, r = 2) | displej `1.732050808` (x), po `x⇌t` `1.` (y) |
-| y `x⇌t` x `INV 2nd P→R` | displej r, po `x⇌t` θ |
+| `45 x⇌t 31.6 2nd P→R` (Deg) | displej `23.57936577` (y), po `x⇌t` `38.32771204` (x) *(ověřeno, shodné s příkladem z originálního manuálu)* |
+| `38.32771204 x⇌t 23.57936577 INV 2nd P→R` | displej `31.599…` (θ), po `x⇌t` r *(ověřeno)* |
+
+✅ **Emulátor:** chová se tu jako originál (konvence `P→R` = r v registru t, θ na displeji, výsledek y na displeji a x v registru t; `INV …` zrcadlově), ověřeno proti mikrokódu oracle.
 
 ### 5.4 Stupně, minuty a vteřiny
 
@@ -565,9 +641,9 @@ TI-59 má 10 příznaků (0–9). `2nd St flg n` příznak nastaví, `INV 2nd St
 
 `2nd Dsz n X` (n = 0–9) sníží obsah registru Rn o 1 a skočí na X, pokud výsledek není nula. Hodí se pro smyčky s pevným počtem opakování: do R0–R9 uložte počet průchodů a na konec smyčky dejte `Dsz n` s cílem na začátku smyčky. Viz [ukázku 16.2](#162-faktoriál-pomocí-dsz).
 
-V originále se hodnota posouvá k nule (záporné číslo se zvyšuje).
+V originále se hodnota posouvá k nule (záporné číslo se zvyšuje). *(ověřeno: R00 = −2, po `Dsz` −1, displej po `RCL 00` = `−1.`, stejně jako u oracle)*
 
-⚠️ **Emulátor:** vždy odečte 1 (−2 → −3) a nepodporuje `Ind`.
+⚠️ **Emulátor:** stejně jako originál; nepodporuje formu `Dsz 2nd Ind`.
 
 ### 9.11 Zvýšení a snížení registru
 
@@ -621,14 +697,47 @@ Kroky knihovního programu lze vytisknout: `2nd Pgm nn` + `2nd List` vypíše vy
 
 Program z modulu používá datové registry uživatele a jejich obsah může přepsat. Popis kláves k programům Master Library je na kartičkách v manuálu modulu.
 
+### Karty knihovních programů
+
+Ke každému programu patří **karta** (magnetický pásek s názvem a popisem vstupů). Emulátor ji zobrazuje jako proužek pod displejem: vlevo název programu, vpravo číslo `ML-nn`, pod tím dvě řady štítků — horní rudá `A′`–`E′`, dolní černá `A`–`E`. Proužek zobrazuje úplný obsah karty včetně tlačítek v políčkách (např. u ML-01 `DIAGNOSTIC: [SBR] [=]`) a horních indexů (`a_ij` u ML-03).
+
+**Programy vestavěné Master Library:**
+
+| Banka | Program | Co počítá |
+|---|---|---|
+| ML-01 | Diagnostic | Kontrola kalkulačky a modulu (`Sbr =`); inicializace lineární regrese; univerzální tisková rutina |
+| ML-02 | Matrix Inversion, Determinants & Simult. Equations | inverze matice, determinant, soustava n rovnic o n neznámých |
+| ML-03 | Matrix Addition and Multiplication | součet a součin matic |
+| ML-04 | Complex Arithmetic | základní počty s komplexními čísly (X±Y, X·Y, X/Y) |
+| ML-05 | Complex Functions | X², √X, 1/X, eˣ, ln X a polární tvar komplexního čísla |
+| ML-06 | Complex Trig Functions | goniometrické funkce a jejich inverze nad komplexními čísly |
+| ML-07 | Polynomial Evaluation | hodnota polynomu s reálnými koeficienty |
+| ML-08 | Zeros of Functions | reálné kořeny funkce definované programem |
+| ML-09 | Simpson's Approximation (Continuous) | integrál funkce definované programem |
+| ML-10 | Simpson's Approximation (Discrete) | integrál z n+1 rovnocenných vzorků |
+| ML-11 | Triangle Solution (1) | trojúhelník z SSS, SSA, SAS |
+| ML-12 | Triangle Solution (2) | trojúhelník z ASA, SAA; obsah daný třemi stranami |
+| ML-13 | Curve Solution | tětiva a oblouk kružnice |
+| ML-14 | Normal Distribution | obsahy pod standardní normální křivkou |
+| ML-15 | Random Number Generator | rovnoměrná i normální náhodná čísla |
+| ML-16 | Combinations, Permutations, Factorials | kombinace, permutace, faktoriály |
+| ML-17 | Moving Averages | klouzavý průměr z n posledních hodnot |
+| ML-18 | Compound Interest | složený úrok (čtyři veličiny) |
+| ML-19 | Ordinary Annuity/PV | splácení půjčky s fixní splátkou; současná hodnota |
+| ML-20 | Days Between Dates | počet dní mezi dvěma daty |
+| ML-21 | Number Guessing | hra na hádání čísla |
+| ML-22 | Checking/Savings Account | běžný a spořicí účet; servisní poplatky |
+| ML-23 | Clock Time | čas + konverze 12/24 h, hodiny:minuty |
+| ML-24 | Unit Conversions (1) | délky a plochy (in↔cm, ft↔m, yd↔m, mi↔km, mi↔n mi; dvojný stisk = plocha) |
+| ML-25 | Unit Conversions (2) | objemy, hmotnosti a temperature (°F/°C, l↔gal/oz, lb↔kg, …) |
+
 ⚠️ **Emulátor:**
-- Vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje **všech 25 bank** Master Library, sestavených z dumpu originálního CROM TMC0541; sloučené kódy emulátor provádí. ML-01 stále selhává na závěrečném kontrolním součtu (viz [Knihovní programy v přehledu odchylek](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
+- Vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje **všech 25 bank** Master Library, sestavených z dumpu originálního CROM TMC0541; programy byly ověřeny proti mikrokódu oracle (např. `2nd Pgm 24`, `6`, `A` → `15.24`; `2nd Pgm 25`, `41`, `A` → `5.`, viz testy `CeAndLibraryEntryTests`). Sloučené kódy emulátor provádí. ML-01 stále selhává na závěrečném kontrolním součtu (viz [Knihovní programy v přehledu odchylek](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
+- Karty Master Library v proužku nesou přesné štítky a tlačítka z originálních šablon projektu (`mlsrc`); u dalších vestavěných modulů (`mod02`–`mod13`) zatím chybí transkripce karet a zobrazí se jen názvy programů.
 - `Pgm nn` nechá banku nn vybranou i po návratu. Do banky 0 se vrátíte stiskem `RST`.
 - `Pgm` v programu skočí na krok 000 vybrané banky.
 - `Op 09` není implementován.
-- Další knihovny lze načíst přes `File > Load Library Module (.ti5l)...`.
-
-Viz [Knihovní programy v přehledu odchylek](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory).
+- Další knihovny lze načíst přes `File > Load Library Module (.ti5l)...` nebo v Androidu z menu **☰ > Built-in Libraries** (v MAUI i Avalonii stejně).
 
 ---
 
@@ -655,6 +764,9 @@ Alfanumerický tisk: kód znaku je dvoumístné číslo, například `13` = A. T
 ⚠️ **Emulátor:**
 - `Op 00` místo mazání zapne trasovací tisk (příznak 7).
 - `Op 05` po tisku tiskový registr vymaže.
+- `Op 06` a `Op 07` jen posunou papír.
+- `INV 2nd Prt` a `INV 2nd List` se chovají jako bez `INV`.
+- Příznak 7 v emulátoru zapne trasovací tisk každého dokončeného výsledku.
 - `Op 06` a `Op 07` jen posunou papír.
 - Znaky s kódy od 50 výše se mapují jinak.
 
@@ -712,6 +824,21 @@ Chybový stav zruší `CE`, `CLR` nebo zadání nového čísla. Při chybě v p
 - Přetečení se hlásí až kolem 1,8 × 10³⁰⁸.
 - Každá chyba zastaví program.
 - Neplatná klávesa při zadávání adresy vede k chybě.
+
+### 14.1 Řešení běžných potíží
+
+| Problém | Příčina a postup |
+|---|---|
+| Program/knihovní knížka „nedá“ očekávaný výsledek | Vynechal jsem operand? U knihovních programů se číslo zadává **až po výběru programu** a pak se stiskne klávesa z karty (např. ML-24: `2nd Pgm 2 4`, `6`, `A` → `15.24`; vstupní číslo přežije úvodní `CE` rutiny — viz [11](#11-knihovní-programy-a-pgm)). Zkontrolujte, jestli máte vybranou správnou banku (`Library Bank NN` ve stavovém řádku) |
+| Problém po `RST` nebo `New Program` | `RST` v emulátoru nenuluje příznaky; `New Program` provede úplný reset **včetně načtených knihoven** — knihovnu znovu načtěte ([menu `File`](EMULATOR_UZIVATEL.md#3-menu) nebo `Built-in Libraries` na Androidu). `2nd CMs` a `CLR` knihovny nemění |
+| Displej bliká a počítá špatně | Chybový stav: podívejte se do [seznamu chyb](#14-chybové-stavy) výš; `CE` zruší blikání |
+| Číslo se zobrazí jako `1.5234 35` | Aktivní formát `EE`; normální zobrazení vrátí `EE` znovu, nebo `INV 2nd Eng` při Eng |
+| `Eng` při zadávání čísla „smazal“ číslo | Během zadávání `2nd Eng` rozepsané číslo zahodí ([3.3](#33-inženýrský-formát-eng)) — číslo nejdřív ukončete (`=`), pak `2nd Eng` |
+| `2nd Fix nn nefunguje` s EE/Eng | `Fix` se v EE a Eng formátech ignoruje (mantisa má vždy 8 číslic) — [3.4](#34-pevný-počet-desetinných-míst-fix) |
+| Paměťové operace dají neočekávaný výsledek | Adresa je **dvoumístná**: `STO 0 1` = registr 01. `STO 1 0 2` = STO registrovi 10 a pak číslice 2. |
+| Program v LRN „nedělá nic“ | Zkontrolujte `RST` (PC = 000) a `R/S`; návěští `A`–`E'` voláte přímo stiskem; programy psané starší verzí emulátoru je nutné přepsat — viz [9.2](#92-režim-lrn) |
+| Knihovní program se spustí, ale výsledek není vidět | Program může skončit `INV SBR` a vrátit se do volající banky; na displeji mezitím stojí mezivýsledek. Programy z modulu přepisují datové registry — před novým použitím je vymažte (`2nd CMs`) a zkontrolujte, že v nich nejsou data jiného výpočtu |
+| Nelze uložit načtený knihovní program | `.ti5p` ukládá jen **banku 0**; `2nd Op 09` (stažení knihovního programu) v emulátoru chybí ❌. Obsah knihovního programu zkopírujte z výpisu `2nd List`/debuggeru do nového `.ti5p` podle [15.3](#153-vytvoření-souboru-ti5p) |
 
 ---
 
@@ -994,3 +1121,27 @@ Použití: `5 A` → `5.`, `3 R/S` → `8.`
 ### 16.6 Lunar Lander
 
 Rozsáhlejší ukázkou je hra Lunar Lander (přistání na Měsíci). Program je připravený v souboru `src/TI5X.Avalonia/Assets/lunar_lander.ti5p` a jeho kódy s komentáři jsou v `tests/TI5X.Core.Tests/TestHelpers.cs` (`LunarLanderProgram`). Pravidla hry, fyzikální model a ovládání popisuje [LUNAR_LANDER_SPEC.md](LUNAR_LANDER_SPEC.md).
+
+---
+
+## 17. Slovníček
+
+| Pojem | Význam |
+|---|---|
+| **AOS** | Algebraic Operating System — zpracování výrazu podle priority operací (`yˣ` > `×`, `÷` > `+`, `−`), viz [kapitola 4](#4-aritmetika-aos-a-závorky). |
+| **Banca / banka** | Úložiště jednoho programu; banka 0 = uživatelský program, banky 01–99 = knihovní programy (originál 01–25 = Master Library). |
+| **CROM** | Aritmetický/kontrolní ROM čip Solid State Software (TMC0540/‑0541 …); „dump CROM“ = výpis obsahu modulu, ze kterého se staví `.ti5l`. |
+| **CE / CLR** | Clear Entry / Clear (General) — viz [3.5](#35-mazání-ce-a-clr) a [Odchylky](ODCHYLKY_A_OMEZENI.md#33-aritmetika-aos-a-závorky). |
+| **Registr t** | Vrchní registr displeje; srovnávací testy (`x=t`, `x≥t`), statistika (x souřadnice), `P→R` (r) a cíl součtu `Σ+`. |
+| **Data registry** | Datové paměti 00–99; adresované `STO`/`RCL`/… dvěma číslicemi; rozdělené na paměti a programové kroky (Op 17). |
+| **Příznak (flag)** | Skrytý bit 0–9 nastavovaný `2nd St flg` a testovaný `2nd If flg`; originál: příznak 7 = trasovací tisk. |
+| **Návěští (label)** | Bod v programu pojmenovaný klávesou (`2nd Lbl A`); `A′`–`E′` jsou druhé funkce. |
+| **IND (Indirect)** | Nepřímé adresování: operand se čte z obsahu registru (`STO 2nd Ind nn`). |
+| **Op kód** | „Special control operation“: `2nd Op nn` — statistika, tisk, paměť i vlastní rutiny (0–99), viz [13](#13-přehled-op-kódů). |
+| **`Pgm`** | `2nd LRN` — výběr knihovního programu (banky); viz [11](#11-knihovní-programy-a-pgm). |
+| **Solid State Software** | Předprogramovaný vyměnitelný modul (do 5000 kroků + Master Library). Emulátor: soubory `.ti5l`. |
+| **Magnetická karta** | Program/karta s popisem, který se vkládal pod displej; emulátor: `.ti5p` soubor a proužek karty. |
+| **`Σ+`, `x̄`** | Statistický součet (Σ+ přidá bod; x̄ průměr/s odchylka), viz [8](#8-statistika). |
+| **DD.MMSS** | Formát úhlu stupně.minutyvteřiny (`2nd D.MS`). |
+| **PC** | Program Counter — ukazatel vykonávaného kroku (displej v LRN: `PPP KK`). |
+| **Karta programu (proužek)** | Vizuální zobrazení karty knihovního programu v aplikaci: název + štítky `A′`–`E′`/`A`–`E`, viz [11](#11-knihovní-programy-a-pgm). |

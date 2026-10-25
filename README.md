@@ -1,6 +1,6 @@
 # TI5X pro .NET 10, Avalonia 12 a Android (MAUI i Avalonia)
 
-Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace a dvě mobilní aplikace pro Android – stabilní varianta v .NET MAUI a experimentální varianta přímo v Avalonia 12.0.4. Projekt je portovaný z původního Android projektu TI5X v tomto repozitáři; původní Android zdroje zůstávají zachované. Emulační jádro, view modely i sdílené UI komponenty jsou společné pro všechny tři aplikace.
+Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace a dvě mobilní aplikace pro Android – stabilní varianta v .NET MAUI a experimentální varianta přímo v Avalonia 12.1.4. Projekt je portovaný z původního Android projektu TI5X v tomto repozitáři; původní Android zdroje zůstávají zachované. Emulační jádro, view modely i sdílené UI komponenty jsou společné pro všechny tři aplikace.
 
 ## Spuštění
 
@@ -32,7 +32,7 @@ Spike aplikace postavená přímo na **Avalonia 12** bez MAUI (`src/TI5X.Avaloni
 
 ```sh
 dotnet publish src/TI5X.Avalonia.Android/TI5X.Avalonia.Android.csproj -c Release -f net10.0-android -p:AndroidPackageFormats=apk
-adb install -r src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/nz.gen.geek_central.ti5x.avalonia-Signed.apk
+adb install -r src/TI5X.Avalonia.Android/bin/Release/net10.0-android/publish/jakub.cloud.ti5x.avalonia-Signed.apk
 ```
 
 Popis a vyhodnocení spikeu (ověřené funkce, načtená data, doporučení) jsou v [docs/AVALONIA_ANDROID_VYHODNOCENI.md](docs/AVALONIA_ANDROID_VYHODNOCENI.md); ovládání je popsáno v [uživatelské příručce, kap. 13](docs/EMULATOR_UZIVATEL.md#13-android-aplikace-avalonia-experimentální).
@@ -47,12 +47,12 @@ Popis a vyhodnocení spikeu (ověřené funkce, načtená data, doporučení) js
 
 ## Dokumentace
 
-Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/):
+Veškerá dokumentace je v češtině v adresáři [`docs/`](docs/) (anglická verze příručky kalkulačky v [`docs/TI59_GUIDE_EN.md`](docs/TI59_GUIDE_EN.md)):
 
 | Dokument | Obsah |
 |---|---|
-| [Příručka kalkulačky TI-59](docs/PRIRUCKA_TI59.md) | Plná příručka: klávesnice, počítání, AOS, paměti, statistika, programování, tabulka všech 100 kódů instrukcí, ukázkové programy. |
-| [Uživatelská příručka emulátoru](docs/EMULATOR_UZIVATEL.md) | Spuštění aplikace, okno, menu, klávesové zkratky, soubory `.ti5p`/`.ti5l`, virtuální tiskárna, debugger, Lunar Lander. |
+| [Příručka kalkulačky TI-59](docs/PRIRUCKA_TI59.md) | Plná příručka: rychlý start, klávesnice, počítání, AOS, paměti, statistika, programování, knihovní programy s kartami, tabulka všech 100 kódů instrukcí, ukázkové programy, FAQ, slovníček. Anglická verze: [TI59_GUIDE_EN.md](docs/TI59_GUIDE_EN.md). |
+| [Uživatelská příručka emulátoru](docs/EMULATOR_UZIVATEL.md) | Spuštění aplikace, okno, menu (desktop i hamburger ☰ na Androidu), klávesové zkratky, soubory `.ti5p`/`.ti5l`, virtuální tiskárna, debugger, Lunar Lander. |
 | [Vývojářská dokumentace](docs/EMULATOR_VYVOJ.md) | Architektura MVVM, projekt `TI5X.Core`, formáty souborů, testy, Dafny verifikace, postup rozšiřování. |
 | [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md) | Jediný úplný seznam rozdílů oproti originálu TI-59 a chybějících funkcí. |
 | [Specifikace Lunar Lander](docs/LUNAR_LANDER_SPEC.md) | Ukázkový program: pravidla hry, fyzikální model, kompletní výpis 142 kroků. |

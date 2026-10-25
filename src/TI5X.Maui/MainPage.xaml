@@ -9,17 +9,31 @@
              BackgroundColor="#181615"
              SafeAreaEdges="All">
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Menu" Clicked="OnMenuClicked" />
-    </ContentPage.ToolbarItems>
-
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="10">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,0,4,8">
-            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+        <!-- Hamburger menu button sits above the display, left of the "TEXAS
+             INSTRUMENTS" label — same arrangement as the Avalonia head. -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="4,0,4,8">
+            <Button Grid.Column="0"
+                    Text="☰"
+                    FontSize="13"
+                    Padding="0"
+                    WidthRequest="30"
+                    HeightRequest="22"
+                    MinimumHeightRequest="22"
+                    CornerRadius="4"
+                    BackgroundColor="#332B25"
+                    BorderColor="#4A423D"
+                    BorderWidth="1"
+                    TextColor="#E0D8D0"
+                    LineBreakMode="NoWrap"
+                    VerticalOptions="Center"
+                    Clicked="OnMenuClicked" />
+
+            <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                 <Label Text="TEXAS INSTRUMENTS" FontSize="11" FontAttributes="Bold" TextColor="#C8BFB5" CharacterSpacing="1" />
                 <Label Text="TI-59" FontSize="11" FontAttributes="Bold" TextColor="#E6B432" />
             </HorizontalStackLayout>
-            <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+            <HorizontalStackLayout Grid.Column="2" Spacing="6" VerticalOptions="Center">
                 <Border BackgroundColor="#332B25" StrokeThickness="0" StrokeShape="RoundRectangle 3" Padding="6,2">
                     <Label Text="{Binding AngleModeText}" FontSize="9" FontAttributes="Bold" TextColor="#E6B432" />
                 </Border>

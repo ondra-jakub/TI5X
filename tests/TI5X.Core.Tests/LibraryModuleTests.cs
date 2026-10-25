@@ -67,4 +67,56 @@ public class LibraryModuleTests
         await Assert.That(module.Banks[24].Card?.TitleLeft).IsEqualTo("UNIT CONVERSIONS (1)");
         await Assert.That(module.Banks[24].Card?.TitleRight).IsEqualTo("ML-24");
     }
+
+    [Test]
+    public async Task Master_library_cards_carry_key_button_labels()
+    {
+        // the authentic mlsrc card templates list the entry points (A-E keys and
+        // the prime row) of every program; without them the card strip shows no
+        // buttons at all
+        var module = LibraryModule.LoadFromFile(TestHelpers.AssetPath("ml.ti5l"));
+
+        // ML-01 diagnostic: full-width rows with boxed key names
+        var diagnostic = module.Banks[1].Card;
+        await Assert.That(diagnostic?.PrimeCenter).IsEqualTo("DIAGNOSTIC: <button>SBR</button> <button>=</button>");
+        await Assert.That(diagnostic?.BaseLeft).IsEqualTo("L.R. INIT: <button>SBR</button> <button>CLR</button>");
+        await Assert.That(diagnostic?.BaseRight).IsEqualTo("PRINT: mm <button>STO</button> 00");
+
+        // ML-03 matrix arithmetic: A-E cells with subscript markup
+        var ml03 = module.Banks[3].Card;
+        await Assert.That(ml03?.A).IsEqualTo("m,n");
+        await Assert.That(ml03?.B).IsEqualTo("j;a<sub>ij</sub>");
+        await Assert.That(ml03?.BPrime).IsEqualTo("i;x<sub>i</sub>");
+        await Assert.That(ml03?.CPrime).IsEqualTo("<rarrow/>Ax");
+
+        // ML-24 unit conversions: conversion directions on all five keys
+        var ml24 = module.Banks[24].Card;
+        await Assert.That(ml24?.A).IsEqualTo("in <rarrow/> cm");
+        await Assert.That(ml24?.EPrime).IsEqualTo("km <rarrow/> n mi");
+    }
+
+    [Test]
+    public async Task Card_markup_decode_produces_styled_runs()
+    {
+        var runs = CardLabelMarkup.Decode("DIAGNOSTIC: <button>SBR</button> <button>=</button>");
+        await Assert.That(runs.Count).IsEqualTo(4);
+        await Assert.That(runs[0].Text).IsEqualTo("DIAGNOSTIC: ");
+        await Assert.That(runs[1].Style).IsEqualTo(CardLabelRunStyle.Button);
+        await Assert.That(runs[1].Text).IsEqualTo("SBR");
+        await Assert.That(runs[3].Style).IsEqualTo(CardLabelRunStyle.Button);
+
+        var arrow = CardLabelMarkup.Decode("in <rarrow/> cm");
+        await Assert.That(CardLabelMarkup.ToPlainText("in <rarrow/> cm")).IsEqualTo("in → cm");
+
+        var sub = CardLabelMarkup.Decode("j;a<sub>ij</sub>");
+        await Assert.That(sub[0].Style).IsEqualTo(CardLabelRunStyle.Normal);
+        await Assert.That(sub[^1].Style).IsEqualTo(CardLabelRunStyle.Subscript);
+        await Assert.That(sub[^1].Text).IsEqualTo("ij");
+
+        // plain labels without markup decode to a single normal run
+        var plain = CardLabelMarkup.Decode("LUNAR LANDER");
+        await Assert.That(plain.Count).IsEqualTo(1);
+        await Assert.That(plain[0].Style).IsEqualTo(CardLabelRunStyle.Normal);
+        await Assert.That(plain[0].Text).IsEqualTo("LUNAR LANDER");
+    }
 }

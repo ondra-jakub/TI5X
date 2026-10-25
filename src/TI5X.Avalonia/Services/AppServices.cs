@@ -19,6 +19,15 @@ public static class AppServices
     public static Action? Exit { get; set; }
 
     /// <summary>
+    /// Optional diagnostic logger routed to the platform log (Android: logcat via the
+    /// head; desktop: Debug.WriteLine). Used for layout diagnostics on foldables.
+    /// </summary>
+    public static Action<string>? DiagnosticLog { get; set; }
+
+    /// <summary>Logs through <see cref="DiagnosticLog"/> when a head provides it.</summary>
+    public static void Log(string message) => DiagnosticLog?.Invoke(message);
+
+    /// <summary>
     /// Optional tactile feedback invoked when an on-screen key is pressed
     /// (Android head: short haptic tick via the Vibrator service; null on desktop).
     /// </summary>

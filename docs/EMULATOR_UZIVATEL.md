@@ -247,6 +247,10 @@ Soubor `.ti5l` je knihovní modul – archiv ZIP s více programy (`prog01`, `pr
 
 Při startu aplikace se automaticky načte `src/TI5X.Avalonia/Assets/ml.ti5l`, která je zabudovaná přímo do aplikace. Obsahuje všech **25 programů** Master Library, sestavených z dumpu originálního CROM TMC0541 ([Odchylky 3.11](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)). Volání návěšťím přijímá libovolný nečíslicový klíč (ML-01 používá např. `SBR =`); korelace je navíc dostupná i jako `Op 14`, jak ji čísuluje originál.
 
+### Proužek karty (card strip)
+
+Proužek pod displejem zobrazí kartu aktuální banky, tedy přesně to, co má na líci magnetická karta knihovního programu: vlevo název programu, vpravo `ML-nn`, pod ním pět sloupců s tím, co program čeká na klávesách `A′`–`E′` (horní, rudá řada) a `A`–`E` (dolní, černá řada). Karty Master Library mají i plnořádkové popisy (např. ML-01: `DIAGNOSTIC: [SBR] [=]`, kde políčko znamená stisk klávesy). Data karet Master Library pocházejí z původních šablon projektu (`/mlsrc`), takže proužek ukazuje **tlačítka** programu, ne jen jeho název; u ostatních vestavěných modulů (`mod02`–`mod13`) zatím chybí transkripce ploch karet a uvidíte jen názvy programů.
+
 ### Načtení vlastní knihovny
 
 `File > Load Library Module (.ti5l)...`:
@@ -370,15 +374,16 @@ Androidová verze (`src/TI5X.Maui`) používá stejné emulační jádro, formá
 Aplikace cílí na Android 5.0 (API 21) a vyšší; sestavení používá target API 36 a je ověřené na Androidu 13 (API 33). Nainstalujte APK ze systémového souborového manažeru nebo příkazem:
 
 ```sh
-adb install -r nz.gen.geek_central.ti5x.maui-Signed.apk
+adb install -r jakub.cloud.ti5x.maui-Signed.apk
 ```
 
 Aplikace je uzamčená na orientaci na výšku, stejně jako původní Android projekt.
 
 ### 12.2 Ovládání
 
-- Kalkulačka se ovládá dotykem na stejné klávesnici 9 × 5; indikátory `2nd`, `INV`, `LRN` a `DEG/RAD/GRAD` jsou v horní liště.
-- Všechny položky menu jsou pod tlačítkem **Menu** v horní liště: `New Program`, `Open Program (.ti5p)`, `Save Program (.ti5p)`, `Load Library Module (.ti5l)`, `Virtual Printer`, `Program Debugger`, `Help`, `About` a `Exit`.
+- Kalkulačka se ovládá dotykem na stejné klávesnici 9 × 5; indikátory `2nd`, `INV`, `LRN` a `DEG/RAD/GRAD` jsou v horní liště nad displejem.
+- Všechny položky menu jsou pod hamburger tlačítkem **☰**, které leží nad displayem vlevo před nápisem `TEXAS INSTRUMENTS` (na systémovém action baru v horní liště už tlačítko Menu není): `New Program`, `Open Program (.ti5p)`, `Save Program (.ti5p)`, `Load Library Module (.ti5l)`, `Built-in Libraries`, `Virtual Printer`, `Program Debugger`, `Help`, `About` a `Exit`.
+- `Built-in Libraries` otevře druhý výpis se všemi vestavěnými moduly (Master Library až RPN Simulator); volbou se modul načte stejně, jako kdybyste vybrali `.ti5l` soubor (viz [kapitola 6](#6-knihovny-ti5l-a-vestavěná-master-library)).
 - Virtuální tiskárna, debugger i nápověda se otevírají jako podstránky; vrátíte se tlačítkem zpět nebo šipkou v horní liště. Tlačítka tiskárny a debuggeru odpovídají desktopové verzi, včetně `Copy Tape` do schránky.
 - Hardwarová klávesnice (například u tabletu nebo v emulátoru) podporuje stejné klávesy jako desktop: číslice a numerickou klávesnici, `.` `+` `-` `*` `/`, `Enter`, `Backspace`/`Del` = CE, `Escape` = CLR a `F1`–`F5` = A–E.
 
@@ -386,7 +391,7 @@ Aplikace je uzamčená na orientaci na výšku, stejně jako původní Android p
 
 - Načtení i uložení používá systémový výběr souborů (Storage Access Framework). Aplikace nevyžaduje oprávnění `WRITE_EXTERNAL_STORAGE` ani přístup k celému úložišti.
 - `Open Program (.ti5p)`, `Load Library Module (.ti5l)` a `Save Program (.ti5p)` otevřou dokumentový výběr. Uložený soubor se jmenuje `program.ti5p` a lze zvolit cílovou složku.
-- Vestavěná knihovna `ml.ti5l` je součástí APK a načte se při prvním zobrazení hlavní stránky.
+- Vestavěné knihovní moduly (`ml.ti5l` a `mod02.ti5l` … `mod13.ti5l`) jsou součástí APK v adresáři `Resources/Raw`; Master Library se načte při prvním zobrazení hlavní stránky, ostatní zvolíte v menu `Built-in Libraries`.
 - Ukázkový `lunar_lander.ti5p` je také součástí APK v adresáři `Resources/Raw`, ale v aplikaci se nenabízí automaticky; pro vyzkoušení ho zkopírujte do úložiště zařízení a otevřete přes picker.
 
 ### 12.4 Omezení Android verze
@@ -407,7 +412,7 @@ Vedle MAUI verze existuje experimentální Android aplikace postavená přímo n
 Aplikace cílí na Android 6.0 (API 23) a vyšší (viz poznámku níže); sestavení používá target API 36 a je ověřené na Androidu 13 (API 33). Instalace:
 
 ```sh
-adb install -r nz.gen.geek_central.ti5x.avalonia-Signed.apk
+adb install -r jakub.cloud.ti5x.avalonia-Signed.apk
 ```
 
 APK vznikne příkazem:
@@ -416,18 +421,20 @@ APK vznikne příkazem:
 dotnet publish src/TI5X.Avalonia.Android/TI5X.Avalonia.Android.csproj -c Release -f net10.0-android -p:AndroidPackageFormats=apk
 ```
 
-Aplikace `TI5X (Avalonia)` se instaluje vedle MAUI verze (odlišné ID `nz.gen.geek_central.ti5x.avalonia`), obě lze mít nainstalované současně.
+Aplikace `TI5X (Avalonia)` se instaluje vedle MAUI verze (odlišné ID `jakub.cloud.ti5x.avalonia`), obě lze mít nainstalované současně.
 
 ### 13.2 Ovládání
 
-- Ovládání je shodné s MAUI verzí (kapitola 12.2): kalkulačka na dotyk, všechna menu pod tlačítkem **Menu**, tiskárna a debugger jako podstránky, stejný kód hardware kláves včetně podpory `F1`–`F5`.
+- Ovládání je shodné s MAUI verzí (kapitola 12.2): kalkulačka na dotyk, menu pod hamburger tlačítkem **☰** nad displayem vlevo před nápisem `TEXAS INSTRUMENTS` (desktopové menu lišty se v této variantě nezobrazují; stejné položky včetně `Built-in Libraries`), tiskárna a debugger jako podstránky, stejný kód hardware kláves včetně podpory `F1`–`F5`.
+- Podstránky (tiskárna, debugger, nápověda, About) mají v horní liště název a šipku zpět; systémová klávesa zpět funguje korektně – navrací v navigačním zásobníku, na hlavní stránce ukončí aplikaci.
+- Na šířkách od 680 dp (otevřený skládací telefon, tablet) se vlevo vedle kalkulačky zobrazí i panel virtuální tiskárny (CalculatorShell); na běžném mobilu v orientaci na výšku zůstává jen kalkulačka. Kalkulačka se nikdy neroztahuje přes celou obrazovku — na širokých plochách má maximální šířku 520 dp a je vycentrovaná.
 - Podstránky (tiskárna, debugger, nápověda, About) mají v horní liště název a šipku zpět; systémová klávesa zpět funguje korektně – navrací v navigačním zásobníku, na hlavní stránce ukončí aplikaci.
 - Chybí ikona aplikace (nainstaluje se výchozí robot Androidu) a nástěná/splash obrazovka; jedná se o kosmetické omezení experimentu.
 
 ### 13.3 Soubory a oprávnění
 
 - Stejný tok jako MAUI verze: open/save přes Storage Access Framework, bez oprávnění k úložišti. Uložený soubor má výchozí název `program.ti5p`.
-- Vestavěná knihovna `ml.ti5l` je v sestavení desktopové aplikace (sdílený projekt) a načte se při startu aplikace, jako na desktopu.
+- Vestavěné knihovní moduly (`ml.ti5l` a `mod02.ti5l` … `mod13.ti5l`) jsou v sestavení desktopové aplikace (sdílený projekt); Master Library se načte při startu aplikace, ostatní zvolíte v hamburger menu **Built-in Libraries**.
 - Výběr souborů na Androidu není omezený na přípony (SAF dialog s MIME `*/*`); lze vybrat libovolný soubor a aplikace ho zkusí načíst jako program/knihovnu (při chybě stavový řádek vypíše hlášku).
 
 ### 13.4 Omezení Android (Avalonia) verze

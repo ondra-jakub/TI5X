@@ -621,7 +621,20 @@ public class CalculatorEngine
                 ClearAll();
                 break;
             case KeyCodes.KEY_CE:
-                ClearEntry();
+                // The real machine clears the entry only while a number is being
+                // typed; with a finished result CE is a no-op (this is what makes
+                // the original Master Library programs work: ML-24 starts its
+                // conversion routines with "( ce × ...", relying on CE keeping the
+                // already entered operand), and in an error state it only stops
+                // the flashing.
+                if (State is EngineState.Entry or EngineState.DecimalEntry or EngineState.ExponentEntry)
+                {
+                    ResetEntry();
+                }
+                else if (State == EngineState.Error)
+                {
+                    ClearErrorState();
+                }
                 break;
             case KeyCodes.KEY_CP:
                 ClearProgram();

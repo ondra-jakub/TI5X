@@ -36,6 +36,7 @@ public class CardDef
 
     public string? PrimeCenter { get; set; }
     public string? BaseLeft { get; set; }
+    public string? BaseCenter { get; set; }
     public string? BaseRight { get; set; }
 }
 
