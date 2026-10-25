@@ -90,7 +90,7 @@ TI-59 (1977) je kapesní programovatelná kalkulačka s červeným LED displejem
 | Vnitřní přesnost | 13 číslic | `double`, asi 15–16 platných číslic |
 | Úhlové režimy | Deg, Rad, Grad | Deg, Rad, Grad (výchozí Deg) |
 | Formáty | standardní, Fix 0–8, vědecký (EE), inženýrský (Eng) | stejné |
-| Knihovní modul | Master Library (25 programů) | jen banka 01 ze souboru `src/TI5X.Avalonia/Assets/ml.ti5l` ⚠️ |
+| Knihovní modul | Master Library (25 programů) | všech 25 bank ze souboru `src/TI5X.Avalonia/Assets/ml.ti5l`; ML-01 selže na závěrečném kontrolním součtu ⚠️ |
 | Magnetické karty | ano | ne – nahrazují je soubory `.ti5p`/`.ti5l` ❌ |
 | Tiskárna | PC-100A, 20 znaků na řádek | virtuální PC-100A, 20 znaků na řádek |
 
@@ -617,10 +617,12 @@ Do TI-59 se zasouvá knihovní modul s předem nahranými programy, standardně 
 | `2nd Pgm 2nd Ind nn` | číslo programu se vezme z registru nn |
 | `2nd Op 09` | zkopíruje knihovní program do programové paměti |
 
+Kroky knihovního programu lze vytisknout: `2nd Pgm nn` + `2nd List` vypíše vybranou banku na virtuální tiskárnu (klávesy `Pgm` = `2nd` + `LRN`, `List` = `2nd` + `=`).
+
 Program z modulu používá datové registry uživatele a jejich obsah může přepsat. Popis kláves k programům Master Library je na kartičkách v manuálu modulu.
 
 ⚠️ **Emulátor:**
-- Vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje jen **banku 01**, která kvůli sloučeným kódům neběží správně.
+- Vestavěná knihovna `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje **všech 25 bank** Master Library, sestavených z dumpu originálního CROM TMC0541; sloučené kódy emulátor provádí. ML-01 stále selhává na závěrečném kontrolním součtu (viz [Knihovní programy v přehledu odchylek](ODCHYLKY_A_OMEZENI.md#311-knihovní-programy-karty-a-soubory)).
 - `Pgm nn` nechá banku nn vybranou i po návratu. Do banky 0 se vrátíte stiskem `RST`.
 - `Pgm` v programu skočí na krok 000 vybrané banky.
 - `Op 09` není implementován.
@@ -638,7 +640,7 @@ S tiskárnou PC-100A (v emulátoru `View > Virtual Printer (PC-100A)`) jsou k di
 |---|---|
 | `2nd Prt` | vytiskne obsah displeje (zarovnaný doprava) |
 | `2nd Adv` | posune papír o řádek |
-| `2nd List` | vypíše program ve tvaru `PPP  KK MNE` (krok, kód, mnemonika) |
+| `2nd List` | vypíše program ve tvaru `PPP  KK MNE` od aktuálního kroku (počátek posune `GTO nnn` mimo LRN) |
 | `2nd Op 08` | vypíše návěští programu (`PPP  LBL X`) |
 | `2nd Op 00` | vymaže tiskový registr |
 | `2nd Op 01`–`Op 04` | načte 5 znaků (10 číslic, dvojice = kód znaku) z displeje do 1.–4. čtvrtiny tiskového registru (20 znaků) |
@@ -646,10 +648,11 @@ S tiskárnou PC-100A (v emulátoru `View > Virtual Printer (PC-100A)`) jsou k di
 | `2nd Op 06` | vytiskne displej s textem ze 4. čtvrtiny tiskového registru |
 | `2nd Op 07` | vykreslí bod grafu (sloupec 0–19 podle x) |
 
+Klávesy: `Prt` je druhá funkce `+/-`, `Adv` druhá funkce `.` a `List` druhá funkce `=` (viz [2.1 Rozložení kláves](#21-rozložení-kláves)).
+
 Alfanumerický tisk: kód znaku je dvoumístné číslo, například `13` = A. Text „AB“ se připraví jako `1314000000 2nd Op 01`. Plnou tabulku znaků PC-100A uvádí manuál tiskárny.
 
 ⚠️ **Emulátor:**
-- `2nd List` vypíše všechny kroky od 000 (páska pojme 500 řádků, začátek se ztratí).
 - `Op 00` místo mazání zapne trasovací tisk (příznak 7).
 - `Op 05` po tisku tiskový registr vymaže.
 - `Op 06` a `Op 07` jen posunou papír.

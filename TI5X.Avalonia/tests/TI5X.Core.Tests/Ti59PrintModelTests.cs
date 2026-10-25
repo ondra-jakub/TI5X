@@ -349,13 +349,14 @@ public class Ti59PrintModelTests
         // tape trim at MaxLines. NOTE: uppercase only - the TMC0251 font has
         // no lowercase letters except the math glyphs s/p/e/x/z, and an
         // unmappable char prints blank (authentic behavior).
-        for (int i = 0; i < 505; ++i)
+        for (int i = 0; i < PrinterEngine.MaxLines + 5; ++i)
         {
             printer.PrintLine($"STEP {i}");
         }
         await Assert.That(printer.TapeLines.Count).IsEqualTo(PrinterEngine.MaxLines);
         await Assert.That(printer.TapeLines[0]).IsEqualTo("STEP 5".PadRight(20));
-        await Assert.That(printer.TapeLines[^1]).IsEqualTo("STEP 504".PadRight(20));
+        await Assert.That(printer.TapeLines[^1])
+            .IsEqualTo($"STEP {PrinterEngine.MaxLines + 4}".PadRight(20));
     }
 
     // ---------------------------------------------------------------

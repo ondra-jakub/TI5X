@@ -26,7 +26,7 @@ public partial class HelpPage : ContentPage
             "Detaily: sledování běhu, návěští, skoky a podprogramy popisuje příručka v adresáři docs."),
 
         ("Soubory",
-            "Menu > Open Program (.ti5p) načte program do banky 0 (registry zůstávají beze změny), Save Program (.ti5p) uloží program banky 0 přes systémový výběr umístění. Load Library Module (.ti5l) načte knihovní modul do bank 01–99; vestavěná knihovna (jen banka 01, neúplná) se načte při startu.\n\n" +
+            "Menu > Open Program (.ti5p) načte program do banky 0 (registry zůstávají beze změny), Save Program (.ti5p) uloží program banky 0 přes systémový výběr umístění. Load Library Module (.ti5l) načte knihovní modul do bank 01–99; vestavěná knihovna Master Library (banky 01–25) se načte při startu.\n\n" +
             "New Program smaže program i všechny načtené knihovny včetně vestavěné."),
 
         ("Tiskárna a debugger",

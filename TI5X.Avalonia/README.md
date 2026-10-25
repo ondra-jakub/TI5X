@@ -72,6 +72,6 @@ Testy nic nezapisují do repozitáře. Přehled testů a postup přidání nové
 
 ## Omezení
 
-Emulátor není ověřenou emulací všech detailů TI-59. Úplný seznam rozdílů oproti originálu (např. chování příznaku 8, `HIR`, přepočet Op 16/17, statistika, tiskárna) a známých omezení (neúplná Master Library, `.ti5p` neukládá registry, omezená fyzická klávesnice, GUI bez automatizovaných testů, Android ověřený ručním smoke testem) vede [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md).
+Emulátor není ověřenou emulací všech detailů TI-59. Úplný seznam rozdílů oproti originálu (např. chování příznaku 8, `HIR`, přepočet Op 16/17, statistika, tiskárna) a známých omezení (`.ti5p` neukládá registry, omezená fyzická klávesnice, GUI bez automatizovaných testů, Android ověřený ručním smoke testem) vede [Odchylky emulace a známá omezení](docs/ODCHYLKY_A_OMEZENI.md).
 
 Licenční podmínky původního projektu jsou v souboru `COPYING` v kořeni repozitáře.

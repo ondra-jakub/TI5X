@@ -270,7 +270,7 @@ Nápověda uložená v knihovně (`help`, `helpNN`) se načte, ale aplikace ji z
 
 Okno `PC-100A Virtual Thermal Printer` otevřete přes `View > Virtual Printer (PC-100A)`. Napodobuje termotiskárnu PC-100A s papírovou páskou o šířce 20 znaků.
 
-Tiskárna je k emulátoru připojena trvale – tiskne se i při zavřeném okně a po otevření okno ukáže celou dosavadní pásku. Páska pojme nejvýše **500 řádků**, nejstarší řádky se zahazují. Zobrazuje se jako obyčejný text neproporcionálním písmem.
+Tiskárna je k emulátoru připojena trvale – tiskne se i při zavřeném okně a po otevření okno ukáže celou dosavadní pásku. Páska pojme nejvýše **1000 řádků**, nejstarší řádky se zahazují. Zobrazuje se jako obyčejný text neproporcionálním písmem.
 
 | Tlačítko | Činnost |
 |---|---|
@@ -284,7 +284,7 @@ Na pásku tisknou tyto funkce kalkulačky:
 |---|---|
 | `2nd Prt` | Obsah displeje zarovnaný doprava. |
 | `2nd Adv` | Prázdný řádek. |
-| `2nd List` | Výpis programu `PPP  KK MNE` – všechny kroky od 000; dlouhý výpis se kvůli limitu 500 řádků zkrátí zepředu. |
+| `2nd List` | Výpis programu `PPP  KK MNE` – od aktuálního kroku, jako v originále; počátek posune `GTO nnn` mimo LRN. Výpis výchozího rozdělení (960 kroků) se na pásku (1000 řádků) vejde celý. |
 | `Op 0`–`Op 5` | Alfanumerický tisk (Op 0 zde zapíná trasovací tisk, Op 1–4 plní tiskový registr, Op 5 ho vytiskne). |
 | `Op 6`, `Op 7` | Jen posun papíru. |
 | `Op 8` | Výpis návěští aktuální banky. |

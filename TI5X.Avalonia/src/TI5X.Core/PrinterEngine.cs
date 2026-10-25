@@ -18,7 +18,9 @@ public class PrinterEngine
     public const int CharColumns = 20;
     public const int CharWidth = 5;
     public const int CharHeight = 7;
-    public const int MaxLines = 500;
+    // 1000 lines: a full List of the default 960-step user partition fits on
+    // the tape without trimming; the model keeps the whole tape regardless.
+    public const int MaxLines = 1000;
 
     // 5x7 dot matrix font for the 64 PC-100A characters
     public static readonly byte[][] Chars =

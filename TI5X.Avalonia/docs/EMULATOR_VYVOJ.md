@@ -326,7 +326,7 @@ Model tiskárny PC-100A (`src/TI5X.Core/PrinterEngine.cs`) je veden přes **ově
 | Člen | Popis |
 |---|---|
 | `CharColumns = 20`, `CharWidth = 5`, `CharHeight = 7` | Rozměry řádku a znaku. |
-| `MaxLines = 500` | Po překročení se nejstarší řádky mažou (model si pásku drží celou). |
+| `MaxLines = 1000` | Po překročení se nejstarší řádky mažou (model si pásku drží celou). |
 | `Chars` | Bitmapový font 5×7 pro 64 znaků. **Zatím se nepoužívá** – páska se ukládá a zobrazuje jako text. |
 | `TapeLines`, `TapeChanged` | Obsah pásky (seznam 20znakových řádků z modelu) a událost po každé změně. |
 | `PrintLine(text)`, `Advance()`, `Clear()` | Simulace autentického tisku (clear bufferu + znaky přes font + PRINT op), prázdný řádek (`0x0AB8`), smazání pásky (UI). |

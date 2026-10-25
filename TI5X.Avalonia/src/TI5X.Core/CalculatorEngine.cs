@@ -1657,7 +1657,11 @@ public class CalculatorEngine
     {
         byte[] prog = GetCurProg();
         int max = GetMaxProg();
-        for (int i = 0; i < max; ++i)
+        if (max <= 0) return;
+        // Authentic PC-100A behavior: the listing starts at the current step
+        // (PC), not at 000 - use GTO nnn outside LRN to move the start.
+        int start = Math.Min(Math.Max(PC, 0), max - 1);
+        for (int i = start; i < max; ++i)
         {
             byte code = prog[i];
             Printer?.PrintLine($"{i:D3}  {code:D2} {PrinterEngine.ListMnemonic(code)}");

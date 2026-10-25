@@ -219,12 +219,12 @@ Všechny tiskové cesty jsou vedeny přes **ověřený model TMC0251** (port `ti
 |---|---|---|
 | `2nd Prt` | ✅ | Vytiskne obsah displeje zarovnaný doprava na 20 znaků. |
 | `2nd Adv` | ✅ | Prázdný řádek (op `0x0AB8` = `display_print("")`, věrně modelu). |
-| `2nd List` | ⚠️ | *(ověřeno)* Vytiskne **všechny** kroky od 000 do konce rozdělení ve tvaru `PPP  KK MNE`, včetně prázdných. Mnemoniky: u 28 kódů autentická TMC0251 mnemonika z `print_func` (`÷`→` / `, `√X`→`sX `, `π`→`pi `, `∑+`→`$+ `, `EXC`→`X|Y`, …), jinde klávesní zkratka `KeyCodeSym`. Páska pojme 500 řádků, takže začátek výpisu (prvních 460 kroků z 960) se ztratí. V originále výpis začíná od aktuálního kroku. |
+| `2nd List` | ✅ | *(ověřeno)* Vytiskne kroky **od aktuálního kroku** do konce rozdělení ve tvaru `PPP  KK MNE`, včetně prázdných — jako v originále; počátek výpisu posune `GTO nnn` mimo LRN. Mnemoniky: u 28 kódů autentická TMC0251 mnemonika z `print_func` (`÷`→` / `, `√X`→`sX `, `π`→`pi `, `∑+`→`$+ `, `EXC`→`X|Y`, …), jinde klávesní zkratka `KeyCodeSym`. Páska pojme 1000 řádků, takže výpis výchozího rozdělení (960 kroků) se vejde celý i se začátkem. |
 | `INV 2nd List` a `INV 2nd Prt` | ❌ | INV se ignoruje. |
 | Trasovací tisk | ⚠️ | Přes příznak 7 / Op 0 se tisknou jen výsledky (hodnota displeje), ne kódy kláves s mnemonikami. |
 | Op 1–4, Op 5 (alfanumerický tisk) | ✅ | Mapování dvouciferných kódů XY na znaky overeno empiricky proti reálné ROM (Master Library ML-01, orákulum TMS0500-sim): `((X mod 8) << 3) | Y`, tj. desitky 8/9 se maskují a jednotky 8/9 ORují bit 3 — celá tabulka 00–99 popsána ve `PrinterEngine.PrintRegisterChar` (14 měřených bodů). Dříve dokládané odlišení „od kódu 50 výš / kódy s číslicí 8–9 nedefinované” se ukázalo jako chyba starší ruční mapy `CodeToChar`; správnou sadu udává ověřený font v `Ti59PrintMachine.FontTable` (= `print_font` z print.c, 64 znaků). |
 | Grafická znaková sada 5×7 | ⚠️ | Tabulka `PrinterEngine.Chars` existuje, ale nepoužívá se. Páska je obyčejný text. |
-| Délka pásky | ⚠️ | Max. 500 řádků, nejstarší se zahazují (model si pásku drží celou; modelové řádky mají vždy 20 sloupců). |
+| Délka pásky | ⚠️ | Max. 1000 řádků, nejstarší se zahazují (model si pásku drží celou; modelové řádky mají vždy 20 sloupců). |
 | Op 6, Op 7 (tisk s popisem, vykreslování grafu) | ⚠️ | Jen posunou papír o jeden řádek. |
 | Tisk řízený ROM (diagnostika ML-01 „MASTER/1.”) | ⚠️ | Model i orákulum jej reprodukují bit-exaktně (korpus `ml01print`), ale **aplikace jej netiskne** — nespouští reálnou ROM, takže autotisk z knihovních programů chybí. Odkládá se do fáze 4/5 (integrace jádra za feature flagu), viz `ti59-dafny/README.md`. |
 
@@ -297,7 +297,7 @@ Kódy 00–09 se v programu provedou jako číslice, kódy 10–19 jako volání
 
 ## 6. Obecná omezení aplikace
 
-- **Neúplná Master Library.** K dispozici je jen banka 01 z `src/TI5X.Avalonia/Assets/ml.ti5l`; její sloučené kódy se provádějí správně, ale ostatní programy chybí. Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...` (v Androidu `Menu > Load Library Module (.ti5l)`). Načtená knihovna přepíše banky se stejným číslem.
+- **Master Library.** Vestavěná `src/TI5X.Avalonia/Assets/ml.ti5l` obsahuje všech 25 bank (sestaveno z dumpu CROM TMC0541, viz [3.11](#311-knihovní-programy-karty-a-soubory)). Vlastní knihovny lze načíst přes `File > Load Library Module (.ti5l)...` (v Androidu `Menu > Load Library Module (.ti5l)`). Načtená knihovna přepíše banky se stejným číslem.
 - **`.ti5p` neukládá registry**, příznaky, režim úhlů, formát zobrazení ani rozdělení paměti. Obsah registrů se při načtení programu nemění.
 - **Omezená fyzická klávesnice.** Viz [3.1](#31-klávesnice-2nd-a-inv). Ostatní funkce se ovládají myší na virtuální klávesnici.
 - **Debugger** (`View > Program Debugger / Steps`) zobrazuje kroky aktuální banky, přičemž bajty operandů ukazuje také jako mnemoniky (např. adresa `42` se zobrazí jako `STO`). Registry ukazuje jen R00–R51 podle chybného přepočtu z `RegOffset`. `Reset` nastaví pouze PC = 0; `Step` i `Reset` jsou při běhu programu ignorovány.
