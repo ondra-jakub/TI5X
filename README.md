@@ -1,5 +1,9 @@
 # TI5X pro .NET 10, Avalonia 12 a Android (MAUI i Avalonia)
 
+<p align="center">
+  <img src="docs/ti-59.svg" alt="TI-59" width="360" />
+</p>
+
 Emulátor programovatelné kalkulačky **TI-59** (a TI-58) pro .NET 10: desktopová aplikace a dvě mobilní aplikace pro Android – stabilní varianta v .NET MAUI a experimentální varianta přímo v Avalonia 12.1.4. Projekt je portovaný z původního Android projektu TI5X v tomto repozitáři; původní Android zdroje zůstávají zachované. Emulační jádro, view modely i sdílené UI komponenty jsou společné pro všechny tři aplikace.
 
 ## Spuštění

@@ -18,3 +18,7 @@ Snímek obrazovky*.png
 /regen/
 /sbom/
 *.TestResults/
+
+# Nebalancovat do repozitáře (zůstávají jen lokálně)
+/ti59-dafny/
+/util/

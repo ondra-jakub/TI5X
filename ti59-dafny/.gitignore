@@ -1,6 +1,0 @@
-obj/
-bin/
-*.user
-.DS_Store
-oracle/build/
-*.stdout.tmp

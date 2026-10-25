@@ -1,7 +1,0 @@
-# Korpus klavesovych skriptu pro diferencialni validaci (format ti59d -K):
-#   <key_matrix_code_hex> [not_before_cycle] [hold_scans] [toggle]
-# Klicove kody odpovidaji key_table_ti58 v key.c (TI-58/59 sdileji mapu).
-# Vsechny klavesy se konzumuji v poradi na prvnich "read new key" udalostich
-# (idle scan-all, key_code==0); not_before_cycle=0 = hned kdyz je ROM pripravena.
-
-# --- a) boot bez klaves: prazdny skript ---
